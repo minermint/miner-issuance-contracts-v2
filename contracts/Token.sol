@@ -6,6 +6,10 @@ import "./SafeMath.sol";
 
 enum TradeType { Buy, Sell }
 
+enum ProposalType { Mint, Access }
+
+enum AccessAction { Grant, Revoke }
+
 struct Transaction {
     address who;
     TradeType trade;
@@ -16,12 +20,25 @@ struct Transaction {
 }
 
 struct Proposal {
-    uint256 amount;
     address who;
     uint256 expires;
     uint256 count;
     uint256 required;
     bool open;
+    ProposalType proposalType;
+}
+
+struct MintProposal {
+    uint256 amount;
+}
+
+struct AccessProposal {
+    address authority;
+    AccessAction action;
+}
+
+struct Signatory {
+    bool granted;
 }
 
 contract Token is IERC20, Ownable {
@@ -34,10 +51,10 @@ contract Token is IERC20, Ownable {
 
     uint8 constant MINIMUM_AUTHORITIES = 3;
 
-    mapping (address => bool) public authorised;
+    mapping (address => Signatory) public authorised;
     uint256 public authorisedCount;
 
-    mapping (uint256 => mapping(address => bool)) public votes;
+    mapping (uint256 => mapping(address => bool)) public signatures;
 
     mapping (address => uint256) private _balances;
     mapping (address => mapping (address => uint256)) private _allowed;
@@ -45,6 +62,8 @@ contract Token is IERC20, Ownable {
 
     Transaction[] public history;
     Proposal[] public proposals;
+    mapping (uint256 => AccessProposal) public accessProposals;
+    mapping (uint256 => MintProposal) public mintProposals;
 
     function name() public view returns (string memory) {
         return _name;
@@ -62,8 +81,8 @@ contract Token is IERC20, Ownable {
     }
 
     constructor() public {
-        authorised[msg.sender] = true;
-        authorisedCount = 1;
+        authorised[msg.sender] = Signatory(true);
+        authorisedCount = authorisedCount.add(1);
     }
 
     function getTotalTradeCount() public view returns (uint256) {
@@ -84,7 +103,7 @@ contract Token is IERC20, Ownable {
     }
 
     function _inVotingPeriod(uint256 i) private view returns (bool) {
-        return proposals[i].expires > now;
+        return proposals[i].expires > now && proposals[i].open;
     }
 
     function getAccountTradesIndexs(address who) public view returns (uint256[] memory indexes) {
@@ -146,35 +165,86 @@ contract Token is IERC20, Ownable {
         return true;
     }
 
-    function addProposal(uint256 amount) public onlyAuthorised() returns(uint256) {
-        require(inVotingPeriod() == false, "Can not add a proposal while one is pending");
+    function proposeMint(uint256 amount)
+        public
+        onlyAuthorised()
+        minimumSignatories()
+    {
         require(amount > 0, "Amount must be greater than zero");
-        require(authorisedCount > 2, "Must have at least three signatories");
 
-        //Less 2, because owner cannot vote on their own.
-        uint256 required = authorisedCount.sub(2);
-        Proposal memory proposal = Proposal(amount, msg.sender, now + 48 hours, 0, required, true);
+        mintProposals[proposals.length] = MintProposal(amount);
+        propose(ProposalType.Mint);
+    }
+
+    function proposeGrant(address authority) public onlyAuthorised() {
+        require(authority != address(0), "Invalid address");
+
+        accessProposals[proposals.length] = AccessProposal(authority, AccessAction.Grant);
+
+        propose(ProposalType.Access);
+    }
+
+    function proposeRevoke(address authority)
+        public
+        onlyAuthorised()
+        minimumSignatories()
+    {
+        require(authority != address(0), "Invalid address");
+        require(authorised[authority].granted, "Authority does not exist or has had authorisation already revoked");
+
+        accessProposals[proposals.length] = AccessProposal(authority, AccessAction.Revoke);
+        propose(ProposalType.Access);
+    }
+
+    function propose(ProposalType proposalType) internal onlyAuthorised() returns(uint256) {
+        require(inVotingPeriod() == false, "Can not add a proposal while one is pending");
+
+        uint256 required = authorisedCount.sub(1);
+        Proposal memory proposal = Proposal(msg.sender, now + 48 hours, 0, required, true, proposalType);
         proposals.push(proposal);
 
+        sign();
+    }
+
+    function getProposalLength() public view returns(uint256) {
         return proposals.length;
     }
 
-    function vote() public onlyAuthorised() {
+    function sign() public onlyAuthorised() {
         require(proposals.length > 0, "No proposals have been submitted");
         uint256 index = proposals.length.sub(1);
 
-        //require(proposals[index].who == msg.sender, "Cannot approve own proposal");
         require(_inVotingPeriod(index), "Proposal has expired");
         require(proposals[index].open == true, "Proposal is closed");
 
-        if (votes[index][msg.sender] != true) {
-            votes[index][msg.sender] = true;
+        if (signatures[index][msg.sender] != true) {
+            signatures[index][msg.sender] = true;
             proposals[index].count = proposals[index].count.add(1);
-            emit Vote(index);
+            emit Signed(index);
 
             if (proposals[index].count >= proposals[index].required) {
                 proposals[index].open = false;
-                _mint(proposals[index].amount);
+
+                if (proposals[index].proposalType == ProposalType.Mint) {
+                    _mint(mintProposals[index].amount);
+                } else {
+                    // is this a new sigantory?
+                    address newSignatory = accessProposals[index].authority;
+
+                    // don't re-add a signatory if they already have granted access.
+                    if (!authorised[newSignatory].granted) {
+                        if (accessProposals[index].action == AccessAction.Grant) {
+                            authorised[newSignatory] = Signatory(true);
+                            authorisedCount = authorisedCount.add(1);
+                        }
+                    } else {
+                        // only revoke signatory status if they have previously been granted access.
+                        if (accessProposals[index].action == AccessAction.Revoke) {
+                            authorised[newSignatory].granted = false;
+                            authorisedCount = authorisedCount.sub(1);
+                        }
+                    }
+                }
             }
         }
     }
@@ -196,26 +266,15 @@ contract Token is IERC20, Ownable {
         _transfer(address(this), to, value);
     }
 
-    function updateAuthorised(address who, bool isAuthorised) public onlyOwner() {
-        require(who != address(0), "Invalid address");
-        require(isAuthorised || (!isAuthorised && authorisedCount > MINIMUM_AUTHORITIES), "Can not revoke authority. Minimum authorities required");
-
-        //change state
-        if (authorised[who] != isAuthorised) {
-            if (isAuthorised == true) {
-                authorisedCount = authorisedCount.add(1);
-            } else {
-                authorisedCount = authorisedCount.sub(1);
-            }
-        }
-
-        authorised[who] = isAuthorised;
-    }
-
     modifier onlyAuthorised() {
-        require(authorised[msg.sender] == true, "Sender is not a authorised");
+        require(authorised[msg.sender].granted == true, "Sender is not a authorised");
         _;
     }
 
-    event Vote(uint256 index);
+    modifier minimumSignatories() {
+        require(authorisedCount >= MINIMUM_AUTHORITIES, "Minimum authorities not met");
+        _;
+    }
+
+    event Signed(uint256 index);
 }

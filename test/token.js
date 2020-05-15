@@ -13,7 +13,8 @@ contract("Token", function(accounts) {
 
   let tokenInstance;
 
-  describe("ERC20 tests", async () => {
+  // test the contract in its initial, deployed state.
+  describe("Deployment tests", async () => {
     beforeEach(async () => {
       tokenInstance = await Token.new();
     });
@@ -39,6 +40,12 @@ contract("Token", function(accounts) {
     it("should have a decimals of 4", async () => {
       const actual = await tokenInstance.decimals();
       assert.equal(Number(actual), 4, "Decimals should be 4");
+    });
+
+    it("should have one (1) authority who is also the contract owner",
+    async () => {
+      const authorityCount = new BN(await tokenInstance.authorisedCount());
+      assert.equal(authorityCount.toString(), 1, "There should be one (1) authority when the contract is deployed");
     });
   });
 
@@ -114,6 +121,15 @@ contract("Token", function(accounts) {
         assert.equal(error.reason, "Can not revoke authority. Minimum authorities required", `Incorrect revert reason: ${error.reason}`);
       }
     })
+
+    it("should do something when owner is added but authority is automatically revoked",
+    async () => {
+      await tokenInstance.updateAuthorised(ALICE, true);
+      console.log('Count', new BN(await tokenInstance.authorisedCount()).toString())
+      await tokenInstance.updateAuthorised(BOB, true);
+      console.log('Count', new BN(await tokenInstance.authorisedCount()).toString())
+      console.log("BOB", await tokenInstance.authorised(BOB))
+    })
   });
 
   describe("With less than required authorities tests", async () => {
@@ -139,20 +155,24 @@ contract("Token", function(accounts) {
     beforeEach(async () => {
       tokenInstance = await Token.new();
 
-      await tokenInstance.updateAuthorised(OWNER_2, true);
-      await tokenInstance.updateAuthorised(OWNER_3, true);
+      await tokenInstance.proposeGrant(OWNER_2);
+      await tokenInstance.proposeGrant(OWNER_3);
     });
 
-    it("should add proposal to mint 1337 tokens", async () => {
-      await tokenInstance.addProposal(1337);
+    it.only("should add proposal to mint 1337 tokens", async () => {
+      await tokenInstance.proposeMint(1337);
+      await tokenInstance.sign({ from: OWNER_2 })
 
       const balance = await tokenInstance.balanceOf(OWNER);
       assert.equal(Number(balance), 0, "Balance should still be 0");
 
-      const actual = await tokenInstance.proposals(0);
-      assert.equal(Number(actual[0]), 1337, "Proposal amount should be 1337");
-      assert.equal(Number(actual[1]), OWNER, "Proposal owner should be Owner");
-      assert.isTrue(actual.open);
+      const latestProposal = new BN(await tokenInstance.getProposalLength()) - 1;
+      const proposal = await tokenInstance.proposals(latestProposal);
+      const mintProposal = await tokenInstance.mintProposals(latestProposal);
+
+      assert.equal(new BN(mintProposal), 1337, "Proposal amount should be 1337");
+      assert.equal(proposal.who, OWNER, "Proposal owner should be Owner");
+      assert.isFalse(proposal.open);
     });
 
     it("should not be able to add a proposal when one is pending", async () => {
