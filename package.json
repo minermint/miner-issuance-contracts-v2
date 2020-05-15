@@ -1,0 +1,34 @@
+{
+  "name": "minertoken",
+  "version": "0.9.0-dev",
+  "description": "Miner Token smart contracts.",
+  "author": [
+    "Lucas Cullens",
+    "Hayden Young"
+  ],
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "bip39": "^3.0.2",
+    "bn.js": "^5.1.1",
+    "ethereum-qr-code": "^0.3.0",
+    "ethereumjs-tx": "^2.0.0",
+    "ethereumjs-util": "^6.1.0",
+    "ethereumjs-wallet": "^0.6.3",
+    "ethjs": "^0.4.0",
+    "ethjs-signer": "^0.1.1",
+    "gsap": "^2.1.3",
+    "hdkey": "^1.1.1",
+    "sha256": "^0.2.0",
+    "truffle": "^5.0.22",
+    "web3-eth-accounts": "^1.2.5-rc.0"
+  },
+  "devDependencies": {
+    "@truffle/hdwallet-provider": "^1.0.34",
+    "dotenv": "^8.2.0",
+    "jest": "^25.1.0",
+    "nodemon": "^1.19.1",
+    "solidity-coverage": "^0.7.5",
+    "truffle-security": "git+https://github.com/ConsenSys/truffle-security.git"
+  }
+}
