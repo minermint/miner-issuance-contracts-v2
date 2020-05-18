@@ -164,6 +164,10 @@ contract Token is IERC20, Ownable {
         return true;
     }
 
+    /**
+     * Proposes a minting event.
+     * @params uint256 amount The proposed amount to mint.
+     */
     function proposeMint(uint256 amount)
         public
         onlyAuthorised()
@@ -176,6 +180,11 @@ contract Token is IERC20, Ownable {
         _propose(ProposalType.Mint);
     }
 
+    /**
+     * Proposes the granting of signatory based on their public address.
+     * @params address authority The address of the signatory to grant access
+     * to.
+     */
     function proposeGrant(address authority)
         public
         onlyAuthorised()
@@ -191,6 +200,11 @@ contract Token is IERC20, Ownable {
         _propose(ProposalType.Access);
     }
 
+    /**
+     * Proposes the revoking of a signatory based on their public address.
+     * @params address authority The address of the signatory to revoke access
+     * from.
+     */
     function proposeRevoke(address authority)
         public
         onlyAuthorised()
@@ -228,10 +242,17 @@ contract Token is IERC20, Ownable {
         sign();
     }
 
+    /**
+     * Gets the number of proposals.
+     */
     function getProposalsCount() public view returns(uint256) {
         return proposals.length;
     }
 
+    /**
+     * Signs a proposal. If the required number of signatories is reached,
+     * execute the appropriate proposal action.
+     */
     function sign()
         public
         onlyAuthorised() {
