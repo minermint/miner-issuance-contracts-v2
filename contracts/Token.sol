@@ -163,7 +163,7 @@ contract Token is IERC20, Ownable {
         require(proposals.length > 0, "No proposals have been submitted");
         uint256 index = proposals.length.sub(1);
 
-        //require(proposals[index].who == msg.sender, "Cannot approve own proposal");
+        require(proposals[index].who != msg.sender, "Cannot approve own proposal");
         require(_inVotingPeriod(index), "Proposal has expired");
         require(proposals[index].open == true, "Proposal is closed");
 
