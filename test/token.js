@@ -134,11 +134,11 @@ contract("Token", function(accounts) {
         }
       });
 
-      it("should be in voting period", async () => {
+      it("should be in signing period", async () => {
         await tokenInstance.proposeMint(1337);
 
-        const actual = await tokenInstance.inVotingPeriod();
-        assert.equal(actual, true, "Voting should be allowed");
+        const actual = await tokenInstance.inSigningPeriod();
+        assert.equal(actual, true, "Signing should be allowed");
       });
 
       it("should NOT be able to sign when there are no open proposals", async() => {

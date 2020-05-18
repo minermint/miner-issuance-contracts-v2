@@ -92,16 +92,16 @@ contract Token is IERC20, Ownable {
         return _tradeCount[who];
     }
 
-    function inVotingPeriod() public view returns (bool) {
+    function inSigningPeriod() public view returns (bool) {
         if (proposals.length == 0) {
             return false;
         }
 
         uint i = proposals.length.sub(1);
-        return _inVotingPeriod(i);
+        return _inSigningPeriod(i);
     }
 
-    function _inVotingPeriod(uint256 i) private view returns (bool) {
+    function _inSigningPeriod(uint256 i) private view returns (bool) {
         return proposals[i].expires > now;
     }
 
@@ -166,7 +166,7 @@ contract Token is IERC20, Ownable {
 
     /**
      * Proposes a minting event.
-     * @params uint256 amount The proposed amount to mint.
+     * @param amount uint256 The proposed amount to mint.
      */
     function proposeMint(uint256 amount)
         public
@@ -182,7 +182,7 @@ contract Token is IERC20, Ownable {
 
     /**
      * Proposes the granting of signatory based on their public address.
-     * @params address authority The address of the signatory to grant access
+     * @param authority address The address of the signatory to grant access
      * to.
      */
     function proposeGrant(address authority)
@@ -202,7 +202,7 @@ contract Token is IERC20, Ownable {
 
     /**
      * Proposes the revoking of a signatory based on their public address.
-     * @params address authority The address of the signatory to revoke access
+     * @param authority address The address of the signatory to revoke access
      * from.
      */
     function proposeRevoke(address authority)
@@ -259,7 +259,7 @@ contract Token is IERC20, Ownable {
         require(proposals.length > 0, "No proposals have been submitted");
         uint256 index = getProposalsCount().sub(1);
 
-        require(inVotingPeriod(), "Proposal has expired");
+        require(inSigningPeriod(), "Proposal has expired");
         require(proposals[index].open == true, "Proposal is closed");
         require(_signatures[index][msg.sender] != true, "Signatory has already signed this proposal");
 
@@ -340,7 +340,7 @@ contract Token is IERC20, Ownable {
             uint256 index = totalProposals.sub(1);
 
             require(
-                !proposals[index].open || !inVotingPeriod(),
+                !proposals[index].open || !inSigningPeriod(),
                 "Can not add a proposal while one is pending");
         }
         _;
