@@ -22,8 +22,7 @@ struct Transaction {
 struct Proposal {
     address who;
     uint256 expires;
-    uint256 count;
-    uint256 required;
+    uint256 signatures;
     bool open;
     ProposalType proposalType;
 }
@@ -54,7 +53,7 @@ contract Token is IERC20, Ownable {
     mapping (address => Signatory) public authorised;
     uint256 public authorisedCount;
 
-    mapping (uint256 => mapping(address => bool)) public signatures;
+    mapping (uint256 => mapping(address => bool)) private _signatures;
 
     mapping (address => uint256) private _balances;
     mapping (address => mapping (address => uint256)) private _allowed;
@@ -103,7 +102,7 @@ contract Token is IERC20, Ownable {
     }
 
     function _inVotingPeriod(uint256 i) private view returns (bool) {
-        return proposals[i].expires > now && proposals[i].open;
+        return proposals[i].expires > now;
     }
 
     function getAccountTradesIndexs(address who) public view returns (uint256[] memory indexes) {
@@ -173,78 +172,115 @@ contract Token is IERC20, Ownable {
         require(amount > 0, "Amount must be greater than zero");
 
         mintProposals[proposals.length] = MintProposal(amount);
-        propose(ProposalType.Mint);
+
+        _propose(ProposalType.Mint);
     }
 
-    function proposeGrant(address authority) public onlyAuthorised() {
+    function proposeGrant(address authority)
+        public
+        onlyAuthorised()
+        proposalPending()
+    {
         require(authority != address(0), "Invalid address");
+        require(!authorised[authority].granted, "Access already granted");
 
-        accessProposals[proposals.length] = AccessProposal(authority, AccessAction.Grant);
+        uint256 index = getProposalsCount();
 
-        propose(ProposalType.Access);
+        accessProposals[index] = AccessProposal(authority, AccessAction.Grant);
+
+        _propose(ProposalType.Access);
     }
 
     function proposeRevoke(address authority)
         public
         onlyAuthorised()
         minimumSignatories()
+        proposalPending()
     {
         require(authority != address(0), "Invalid address");
-        require(authorised[authority].granted, "Authority does not exist or has had authorisation already revoked");
+        require(
+            authorised[authority].granted,
+            "Authority does not exist or has already been revoked");
 
-        accessProposals[proposals.length] = AccessProposal(authority, AccessAction.Revoke);
-        propose(ProposalType.Access);
+        uint256 index = getProposalsCount();
+
+        accessProposals[index] = AccessProposal(authority, AccessAction.Revoke);
+
+        _propose(ProposalType.Access);
     }
 
-    function propose(ProposalType proposalType) internal onlyAuthorised() returns(uint256) {
-        require(inVotingPeriod() == false, "Can not add a proposal while one is pending");
+    function _propose(ProposalType proposalType)
+        private
+        onlyAuthorised()
+        proposalPending()
+        returns(uint256)
+    {
+        Proposal memory proposal =
+            Proposal(
+                msg.sender,
+                now + 48 hours,
+                0,
+                true,
+                proposalType);
 
-        uint256 required = authorisedCount.sub(1);
-        Proposal memory proposal = Proposal(msg.sender, now + 48 hours, 0, required, true, proposalType);
         proposals.push(proposal);
 
         sign();
     }
 
-    function getProposalLength() public view returns(uint256) {
+    function getProposalsCount() public view returns(uint256) {
         return proposals.length;
     }
 
-    function sign() public onlyAuthorised() {
+    function sign()
+        public
+        onlyAuthorised() {
         require(proposals.length > 0, "No proposals have been submitted");
-        uint256 index = proposals.length.sub(1);
+        uint256 index = getProposalsCount().sub(1);
 
-        require(_inVotingPeriod(index), "Proposal has expired");
+        require(inVotingPeriod(), "Proposal has expired");
         require(proposals[index].open == true, "Proposal is closed");
+        require(_signatures[index][msg.sender] != true, "Signatory has already signed this proposal");
 
-        if (signatures[index][msg.sender] != true) {
-            signatures[index][msg.sender] = true;
-            proposals[index].count = proposals[index].count.add(1);
-            emit Signed(index);
+        _signatures[index][msg.sender] = true;
+        proposals[index].signatures = proposals[index].signatures.add(1);
+        emit Signed(index);
 
-            if (proposals[index].count >= proposals[index].required) {
-                proposals[index].open = false;
+        if (proposals[index].signatures >= _getRequiredSignatoryCount()) {
+            proposals[index].open = false;
 
-                if (proposals[index].proposalType == ProposalType.Mint) {
-                    _mint(mintProposals[index].amount);
-                } else {
-                    // is this a new sigantory?
-                    address newSignatory = accessProposals[index].authority;
+            if (proposals[index].proposalType == ProposalType.Mint) {
+                _mint(mintProposals[index].amount);
+            } else {
+                _updateSignatoryAccess();
+            }
+        }
+    }
 
-                    // don't re-add a signatory if they already have granted access.
-                    if (!authorised[newSignatory].granted) {
-                        if (accessProposals[index].action == AccessAction.Grant) {
-                            authorised[newSignatory] = Signatory(true);
-                            authorisedCount = authorisedCount.add(1);
-                        }
-                    } else {
-                        // only revoke signatory status if they have previously been granted access.
-                        if (accessProposals[index].action == AccessAction.Revoke) {
-                            authorised[newSignatory].granted = false;
-                            authorisedCount = authorisedCount.sub(1);
-                        }
-                    }
-                }
+    function _getRequiredSignatoryCount() private returns (uint256) {
+        return authorisedCount.sub(1);
+    }
+
+    function _updateSignatoryAccess() private {
+        uint256 index = getProposalsCount().sub(1);
+        // is this a new signatory?
+        address signatory = accessProposals[index].authority;
+
+        // don't re-add a signatory if they already have been granted access.
+        if (!authorised[signatory].granted) {
+            if (accessProposals[index].action == AccessAction.Grant) {
+                authorised[signatory] = Signatory(true);
+                authorisedCount = authorisedCount.add(1);
+
+                emit AccessGranted(signatory);
+            }
+        } else {
+            // only revoke signatory status if they have previously been granted access.
+            if (accessProposals[index].action == AccessAction.Revoke) {
+                authorised[signatory].granted = false;
+                authorisedCount = authorisedCount.sub(1);
+
+                emit AccessRevoked(signatory);
             }
         }
     }
@@ -276,5 +312,21 @@ contract Token is IERC20, Ownable {
         _;
     }
 
+    modifier proposalPending() {
+        uint256 totalProposals = getProposalsCount();
+
+        if (totalProposals > 0) {
+            uint256 index = totalProposals.sub(1);
+
+            require(
+                !proposals[index].open || !inVotingPeriod(),
+                "Can not add a proposal while one is pending");
+        }
+        _;
+    }
+
     event Signed(uint256 index);
+
+    event AccessGranted(address signatory);
+    event AccessRevoked(address signatory);
 }
