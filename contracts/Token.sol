@@ -64,6 +64,11 @@ contract Token is IERC20, Ownable {
     mapping (uint256 => AccessProposal) public accessProposals;
     mapping (uint256 => MintProposal) public mintProposals;
 
+    constructor() public {
+        authorised[msg.sender] = Signatory(true);
+        authorisedCount = authorisedCount.add(1);
+    }
+
     function name() public view returns (string memory) {
         return _name;
     }
@@ -77,11 +82,6 @@ contract Token is IERC20, Ownable {
 
     function totalSupply() public view override returns (uint256) {
         return _totalSupply;
-    }
-
-    constructor() public {
-        authorised[msg.sender] = Signatory(true);
-        authorisedCount = authorisedCount.add(1);
     }
 
     function getTotalTradeCount() public view returns (uint256) {

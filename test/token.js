@@ -254,16 +254,16 @@ contract("Token", function(accounts) {
     beforeEach(async () => {
       tokenInstance = await Token.new();
 
-      await tokenInstance.updateAuthorised(OWNER_2, true);
-      await tokenInstance.updateAuthorised(ALICE, true);
+      await tokenInstance.proposeGrant(OWNER_2);
+      await tokenInstance.proposeGrant(ALICE);
 
-      await tokenInstance.addProposal(10000);
-      await tokenInstance.vote({ from: OWNER_2});
+      await tokenInstance.proposeMint(10000);
+      await tokenInstance.sign({ from: OWNER_2 });
 
       await tokenInstance.purchase(ALICE, 100, 100, 100);
     });
 
-    it.skip("should transfer 10 tokens from alice to bob", async () => {
+    it("should transfer 10 tokens from alice to bob", async () => {
       var actual = await tokenInstance.balanceOf(ALICE);
       assert.equal(Number(actual), 100, "Alice balance should be 100 tokens");
 
@@ -276,7 +276,7 @@ contract("Token", function(accounts) {
       assert.equal(Number(actual), 10, "Bob balance should be 10 tokens");
     });
 
-    it.skip("owner should allow owner to transfer 50 tokens to bob from alice", async () => {
+    it("alice should allow owner to transfer 50 tokens to bob from alice", async () => {
       await tokenInstance.approve(OWNER, 50, { from: ALICE });
 
       //account 0 (owner) now transfers from alice to bob
@@ -285,7 +285,7 @@ contract("Token", function(accounts) {
       assert.equal(Number(actual), 50, "Balance should be 50");
     });
 
-    it.skip("should not allow transfer to zero address", async () => {
+    it("should not allow transfer to zero address", async () => {
       try {
         await tokenInstance.transfer(0, 10);
       } catch (error) {
@@ -295,7 +295,7 @@ contract("Token", function(accounts) {
       }
     });
 
-    it.skip("should not allow sending by user with insuffient tokens", async () => {
+    it("should not allow sending by user with insuffient tokens", async () => {
       await tokenInstance.transfer(BOB, 10, { from: ALICE });
       try {
         await tokenInstance.transfer(ALICE, 1000, { from: BOB });
@@ -306,19 +306,9 @@ contract("Token", function(accounts) {
       }
     });
 
-    it.skip("should allow owner 10 tokens from alice", async () => {
+    it("should allow owner 10 tokens from alice", async () => {
       var actual = await tokenInstance.balanceOf(ALICE);
       assert.equal(Number(actual), 100, "Alice balance should be 100 tokens");
-
-    });
-
-    it.skip("Owner should allow alice to transfer 10 tokens to bob from owner", async () => {
-      await tokenInstance.approve(OWNER, 10, {from: ALICE});
-
-      //account 0 (owner) now transfers from alice to bob
-      await tokenInstance.transferFrom(OWNER, BOB, 10, { from: ALICE });
-      const actual = await tokenInstance.balanceOf(BOB);
-      assert.equal(Number(actual), 10, "Balance should be 10");
     });
   });
 
