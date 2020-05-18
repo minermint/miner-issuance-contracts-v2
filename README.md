@@ -25,8 +25,6 @@ Contract Address: `0x`
 | 1 | `0xbd9F7DAEe6d5Fc5595567AeD84f0f52D694F056C` | `0x60f54928d665c30e3055863a7254d0eb9dc5d4aa14ef2b1af230085c690adada` |
 | 2 | `0x9e1525DA6AB3498dda99B97dc13E79f4c44b79d8` | `0x90b00e527c4ad18ee427fe1ee074eec77e33378796a24b8ae35970210acc3274` |
 
-For detailed explanation on how things work, checkout [Nuxt.js docs](https://nuxtjs.org).
-
 # Building Contracts
 
 ## Deploying a contract
