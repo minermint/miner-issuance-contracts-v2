@@ -33,5 +33,8 @@ module.exports = {
     solc: {
       version: "0.6.4"
     }
+  },
+  mocha: {
+    reporter: 'eth-gas-reporter'
   }
 };
