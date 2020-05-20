@@ -1,8 +1,9 @@
 pragma solidity ^0.6.0;
 
-import "./IERC20.sol";
-import "./Ownable.sol";
-import "./SafeMath.sol";
+import "./Miner.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 enum TradeType { Buy, Sell }
 
@@ -40,13 +41,11 @@ struct Signatory {
     bool granted;
 }
 
-contract Token is IERC20, Ownable {
+contract Treasury is Ownable {
     using SafeMath for uint;
+    using SafeERC20 for Miner;
 
-    uint256 private _totalSupply;
-    string private _name = "Miner";
-    string private _symbol = "MNR";
-    uint8 private _decimals = 4;
+    Miner private _token;
 
     uint8 constant MINIMUM_AUTHORITIES = 3;
 
@@ -64,24 +63,10 @@ contract Token is IERC20, Ownable {
     mapping (uint256 => AccessProposal) public accessProposals;
     mapping (uint256 => MintProposal) public mintProposals;
 
-    constructor() public {
+    constructor(Miner token) public {
+        _token = token;
         authorised[msg.sender] = Signatory(true);
         authorisedCount = authorisedCount.add(1);
-    }
-
-    function name() public view returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
-    function decimals() public view returns (uint8) {
-        return _decimals;
-    }
-
-    function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
     }
 
     function getTotalTradeCount() public view returns (uint256) {
@@ -118,50 +103,6 @@ contract Token is IERC20, Ownable {
         }
 
         return indexes;
-    }
-
-    function balanceOf(address who) public view override returns (uint256) {
-        return _balances[who];
-    }
-
-    function transfer(address to, uint256 value) public override returns (bool) {
-        require(msg.sender != address(this), "Contract itself can not send");
-        _transfer(msg.sender, to, value);
-        return true;
-    }
-
-    function _transfer(address from, address to, uint256 value) internal {
-        require(to != address(0), "Invalid address");
-        require(from != address(0), "Invalid address");
-        require(_balances[from] >= value, "Insufficient funds");
-
-        _balances[from] = _balances[from].sub(value);
-        _balances[to] = _balances[to].add(value);
-
-        emit Transfer(from, to, value);
-    }
-
-    function allowance(address tokenOwner, address spender) public view override returns (uint remaining) {
-        return _allowed[tokenOwner][spender];
-    }
-
-    function transferFrom(address from, address to, uint256 value) public override returns (bool success) {
-        require(to != address(0), "Invalid address");
-        require(from != address(this), "Cannot be contract address");
-
-        _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
-        _transfer(from, to, value);
-
-        emit Approval(from, msg.sender, _allowed[from][msg.sender]);
-        return true;
-    }
-
-    function approve(address spender, uint256 value) public override returns (bool) {
-        require(spender != address(0), "Invalid address");
-
-        _allowed[msg.sender][spender] = value;
-        emit Approval(msg.sender, spender, value);
-        return true;
     }
 
     /**
@@ -307,10 +248,7 @@ contract Token is IERC20, Ownable {
     }
 
     function _mint(uint256 value) internal {
-        _totalSupply = _totalSupply.add(value);
-        _balances[address(this)] = _balances[address(this)].add(value);
-
-        emit Transfer(address(0), address(this), value);
+        _token.mint(value);
     }
 
     function purchase(address to, uint256 value, uint256 unitPrice, uint256 ethPrice) public onlyAuthorised() {
@@ -320,7 +258,7 @@ contract Token is IERC20, Ownable {
 
         history.push(Transaction(to, TradeType.Sell, value, unitPrice, ethPrice, now));
         _tradeCount[to] = _tradeCount[to].add(1);
-        _transfer(address(this), to, value);
+        _token.transfer(to, value);
     }
 
     modifier onlyAuthorised() {

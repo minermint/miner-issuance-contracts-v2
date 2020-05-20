@@ -1,6 +1,11 @@
 
-const Token = artifacts.require("./Token.sol");
+const Miner = artifacts.require("./Miner.sol");
+const Treasury = artifacts.require("./Treasury.sol");
 
-module.exports = function(deployer) {
-    deployer.deploy(Token);
+module.exports = async function(deployer) {
+    await deployer.deploy(Miner);
+
+    const miner = await Miner.deployed();
+
+    await deployer.deploy(Treasury, miner.address);
 }

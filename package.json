@@ -9,6 +9,7 @@
   "private": true,
   "scripts": {},
   "dependencies": {
+    "@openzeppelin/contracts": "^3.0.1",
     "bip39": "^3.0.2",
     "bn.js": "^5.1.1",
     "ethereum-qr-code": "^0.3.0",
