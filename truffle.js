@@ -35,6 +35,9 @@ module.exports = {
     }
   },
   mocha: {
-    reporter: 'eth-gas-reporter'
+    reporter: "eth-gas-reporter",
+    reporterOptions : { 
+      currency: "USD"
+    } 
   }
 };
