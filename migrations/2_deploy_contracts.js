@@ -6,6 +6,5 @@ module.exports = async function(deployer) {
     await deployer.deploy(Miner);
 
     const miner = await Miner.deployed();
-
     await deployer.deploy(Treasury, miner.address);
 }

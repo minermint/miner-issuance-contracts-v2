@@ -49,8 +49,8 @@ contract Treasury is Ownable {
 
     uint8 constant MINIMUM_AUTHORITIES = 3;
 
-    mapping (address => Signatory) public authorised;
-    uint256 public authorisedCount;
+    mapping (address => Signatory) public signatories;
+    uint256 public signatoryCount;
 
     mapping (uint256 => mapping(address => bool)) private _signatures;
 
@@ -65,8 +65,8 @@ contract Treasury is Ownable {
 
     constructor(Miner token) public {
         _token = token;
-        authorised[msg.sender] = Signatory(true);
-        authorisedCount = authorisedCount.add(1);
+        signatories[msg.sender] = Signatory(true);
+        signatoryCount = signatoryCount.add(1);
     }
 
     function getTotalTradeCount() public view returns (uint256) {
@@ -111,7 +111,7 @@ contract Treasury is Ownable {
      */
     function proposeMint(uint256 amount)
         public
-        onlyAuthorised()
+        onlySignatory()
         minimumSignatories()
     {
         require(amount > 0, "Amount must be greater than zero");
@@ -128,11 +128,11 @@ contract Treasury is Ownable {
      */
     function proposeGrant(address authority)
         public
-        onlyAuthorised()
+        onlySignatory()
         proposalPending()
     {
         require(authority != address(0), "Invalid address");
-        require(!authorised[authority].granted, "Access already granted");
+        require(!signatories[authority].granted, "Access already granted");
 
         uint256 index = getProposalsCount();
 
@@ -143,30 +143,30 @@ contract Treasury is Ownable {
 
     /**
      * Proposes the revoking of a signatory based on their public address.
-     * @param authority address The address of the signatory to revoke access
+     * @param signatory address The address of the signatory to revoke access
      * from.
      */
-    function proposeRevoke(address authority)
+    function proposeRevoke(address signatory)
         public
-        onlyAuthorised()
+        onlySignatory()
         minimumSignatories()
         proposalPending()
     {
-        require(authority != address(0), "Invalid address");
+        require(signatory != address(0), "Invalid address");
         require(
-            authorised[authority].granted,
+            signatories[signatory].granted,
             "Authority does not exist or has already been revoked");
 
         uint256 index = getProposalsCount();
 
-        accessProposals[index] = AccessProposal(authority, AccessAction.Revoke);
+        accessProposals[index] = AccessProposal(signatory, AccessAction.Revoke);
 
         _propose(ProposalType.Access);
     }
 
     function _propose(ProposalType proposalType)
         private
-        onlyAuthorised()
+        onlySignatory()
         proposalPending()
         returns(uint256)
     {
@@ -196,7 +196,7 @@ contract Treasury is Ownable {
      */
     function sign()
         public
-        onlyAuthorised() {
+        onlySignatory() {
         require(proposals.length > 0, "No proposals have been submitted");
         uint256 index = getProposalsCount().sub(1);
 
@@ -219,8 +219,8 @@ contract Treasury is Ownable {
         }
     }
 
-    function _getRequiredSignatoryCount() private returns (uint256) {
-        return authorisedCount.sub(1);
+    function _getRequiredSignatoryCount() private view returns (uint256) {
+        return signatoryCount.sub(1);
     }
 
     function _updateSignatoryAccess() private {
@@ -229,18 +229,18 @@ contract Treasury is Ownable {
         address signatory = accessProposals[index].authority;
 
         // don't re-add a signatory if they already have been granted access.
-        if (!authorised[signatory].granted) {
+        if (!signatories[signatory].granted) {
             if (accessProposals[index].action == AccessAction.Grant) {
-                authorised[signatory] = Signatory(true);
-                authorisedCount = authorisedCount.add(1);
+                signatories[signatory] = Signatory(true);
+                signatoryCount = signatoryCount.add(1);
 
                 emit AccessGranted(signatory);
             }
         } else {
             // only revoke signatory status if they have previously been granted access.
             if (accessProposals[index].action == AccessAction.Revoke) {
-                authorised[signatory].granted = false;
-                authorisedCount = authorisedCount.sub(1);
+                signatories[signatory].granted = false;
+                signatoryCount = signatoryCount.sub(1);
 
                 emit AccessRevoked(signatory);
             }
@@ -251,7 +251,7 @@ contract Treasury is Ownable {
         _token.mint(value);
     }
 
-    function purchase(address to, uint256 value, uint256 unitPrice, uint256 ethPrice) public onlyAuthorised() {
+    function purchase(address to, uint256 value, uint256 unitPrice, uint256 ethPrice) public onlySignatory() {
         require(to != address(0), "Invalid address");
         require(value > 0, "Amount must be greater than zero");
         require(_balances[address(this)] >= value, "Can not buy more than the contract has");
@@ -261,13 +261,13 @@ contract Treasury is Ownable {
         _token.transfer(to, value);
     }
 
-    modifier onlyAuthorised() {
-        require(authorised[msg.sender].granted == true, "Sender is not a authorised");
+    modifier onlySignatory() {
+        require(signatories[msg.sender].granted == true, "Sender is not a signatory");
         _;
     }
 
     modifier minimumSignatories() {
-        require(authorisedCount >= MINIMUM_AUTHORITIES, "Minimum authorities not met");
+        require(signatoryCount >= MINIMUM_AUTHORITIES, "Minimum authorities not met");
         _;
     }
 
