@@ -5,20 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-enum TradeType { Buy, Sell }
-
 enum ProposalType { Mint, Access }
 
 enum AccessAction { Grant, Revoke }
-
-struct Transaction {
-    address who;
-    TradeType trade;
-    uint256 quantity;
-    uint256 unitPrice;
-    uint256 ethPrice;
-    uint256 timeStamp;
-}
 
 struct Proposal {
     address who;
@@ -54,11 +43,6 @@ contract Treasury is Ownable {
 
     mapping (uint256 => mapping(address => bool)) private _signatures;
 
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowed;
-    mapping (address => uint256) private _tradeCount;
-
-    Transaction[] public history;
     Proposal[] public proposals;
     mapping (uint256 => AccessProposal) public accessProposals;
     mapping (uint256 => MintProposal) public mintProposals;
@@ -67,14 +51,6 @@ contract Treasury is Ownable {
         _token = token;
         signatories[msg.sender] = Signatory(true);
         signatoryCount = signatoryCount.add(1);
-    }
-
-    function getTotalTradeCount() public view returns (uint256) {
-        return history.length;
-    }
-
-    function getAccountTradeCount(address who) public view returns (uint256) {
-        return _tradeCount[who];
     }
 
     function inSigningPeriod() public view returns (bool) {
@@ -88,21 +64,6 @@ contract Treasury is Ownable {
 
     function _inSigningPeriod(uint256 i) private view returns (bool) {
         return proposals[i].expires > now;
-    }
-
-    function getAccountTradesIndexs(address who) public view returns (uint256[] memory indexes) {
-        uint256 j = 0;
-        uint256 count = getAccountTradeCount(who);
-        indexes = new uint256[](count);
-
-        for (uint256 i; i < history.length; i++) {
-            if (history[i].who == who) {
-                 indexes[j] = i;
-                 j++;
-            }
-        }
-
-        return indexes;
     }
 
     /**
@@ -249,16 +210,6 @@ contract Treasury is Ownable {
 
     function _mint(uint256 value) internal {
         _token.mint(value);
-    }
-
-    function purchase(address to, uint256 value, uint256 unitPrice, uint256 ethPrice) public onlySignatory() {
-        require(to != address(0), "Invalid address");
-        require(value > 0, "Amount must be greater than zero");
-        require(_balances[address(this)] >= value, "Can not buy more than the contract has");
-
-        history.push(Transaction(to, TradeType.Sell, value, unitPrice, ethPrice, now));
-        _tradeCount[to] = _tradeCount[to].add(1);
-        _token.transfer(to, value);
     }
 
     modifier onlySignatory() {
