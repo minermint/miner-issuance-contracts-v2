@@ -173,7 +173,7 @@ contract Treasury is Ownable {
             proposals[index].open = false;
 
             if (proposals[index].proposalType == ProposalType.Mint) {
-                _mint(mintProposals[index].amount);
+                _printerGoesBrr(mintProposals[index].amount);
             } else {
                 _updateSignatoryAccess();
             }
@@ -208,8 +208,14 @@ contract Treasury is Ownable {
         }
     }
 
-    function _mint(uint256 value) internal {
+    function _printerGoesBrr(uint256 value) internal {
         _token.mint(value);
+    }
+
+    function withdraw(uint256 amount) public onlyOwner {
+        _token.transfer(_msgSender(), amount);
+
+        emit Withdrawn(amount);
     }
 
     modifier onlySignatory() {
@@ -239,4 +245,6 @@ contract Treasury is Ownable {
 
     event AccessGranted(address signatory);
     event AccessRevoked(address signatory);
+
+    event Withdrawn(uint256 amount);
 }

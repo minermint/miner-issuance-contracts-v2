@@ -68,6 +68,6 @@ contract MinerSale is Ownable {
 
         history.push(Transaction(to, TradeType.Sell, amount, unitPrice, ethPrice, now));
         _tradeCount[to] = _tradeCount[to].add(1);
-        _token.transfer(to, value);
+        _token.transfer(to, amount);
     }
 }
