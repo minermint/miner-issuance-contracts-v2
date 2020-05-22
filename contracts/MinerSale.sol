@@ -22,7 +22,7 @@ contract MinerSale is Ownable {
 
     Miner private _token;
 
-    mapping (address => uint256) private _tradeCount;
+    mapping (address => uint256[]) private _tradesByAccount;
 
     Transaction[] public history;
 
@@ -30,27 +30,16 @@ contract MinerSale is Ownable {
         _token = token;
     }
 
-    function getTotalTradesCount() public view returns (uint256) {
+    function getHistoryCount() public view returns (uint256) {
         return history.length;
     }
 
     function getAccountTradesCount(address who) public view returns (uint256) {
-        return _tradeCount[who];
+        return _tradesByAccount[who].length;
     }
 
-    function getAccountTradesIndexes(address who) public view returns (uint256[] memory indexes) {
-        uint256 j = 0;
-        uint256 count = getAccountTradesCount(who);
-        indexes = new uint256[](count);
-
-        for (uint256 i; i < history.length; i++) {
-            if (history[i].who == who) {
-                 indexes[j] = i;
-                 j++;
-            }
-        }
-
-        return indexes;
+    function getAccountTradesIndexes(address who) public view returns (uint256[] memory) {
+        return _tradesByAccount[who];
     }
 
     /**
@@ -66,7 +55,7 @@ contract MinerSale is Ownable {
         require(_token.balanceOf(address(this)) >= amount, "Amount purchased is less than balance available");
 
         history.push(Transaction(to, TradeType.Sell, amount, unitPrice, ethPrice, now));
-        _tradeCount[to] = _tradeCount[to].add(1);
+        _tradesByAccount[to].push(history.length);
         _token.transfer(to, amount);
     }
 }

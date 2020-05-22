@@ -52,7 +52,7 @@ contract("MinerSale", function(accounts) {
             await minerSale.purchase(BOB, 100, 1500, 270);
             await minerSale.purchase(BOB, 100, 1500, 270);
 
-            const actual = await minerSale.getTotalTradesCount();
+            const actual = await minerSale.getHistoryCount();
             assert.equal(Number(actual), 3, "Trade count should be 3");
         });
 
@@ -70,11 +70,10 @@ contract("MinerSale", function(accounts) {
             await minerSale.purchase(ALICE, 100, 1500, 270);
             await minerSale.purchase(ALICE, 100, 1500, 270);
             await minerSale.purchase(BOB, 100, 1500, 270);
+            var trades = await minerSale.getAccountTradesIndexes(ALICE);
+            var tradesCount = await minerSale.getAccountTradesCount(ALICE);
 
-            const actual = await minerSale.getAccountTradesIndexes(ALICE);
-
-            assert.equal(Number(actual[0]), 1, "Index should be 1");
-            assert.equal(Number(actual[1]), 2, "Index should be 2");
+            assert.equal(trades.length, new BN(tradesCount), "ALICE has two trades");
         });
     });
 });
