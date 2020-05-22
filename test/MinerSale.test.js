@@ -34,17 +34,47 @@ contract("MinerSale", function(accounts) {
 
     describe("purchasing miner", () => {
         beforeEach(async () => {
-            let amount = new BN(1000000);
+            let amount = 1000 * 10 ** 4;
             await miner.mint(amount);
             await miner.transfer(minerSale.address, amount);
         });
 
         it("should purchase miner tokens", async () => {
-            let amount = 1000 * 10 ^ 4;
+            let amount = 1000 * 10 ** 4;
             let unitPrice = 50;
-            let ethPrice = "0.025 Ether";
+            let ethPrice = web3.utils.toWei(new BN(0.025), 'ether');
 
             minerSale.purchase(ALICE, amount, unitPrice, ethPrice);
+        });
+
+        it("should get trade count", async () => {
+            await minerSale.purchase(BOB, 100, 1500, 270);
+            await minerSale.purchase(BOB, 100, 1500, 270);
+            await minerSale.purchase(BOB, 100, 1500, 270);
+
+            const actual = await minerSale.getTotalTradesCount();
+            assert.equal(Number(actual), 3, "Trade count should be 3");
+        });
+
+        it("should get alice trade count", async () => {
+            await minerSale.purchase(BOB, 100, 1500, 270);
+            await minerSale.purchase(ALICE, 100, 1500, 270);
+            await minerSale.purchase(BOB, 100, 1500, 270);
+
+            const actual = await minerSale.getAccountTradesCount(ALICE);
+            assert.equal(Number(actual), 1, "Trade count should be 1");
+        });
+
+        it("should get alice trade indexes", async () => {
+            await minerSale.purchase(BOB, 100, 1500, 270);
+            await minerSale.purchase(ALICE, 100, 1500, 270);
+            await minerSale.purchase(ALICE, 100, 1500, 270);
+            await minerSale.purchase(BOB, 100, 1500, 270);
+
+            const actual = await minerSale.getAccountTradesIndexes(ALICE);
+
+            assert.equal(Number(actual[0]), 1, "Index should be 1");
+            assert.equal(Number(actual[1]), 2, "Index should be 2");
         });
     });
 });
