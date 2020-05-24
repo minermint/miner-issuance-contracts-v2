@@ -14,6 +14,7 @@ contract Miner is ERC20, Ownable {
         Ownable()
         public
     {
+        // explicitly require a minter to be created.
         setMinter(address(0));
         _setupDecimals(DECIMALS);
     }
@@ -38,9 +39,13 @@ contract Miner is ERC20, Ownable {
         _mint(_msgSender(), amount);
     }
 
+    /**
+     * Checks that the minter is assigned and is the calling user.
+     * If msg.sender does not match the minter, the test blows the gas limit
+     * out. Not sure why it doesn't revert on the require.
+     */
     modifier onlyMinter {
-        require(getMinter() != address(0), "No minter assigned")
-        require(_msgSender() == getMinter(), "Not minter");
+        require(getMinter() == _msgSender(), "Not minter");
         _;
     }
 }
