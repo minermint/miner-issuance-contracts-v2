@@ -39,6 +39,7 @@ contract Treasury is Ownable {
     uint8 constant MINIMUM_AUTHORITIES = 3;
 
     mapping (address => Signatory) public signatories;
+    address[] public signatoriesIndex;
     uint256 public signatoryCount;
 
     mapping (uint256 => mapping(address => bool)) private _signatures;
@@ -49,8 +50,7 @@ contract Treasury is Ownable {
 
     constructor(Miner token) public {
         _token = token;
-        signatories[msg.sender] = Signatory(true);
-        signatoryCount = signatoryCount.add(1);
+        _grantSignatory(_msgSender());
     }
 
     function inSigningPeriod() public view returns (bool) {
@@ -144,6 +144,10 @@ contract Treasury is Ownable {
         sign();
     }
 
+    function getSignatoryCount() public view returns(uint256) {
+        return signatoriesIndex.length;
+    }
+
     /**
      * Gets the number of proposals.
      */
@@ -192,8 +196,7 @@ contract Treasury is Ownable {
         // don't re-add a signatory if they already have been granted access.
         if (!signatories[signatory].granted) {
             if (accessProposals[index].action == AccessAction.Grant) {
-                signatories[signatory] = Signatory(true);
-                signatoryCount = signatoryCount.add(1);
+                _grantSignatory(signatory);
 
                 emit AccessGranted(signatory);
             }
@@ -208,7 +211,13 @@ contract Treasury is Ownable {
         }
     }
 
-    function _printerGoesBrr(uint256 value) internal {
+    function _grantSignatory(address signatory) private {
+        signatories[signatory] = Signatory(true);
+        signatoriesIndex.push(signatory);
+        signatoryCount = signatoryCount.add(1);
+    }
+
+    function _printerGoesBrr(uint256 value) private {
         _token.mint(value);
     }
 

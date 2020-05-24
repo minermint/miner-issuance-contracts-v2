@@ -14,6 +14,7 @@ contract Miner is ERC20, Ownable {
         Ownable()
         public
     {
+        setMinter(address(0));
         _setupDecimals(DECIMALS);
     }
 
@@ -38,7 +39,8 @@ contract Miner is ERC20, Ownable {
     }
 
     modifier onlyMinter {
-        require(_msgSender() == _minter, "Not minter");
+        require(getMinter() != address(0), "No minter assigned")
+        require(_msgSender() == getMinter(), "Not minter");
         _;
     }
 }
