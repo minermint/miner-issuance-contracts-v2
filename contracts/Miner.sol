@@ -45,7 +45,7 @@ contract Miner is ERC20, Ownable {
      * out. Not sure why it doesn't revert on the require.
      */
     modifier onlyMinter {
-        require(getMinter() == _msgSender(), "Not minter");
+        require(getMinter() == _msgSender(), "Miner/invalid-minter");
         _;
     }
 }

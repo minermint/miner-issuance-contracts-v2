@@ -40,7 +40,7 @@ contract Treasury is Ownable {
 
     mapping (address => Signatory) public signatories;
     address[] public signatoriesIndex;
-    uint256 public signatoryCount;
+    uint256 public grantedCount;
 
     mapping (uint256 => mapping(address => bool)) private _signatures;
 
@@ -73,9 +73,9 @@ contract Treasury is Ownable {
     function proposeMint(uint256 amount)
         public
         onlySignatory()
-        minimumSignatories()
     {
-        require(amount > 0, "Amount must be greater than zero");
+        require(grantedCount >= MINIMUM_AUTHORITIES, "Treasury/not-enough-signatures");
+        require(amount > 0, "Treasury/zero-amount");
 
         mintProposals[proposals.length] = MintProposal(amount);
 
@@ -92,8 +92,8 @@ contract Treasury is Ownable {
         onlySignatory()
         proposalPending()
     {
-        require(authority != address(0), "Invalid address");
-        require(!signatories[authority].granted, "Access already granted");
+        require(authority != address(0), "Treasury/invalid-address");
+        require(!signatories[authority].granted, "Treasury/access-granted");
 
         uint256 index = getProposalsCount();
 
@@ -110,13 +110,13 @@ contract Treasury is Ownable {
     function proposeRevoke(address signatory)
         public
         onlySignatory()
-        minimumSignatories()
         proposalPending()
     {
-        require(signatory != address(0), "Invalid address");
+        require(grantedCount > MINIMUM_AUTHORITIES, "Treasury/not-enough-signatures");
+        require(signatory != address(0), "Treasury/invalid-address");
         require(
             signatories[signatory].granted,
-            "Authority does not exist or has already been revoked");
+            "Treasury/no-signatory-or-revoked");
 
         uint256 index = getProposalsCount();
 
@@ -162,12 +162,12 @@ contract Treasury is Ownable {
     function sign()
         public
         onlySignatory() {
-        require(proposals.length > 0, "No proposals have been submitted");
+        require(proposals.length > 0, "Treasury/no-proposals");
         uint256 index = getProposalsCount().sub(1);
 
-        require(inSigningPeriod(), "Proposal has expired");
-        require(proposals[index].open == true, "Proposal is closed");
-        require(_signatures[index][msg.sender] != true, "Signatory has already signed this proposal");
+        require(inSigningPeriod(), "Treasury/proposal-expired");
+        require(proposals[index].open == true, "Treasury/proposal-closed");
+        require(_signatures[index][msg.sender] != true, "Treasury/signatory-already-signed");
 
         _signatures[index][msg.sender] = true;
         proposals[index].signatures = proposals[index].signatures.add(1);
@@ -185,7 +185,7 @@ contract Treasury is Ownable {
     }
 
     function _getRequiredSignatoryCount() private view returns (uint256) {
-        return signatoryCount.sub(1);
+        return grantedCount.sub(1);
     }
 
     function _updateSignatoryAccess() private {
@@ -204,7 +204,7 @@ contract Treasury is Ownable {
             // only revoke signatory status if they have previously been granted access.
             if (accessProposals[index].action == AccessAction.Revoke) {
                 signatories[signatory].granted = false;
-                signatoryCount = signatoryCount.sub(1);
+                grantedCount = grantedCount.sub(1);
 
                 emit AccessRevoked(signatory);
             }
@@ -214,7 +214,7 @@ contract Treasury is Ownable {
     function _grantSignatory(address signatory) private {
         signatories[signatory] = Signatory(true);
         signatoriesIndex.push(signatory);
-        signatoryCount = signatoryCount.add(1);
+        grantedCount = grantedCount.add(1);
     }
 
     function _printerGoesBrr(uint256 value) private {
@@ -228,12 +228,7 @@ contract Treasury is Ownable {
     }
 
     modifier onlySignatory() {
-        require(signatories[msg.sender].granted == true, "Sender is not a signatory");
-        _;
-    }
-
-    modifier minimumSignatories() {
-        require(signatoryCount >= MINIMUM_AUTHORITIES, "Minimum authorities not met");
+        require(signatories[msg.sender].granted == true, "Treasury/invalid-signatory");
         _;
     }
 
@@ -245,7 +240,7 @@ contract Treasury is Ownable {
 
             require(
                 !proposals[index].open || !inSigningPeriod(),
-                "Can not add a proposal while one is pending");
+                "Treasury/proposal-pending");
         }
         _;
     }

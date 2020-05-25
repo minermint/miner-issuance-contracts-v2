@@ -29,8 +29,8 @@ contract("Treasury", function(accounts) {
 
         it("should have one (1) authority who is also the contract owner",
         async () => {
-            const signatoryCount = new BN(await treasury.signatoryCount());
-            assert.equal(signatoryCount.toString(), 1, "There should be one (1) authority when the contract is deployed");
+            const grantedCount = new BN(await treasury.grantedCount());
+            assert.equal(grantedCount.toString(), 1, "There should be one (1) authority when the contract is deployed");
         });
 
         it("should be able to add the minimum required number of signatories",
@@ -38,7 +38,7 @@ contract("Treasury", function(accounts) {
             await treasury.proposeGrant(OWNER_2);
             await treasury.proposeGrant(OWNER_3);
 
-            count = await treasury.signatoryCount();
+            count = await treasury.grantedCount();
             assert.equal(new BN(count), 3, "Authorised count should be 3");
         })
 
@@ -47,7 +47,7 @@ contract("Treasury", function(accounts) {
                 await treasury.proposeGrant(OWNER_2);
                 await treasury.proposeRevoke(OWNER_2);
             } catch (error) {
-                assert.equal(error.reason, "Minimum authorities not met", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/not-enough-signatures", `Incorrect revert reason: ${error.reason}`);
             }
         })
 
@@ -55,7 +55,7 @@ contract("Treasury", function(accounts) {
             try {
                 await treasury.proposeMint(1000);
             } catch (error) {
-                assert.equal(error.reason, "Minimum authorities not met", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/not-enough-signatures", `Incorrect revert reason: ${error.reason}`);
             }
         })
 
@@ -67,7 +67,7 @@ contract("Treasury", function(accounts) {
                 });
             } catch (error) {
                 assert(error);
-                assert.equal(error.reason, "No proposals have been submitted", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/no-proposals", `Incorrect revert reason: ${error.reason}`);
             }
         });
     })
@@ -95,7 +95,7 @@ contract("Treasury", function(accounts) {
                 from: OWNER_2
             });
 
-            var count = await treasury.signatoryCount();
+            var count = await treasury.grantedCount();
             assert.equal(new BN(count), 4, "Signatory count should be 4");
 
             await treasury.proposeRevoke(OWNER_3);
@@ -106,7 +106,7 @@ contract("Treasury", function(accounts) {
                 from: ALICE
             });
 
-            count = await treasury.signatoryCount();
+            count = await treasury.grantedCount();
             assert.equal(new BN(count), 3, "Authorised count should be 3");
         });
 
@@ -114,10 +114,10 @@ contract("Treasury", function(accounts) {
             try {
                 const result = await treasury.proposeGrant(OWNER_2);
             } catch (error) {
-                assert.equal(error.reason, "Access already granted", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/access-granted", `Incorrect revert reason: ${error.reason}`);
             }
 
-            const count = await treasury.signatoryCount();
+            const count = await treasury.grantedCount();
             assert.equal(Number(count), 3, "Authorised count should be 3");
         });
 
@@ -126,7 +126,7 @@ contract("Treasury", function(accounts) {
             try {
                 await treasury.proposeRevoke(OWNER_2);
             } catch (error) {
-                assert.equal(error.reason, "Can not revoke authority. Minimum authorities required", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/not-enough-signatures", `Incorrect revert reason: ${error.reason}`);
             }
         })
     });
@@ -139,23 +139,6 @@ contract("Treasury", function(accounts) {
                 await treasury.proposeGrant(OWNER_3);
             });
 
-            it("should NOT be able to add proposal because there are not enough signatories", async () => {
-                await treasury.proposeRevoke(OWNER_3);
-                await treasury.sign({
-                    from: OWNER_2
-                });
-
-                try {
-                    await treasury.proposeMint(1337);
-                    await treasury.sign({
-                        from: OWNER_2
-                    });
-                } catch (error) {
-                    assert(error);
-                    assert.equal(error.reason, "Minimum authorities not met", `Incorrect revert reason: ${error.reason}`);
-                }
-            });
-
             it("should NOT be able to add a proposal when one is pending", async () => {
                 await treasury.proposeMint(1337);
 
@@ -163,7 +146,7 @@ contract("Treasury", function(accounts) {
                     await treasury.proposeMint(100);
                 } catch (error) {
                     assert(error);
-                    assert.equal(error.reason, "Can not add a proposal while one is pending", `Incorrect revert reason: ${error.reason}`);
+                    assert.equal(error.reason, "Treasury/proposal-pending", `Incorrect revert reason: ${error.reason}`);
                 }
             });
 
@@ -184,7 +167,7 @@ contract("Treasury", function(accounts) {
                 } catch (error) {
                     assert.equal(
                         error.reason,
-                        "Signatory has already signed this proposal",
+                        "Treasury/signatory-already-signed",
                         `Incorrect revert reason: ${error.reason}`);
                 }
             });
@@ -203,7 +186,7 @@ contract("Treasury", function(accounts) {
                     });
                 } catch (error) {
                     assert(error);
-                    assert.equal(error.reason, "Proposal is closed", `Incorrect revert reason: ${error.reason}`);
+                    assert.equal(error.reason, "Treasury/proposal-closed", `Incorrect revert reason: ${error.reason}`);
                 }
             });
         })

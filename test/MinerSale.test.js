@@ -66,10 +66,10 @@ contract("MinerSale", function(accounts) {
         });
 
         it("should get alice trade indexes", async () => {
-            await minerSale.purchase(BOB, 100, 1500, 270);
-            await minerSale.purchase(ALICE, 100, 1500, 270);
-            await minerSale.purchase(ALICE, 100, 1500, 270);
-            await minerSale.purchase(BOB, 100, 1500, 270);
+            await minerSale.purchase(BOB, 100, 1500, "USD");
+            await minerSale.purchase(ALICE, 100, 1500, "USD");
+            await minerSale.purchase(ALICE, 100, 1500, "USD");
+            await minerSale.purchase(BOB, 100, 1500, "USD");
             var trades = await minerSale.getAccountTradesIndexes(ALICE);
             var tradesCount = await minerSale.getAccountTradesCount(ALICE);
 

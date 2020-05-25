@@ -16,7 +16,7 @@ contract MinerSale is Ownable {
         TradeType trade;
         uint256 quantity;
         uint256 unitPrice;
-        uint256 ethPrice;
+        string currencyCode;
         uint256 timeStamp;
     }
 
@@ -47,14 +47,14 @@ contract MinerSale is Ownable {
      * @param to address The address of the token recipient.
      * @param amount uint256 The amount of Miner tokens ot purchase.
      * @param unitPrice unit256 The price, in USD, paid for each Miner token.
-     * @param ethPrice unit256 The price, in Ether, paid for each Miner token.
+     * @param currencyCode string The price, in Ether, paid for each Miner token.
      */
-    function purchase(address to, uint256 amount, uint256 unitPrice, uint256 ethPrice) public onlyOwner() {
-        require(to != address(0), "Invalid address");
-        require(amount > 0, "Amount must be greater than zero");
-        require(_token.balanceOf(address(this)) >= amount, "Amount purchased is less than balance available");
+    function purchase(address to, uint256 amount, uint256 unitPrice, string memory currencyCode) public onlyOwner() {
+        require(to != address(0), "MinerSale/address-invalid");
+        require(amount > 0, "MinerSale/amount-invalid");
+        require(_token.balanceOf(address(this)) >= amount, "MinerSale/balance-exceeded");
 
-        history.push(Transaction(to, TradeType.Sell, amount, unitPrice, ethPrice, now));
+        history.push(Transaction(to, TradeType.Sell, amount, unitPrice, currencyCode, now));
         _tradesByAccount[to].push(history.length);
         _token.transfer(to, amount);
     }

@@ -13,11 +13,11 @@ contract("Miner", function(accounts) {
 
     let miner;
 
-    describe('Deploying', function () {
-    	beforeEach(async function() {
-    		miner = await Token.new();
-    	})
+    beforeEach(async function() {
+        miner = await Token.new();
+    })
 
+    describe("Deploying", function () {
         it("should have a name of Miner", async () =>  {
             const name = await miner.name();
             assert.equal(name, "Miner", "Name - Miner");
@@ -30,18 +30,19 @@ contract("Miner", function(accounts) {
 
         it("should have a total supply of 0", async () => {
           const actual = await miner.totalSupply();
-          assert.equal(Number(actual), 0, "Total supply should be 0");
+          assert.equal(Number(actual), 0, "Supply - 0");
         });
 
         it("should have a decimals of 4", async () => {
           const actual = await miner.decimals();
-          assert.equal(Number(actual), 4, "Decimals should be 4");
+          assert.equal(Number(actual), 4, "Decimals - 4");
         });
     })
 
-    describe('Minting', function () {
-        beforeEach(async function() {
-            miner = await Token.new();
+    describe("Minting", () => {
+        beforeEach(async () => {
+            miner.setMinter(OWNER);
+            miner.mint(10000000);
         })
 
         it("should set a minter", async () => {
