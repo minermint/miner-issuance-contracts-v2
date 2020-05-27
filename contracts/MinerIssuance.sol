@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract MinerSale is Ownable {
+contract MinerIssuance is Ownable {
     using SafeMath for uint;
     using SafeERC20 for Miner;
 
@@ -43,13 +43,13 @@ contract MinerSale is Ownable {
     }
 
     /**
-     * Purchases miner tokens on a user's behalf.
+     * Issue miner tokens on a user's behalf.
      * @param to address The address of the token recipient.
      * @param amount uint256 The amount of Miner tokens ot purchase.
      * @param unitPrice unit256 The price, in USD, paid for each Miner token.
-     * @param currencyCode string The price, in Ether, paid for each Miner token.
+     * @param currencyCode string The currency code.
      */
-    function purchase(address to, uint256 amount, uint256 unitPrice, string memory currencyCode) public onlyOwner() {
+    function issue(address to, uint256 amount, uint256 unitPrice, string memory currencyCode) public onlyOwner() {
         require(to != address(0), "MinerSale/address-invalid");
         require(amount > 0, "MinerSale/amount-invalid");
         require(_token.balanceOf(address(this)) >= amount, "MinerSale/balance-exceeded");

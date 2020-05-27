@@ -11,6 +11,7 @@ coverage
 coverage.json
 
 build/
+networks/development
 
 # Dependency directories
 node_modules/

@@ -19,7 +19,7 @@ contract("Treasury", function(accounts) {
         await miner.setMinter(treasury.address);
     });
 
-    describe("deploying", () => {
+    describe("Deploying", () => {
         it("should deploy the treasury and assign the Miner token",
         async () => {
             let minter = await miner.getMinter();
@@ -89,7 +89,7 @@ contract("Treasury", function(accounts) {
             assert.isTrue(actual, "OWNER_3 should be signatory");
         });
 
-        it("should reduce count when removing a signatory", async () => {
+        it("should reduce count when reovoking a signatory", async () => {
             await treasury.proposeGrant(ALICE);
             await treasury.sign({
                 from: OWNER_2
