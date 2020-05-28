@@ -9,6 +9,7 @@
   "private": true,
   "scripts": {},
   "dependencies": {
+    "@openzeppelin/contracts": "^3.0.1",
     "bip39": "^3.0.2",
     "bn.js": "^5.1.1",
     "ethereum-qr-code": "^0.3.0",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@truffle/hdwallet-provider": "^1.0.34",
     "dotenv": "^8.2.0",
+    "eth-gas-reporter": "^0.2.17",
     "jest": "^25.1.0",
     "nodemon": "^1.19.1",
     "solidity-coverage": "^0.7.5",

@@ -12,7 +12,7 @@ module.exports = {
       host: "localhost",
       port: 8545,
       network_id: "*", // Match any network id
-      gas: 4600000
+      gas: 6721975
     },
     ropsten: {
       provider:  () => {
@@ -31,7 +31,13 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.6.4"
+      version: "0.6.8"
+    }
+  },
+  mocha: {
+    reporter: "eth-gas-reporter",
+    reporterOptions : {
+      currency: "USD"
     }
   }
 };
