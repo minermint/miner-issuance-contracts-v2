@@ -1,7 +1,7 @@
 
 const Miner = artifacts.require("./Miner.sol");
 const Treasury = artifacts.require("./Treasury.sol");
-const MinerIssuance = artifacts.require("./MinerIssuance.sol");
+const Issuance = artifacts.require("./Issuance.sol");
 
 const Artifactor = require("@truffle/artifactor");
 const mkdirp = require('mkdirp');
@@ -10,13 +10,15 @@ module.exports = async function(deployer) {
     await deployer.deploy(Miner);
 
     const miner = await Miner.deployed();
-    await deployer.deploy(Treasury, miner.address);
+
+    await deployer.deploy(Issuance, miner.address);
+
+    const issuance = await Issuance.deployed();
+
+    await deployer.deploy(Treasury, miner.address, issuance.address);
 
     const treasury = await Treasury.deployed();
     await miner.setMinter(treasury.address);
-
-    await deployer.deploy(MinerIssuance, miner.address);
-    const minerIssuance = await MinerIssuance.deployed();
 
     const networksPath = "./networks/"+deployer.network;
 
@@ -30,10 +32,10 @@ module.exports = async function(deployer) {
             "address": miner.address,
             "abi": miner.abi
         },
-        [minerIssuance.constructor._json.contractName]: {
-            "contractName": minerIssuance.constructor._json.contractName,
-            address: minerIssuance.address,
-            abi: minerIssuance.abi
+        [issuance.constructor._json.contractName]: {
+            "contractName": issuance.constructor._json.contractName,
+            address: issuance.address,
+            abi: issuance.abi
         },
         [treasury.constructor._json.contractName]: {
             "contractName": treasury.constructor._json.contractName,

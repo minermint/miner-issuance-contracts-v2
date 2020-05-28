@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-enum ProposalType { Mint, Access }
+enum ProposalType { Mint, Access, Issuance }
 
 enum AccessAction { Grant, Revoke }
 
@@ -18,6 +18,10 @@ struct Proposal {
 }
 
 struct MintProposal {
+    uint256 amount;
+}
+
+struct IssuanceProposal {
     uint256 amount;
 }
 
@@ -36,6 +40,8 @@ contract Treasury is Ownable {
 
     Miner private _token;
 
+    address private _issuanceAddress;
+
     uint8 constant MINIMUM_AUTHORITIES = 3;
 
     mapping (address => Signatory) public signatories;
@@ -47,9 +53,11 @@ contract Treasury is Ownable {
     Proposal[] public proposals;
     mapping (uint256 => AccessProposal) public accessProposals;
     mapping (uint256 => MintProposal) public mintProposals;
+    mapping (uint256 => IssuanceProposal) public issuanceProposals;
 
-    constructor(Miner token) public {
+    constructor(Miner token, address issuanceAddress) public {
         _token = token;
+        setIssuanceAddress(issuanceAddress);
         _grantSignatory(_msgSender());
     }
 
@@ -66,6 +74,14 @@ contract Treasury is Ownable {
         return proposals[i].expires > now;
     }
 
+    function setIssuanceAddress(address issuanceAddress) public onlyOwner {
+        _issuanceAddress = issuanceAddress;
+    }
+
+    function getIssuanceAddress() public view returns (address) {
+        return _issuanceAddress;
+    }
+
     /**
      * Proposes a minting event.
      * @param amount uint256 The proposed amount to mint.
@@ -73,8 +89,8 @@ contract Treasury is Ownable {
     function proposeMint(uint256 amount)
         public
         onlySignatory()
+        miniumSignatories()
     {
-        require(grantedCount >= MINIMUM_AUTHORITIES, "Treasury/not-enough-signatures");
         require(amount > 0, "Treasury/zero-amount");
 
         mintProposals[proposals.length] = MintProposal(amount);
@@ -84,20 +100,20 @@ contract Treasury is Ownable {
 
     /**
      * Proposes the granting of signatory based on their public address.
-     * @param authority address The address of the signatory to grant access
+     * @param signatory address The address of the signatory to grant access
      * to.
      */
-    function proposeGrant(address authority)
+    function proposeGrant(address signatory)
         public
         onlySignatory()
         proposalPending()
     {
-        require(authority != address(0), "Treasury/invalid-address");
-        require(!signatories[authority].granted, "Treasury/access-granted");
+        require(signatory != address(0), "Treasury/invalid-address");
+        require(!signatories[signatory].granted, "Treasury/access-granted");
 
         uint256 index = getProposalsCount();
 
-        accessProposals[index] = AccessProposal(authority, AccessAction.Grant);
+        accessProposals[index] = AccessProposal(signatory, AccessAction.Grant);
 
         _propose(ProposalType.Access);
     }
@@ -112,7 +128,7 @@ contract Treasury is Ownable {
         onlySignatory()
         proposalPending()
     {
-        require(grantedCount > MINIMUM_AUTHORITIES, "Treasury/not-enough-signatures");
+        require(grantedCount > MINIMUM_AUTHORITIES, "Treasury/minimum-signatories");
         require(signatory != address(0), "Treasury/invalid-address");
         require(
             signatories[signatory].granted,
@@ -123,6 +139,18 @@ contract Treasury is Ownable {
         accessProposals[index] = AccessProposal(signatory, AccessAction.Revoke);
 
         _propose(ProposalType.Access);
+    }
+
+    function proposeIssuance(uint256 amount)
+        public
+        onlySignatory()
+        proposalPending()
+    {
+        require(amount > 0, "Treasury/zero-amount");
+
+        issuanceProposals[proposals.length] = IssuanceProposal(amount);
+
+        _propose(ProposalType.Issuance);
     }
 
     function _propose(ProposalType proposalType)
@@ -178,6 +206,8 @@ contract Treasury is Ownable {
 
             if (proposals[index].proposalType == ProposalType.Mint) {
                 _printerGoesBrr(mintProposals[index].amount);
+            } else if (proposals[index].proposalType == ProposalType.Issuance) {
+                _fundIssuance(issuanceProposals[index].amount);
             } else {
                 _updateSignatoryAccess();
             }
@@ -217,8 +247,12 @@ contract Treasury is Ownable {
         grantedCount = grantedCount.add(1);
     }
 
-    function _printerGoesBrr(uint256 value) private {
-        _token.mint(value);
+    function _printerGoesBrr(uint256 amount) private {
+        _token.mint(amount);
+    }
+
+    function _fundIssuance(uint256 amount) private {
+        _token.transfer(_issuanceAddress, amount);
     }
 
     function withdraw(uint256 amount) public onlyOwner {
@@ -242,6 +276,11 @@ contract Treasury is Ownable {
                 !proposals[index].open || !inSigningPeriod(),
                 "Treasury/proposal-pending");
         }
+        _;
+    }
+
+    modifier miniumSignatories() {
+        require(grantedCount >= MINIMUM_AUTHORITIES, "Treasury/minimum-signatories");
         _;
     }
 

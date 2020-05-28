@@ -16,7 +16,7 @@ struct Transaction {
     uint256 timeStamp;
 }
 
-contract MinerIssuance is Ownable {
+contract Issuance is Ownable {
     using SafeMath for uint;
     using SafeERC20 for Miner;
 
@@ -50,9 +50,9 @@ contract MinerIssuance is Ownable {
      * @param currencyCode string The currency code.
      */
     function issue(address to, uint256 amount, uint256 unitPrice, string memory currencyCode) public onlyOwner() {
-        require(to != address(0), "MinerIssuance/address-invalid");
-        require(amount > 0, "MinerIssuance/amount-invalid");
-        require(_token.balanceOf(address(this)) >= amount, "MinerIssuance/balance-exceeded");
+        require(to != address(0), "Issuance/address-invalid");
+        require(amount > 0, "Issuance/amount-invalid");
+        require(_token.balanceOf(address(this)) >= amount, "Issuance/balance-exceeded");
 
         history.push(Transaction(to, TradeType.Sell, amount, unitPrice, currencyCode, now));
         _tradesByAccount[to].push(history.length);

@@ -1,5 +1,6 @@
 const Miner = artifacts.require("Miner");
 const Treasury = artifacts.require("Treasury");
+const Issuance = artifacts.require("Issuance");
 
 const BN = require("bn.js");
 
@@ -15,7 +16,8 @@ contract("Treasury", function(accounts) {
 
     beforeEach(async () => {
         miner = await Miner.new();
-        treasury = await Treasury.new(miner.address);
+        issuance = await Issuance.new(miner.address);
+        treasury = await Treasury.new(miner.address, issuance.address);
         await miner.setMinter(treasury.address);
     });
 
@@ -47,7 +49,7 @@ contract("Treasury", function(accounts) {
                 await treasury.proposeGrant(OWNER_2);
                 await treasury.proposeRevoke(OWNER_2);
             } catch (error) {
-                assert.equal(error.reason, "Treasury/not-enough-signatures", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/minimum-signatories", `Incorrect revert reason: ${error.reason}`);
             }
         })
 
@@ -55,7 +57,7 @@ contract("Treasury", function(accounts) {
             try {
                 await treasury.proposeMint(1000);
             } catch (error) {
-                assert.equal(error.reason, "Treasury/not-enough-signatures", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/minimum-signatories", `Incorrect revert reason: ${error.reason}`);
             }
         })
 
@@ -126,7 +128,7 @@ contract("Treasury", function(accounts) {
             try {
                 await treasury.proposeRevoke(OWNER_2);
             } catch (error) {
-                assert.equal(error.reason, "Treasury/not-enough-signatures", `Incorrect revert reason: ${error.reason}`);
+                assert.equal(error.reason, "Treasury/minimum-signatories", `Incorrect revert reason: ${error.reason}`);
             }
         })
     });
@@ -239,6 +241,24 @@ contract("Treasury", function(accounts) {
 
                 assert.equal(new BN(treasuryBalance).toNumber(), 0, "Treasury balance should be 0");
                 assert.equal(new BN(ownerBalance).toNumber(), 1337, "Owner balance should be 1337");
+            });
+
+            it("should fund issuance for distributing miner", async () => {
+                await treasury.proposeMint(1337);
+                await treasury.sign({
+                    from: OWNER_2
+                });
+
+                await treasury.proposeIssuance(100);
+                await treasury.sign({
+                    from: OWNER_2
+                });
+
+                const treasuryBalance = await miner.balanceOf(treasury.address);
+                const issuanceBalance = await miner.balanceOf(issuance.address);
+
+                assert.equal(new BN(treasuryBalance).toNumber(), 1337 - 100, "Treasury balance should be 0");
+                assert.equal(new BN(issuanceBalance).toNumber(), 100, "Owner balance should be 1337");
             });
         });
     });
