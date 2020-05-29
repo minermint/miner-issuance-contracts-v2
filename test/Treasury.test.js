@@ -61,7 +61,7 @@ contract("Treasury", function(accounts) {
             }
         })
 
-        it("should not be able to sign when there are no proposals",
+        it("should NOT be able to sign when there are no proposals",
         async () => {
             try {
                 await treasury.sign({
@@ -122,6 +122,19 @@ contract("Treasury", function(accounts) {
             const count = await treasury.grantedCount();
             assert.equal(Number(count), 3, "Authorised count should be 3");
         });
+
+        it("should revoke authority when the minimum number of revoke authorities is met",
+        async () => {
+            await treasury.proposeGrant(ALICE);
+            await treasury.sign({ from: OWNER_2 });
+
+            await treasury.proposeRevoke(OWNER_3);
+            await treasury.sign({ from: ALICE });
+            await treasury.sign({ from: OWNER_2 });
+
+            const signatory = await treasury.signatories(OWNER_3);
+            assert.isFalse(signatory, "Signatory has not been revoked");
+        })
 
         it("should NOT revoke authority when the minimum number of authorities are available",
         async () => {
