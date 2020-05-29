@@ -17,7 +17,7 @@ contract("Treasury", function(accounts) {
     beforeEach(async () => {
         miner = await Miner.new();
         issuance = await Issuance.new(miner.address);
-        treasury = await Treasury.new(miner.address, issuance.address);
+        treasury = await Treasury.new(miner.address);
         await miner.setMinter(treasury.address);
     });
 
@@ -247,13 +247,16 @@ contract("Treasury", function(accounts) {
                     from: OWNER_2
                 });
 
-                await treasury.withdraw(1337);
+                await treasury.proposeWithdrawal(ALICE, 1337);
+                await treasury.sign({
+                    from: OWNER_2
+                });
 
                 const treasuryBalance = await miner.balanceOf(treasury.address);
-                const ownerBalance = await miner.balanceOf(OWNER);
+                const aliceBalance = await miner.balanceOf(ALICE);
 
                 assert.equal(new BN(treasuryBalance).toNumber(), 0, "Treasury balance should be 0");
-                assert.equal(new BN(ownerBalance).toNumber(), 1337, "Owner balance should be 1337");
+                assert.equal(new BN(aliceBalance).toNumber(), 1337, "Owner balance should be 1337");
             });
 
             it("should fund issuance for distributing miner", async () => {
@@ -262,7 +265,7 @@ contract("Treasury", function(accounts) {
                     from: OWNER_2
                 });
 
-                await treasury.proposeIssuance(100);
+                await treasury.proposeWithdrawal(issuance.address, 100);
                 await treasury.sign({
                     from: OWNER_2
                 });

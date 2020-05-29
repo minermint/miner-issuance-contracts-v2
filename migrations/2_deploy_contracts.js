@@ -15,7 +15,7 @@ module.exports = async function(deployer) {
 
     const issuance = await Issuance.deployed();
 
-    await deployer.deploy(Treasury, miner.address, issuance.address);
+    await deployer.deploy(Treasury, miner.address);
 
     const treasury = await Treasury.deployed();
     await miner.setMinter(treasury.address);

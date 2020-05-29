@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-enum ProposalType { Mint, Access, Issuance }
+enum ProposalType { Mint, Access, Withdrawal }
 
 enum AccessAction { Grant, Revoke }
 
@@ -21,7 +21,8 @@ struct MintProposal {
     uint256 amount;
 }
 
-struct IssuanceProposal {
+struct WithdrawalProposal {
+    address recipient;
     uint256 amount;
 }
 
@@ -40,8 +41,6 @@ contract Treasury is Ownable {
 
     Miner private _token;
 
-    address private _issuanceAddress;
-
     uint8 constant MINIMUM_AUTHORITIES = 3;
 
     mapping (address => Signatory) public signatories;
@@ -53,11 +52,10 @@ contract Treasury is Ownable {
     Proposal[] public proposals;
     mapping (uint256 => AccessProposal) public accessProposals;
     mapping (uint256 => MintProposal) public mintProposals;
-    mapping (uint256 => IssuanceProposal) public issuanceProposals;
+    mapping (uint256 => WithdrawalProposal) public withdrawalProposals;
 
-    constructor(Miner token, address issuanceAddress) public {
+    constructor(Miner token) public {
         _token = token;
-        setIssuanceAddress(issuanceAddress);
         _grantSignatory(_msgSender());
     }
 
@@ -72,14 +70,6 @@ contract Treasury is Ownable {
 
     function _inSigningPeriod(uint256 i) private view returns (bool) {
         return proposals[i].expires > now;
-    }
-
-    function setIssuanceAddress(address issuanceAddress) public onlyOwner {
-        _issuanceAddress = issuanceAddress;
-    }
-
-    function getIssuanceAddress() public view returns (address) {
-        return _issuanceAddress;
     }
 
     /**
@@ -141,16 +131,16 @@ contract Treasury is Ownable {
         _propose(ProposalType.Access);
     }
 
-    function proposeIssuance(uint256 amount)
+    function proposeWithdrawal(address recipient, uint256 amount)
         public
         onlySignatory()
         proposalPending()
     {
         require(amount > 0, "Treasury/zero-amount");
 
-        issuanceProposals[proposals.length] = IssuanceProposal(amount);
+        withdrawalProposals[proposals.length] = WithdrawalProposal(recipient, amount);
 
-        _propose(ProposalType.Issuance);
+        _propose(ProposalType.Withdrawal);
     }
 
     function _propose(ProposalType proposalType)
@@ -206,8 +196,10 @@ contract Treasury is Ownable {
 
             if (proposals[index].proposalType == ProposalType.Mint) {
                 _printerGoesBrr(mintProposals[index].amount);
-            } else if (proposals[index].proposalType == ProposalType.Issuance) {
-                _fundIssuance(issuanceProposals[index].amount);
+            } else if (proposals[index].proposalType == ProposalType.Withdrawal) {
+                _withdraw(
+                    withdrawalProposals[index].recipient,
+                    withdrawalProposals[index].amount);
             } else {
                 _updateSignatoryAccess();
             }
@@ -251,14 +243,8 @@ contract Treasury is Ownable {
         _token.mint(amount);
     }
 
-    function _fundIssuance(uint256 amount) private {
-        _token.transfer(_issuanceAddress, amount);
-    }
-
-    function withdraw(uint256 amount) public onlyOwner {
-        _token.transfer(_msgSender(), amount);
-
-        emit Withdrawn(amount);
+    function _withdraw(address recipient, uint256 amount) private {
+        _token.transfer(recipient, amount);
     }
 
     modifier onlySignatory() {

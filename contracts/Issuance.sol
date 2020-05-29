@@ -1,6 +1,6 @@
 pragma solidity ^0.6.0;
 
-import "./Miner.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -18,15 +18,15 @@ struct Transaction {
 
 contract Issuance is Ownable {
     using SafeMath for uint;
-    using SafeERC20 for Miner;
+    using SafeERC20 for IERC20;
 
-    Miner private _token;
+    IERC20 private _token;
 
     mapping (address => uint256[]) private _tradesByAccount;
 
     Transaction[] public history;
 
-    constructor(Miner token) public {
+    constructor(IERC20 token) public {
         _token = token;
     }
 
