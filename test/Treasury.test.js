@@ -2,7 +2,7 @@ const Miner = artifacts.require("Miner");
 const Treasury = artifacts.require("Treasury");
 const Issuance = artifacts.require("Issuance");
 
-const BN = require("bn.js");
+const { BN, time } = require('@openzeppelin/test-helpers');
 
 contract("Treasury", function(accounts) {
     const OWNER = accounts[0];
@@ -204,6 +204,17 @@ contract("Treasury", function(accounts) {
                     assert.equal(error.reason, "Treasury/proposal-closed", `Incorrect revert reason: ${error.reason}`);
                 }
             });
+
+            it("should timeout a proposal to mint after 48 hours", async() => {
+                await treasury.proposeMint(1000);
+                time.increase(2880)
+
+                try {
+                    await treasury.sign({ from: OWNER_2 });
+                } catch (error) {
+                    assert.equal(error.reason, "Treasury/proposal-expired", `Incorrect revert reason: ${error.reason}`);
+                }
+            })
         })
 
         describe("Minting", async () => {
