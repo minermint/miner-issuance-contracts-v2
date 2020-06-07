@@ -2,7 +2,6 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Miner is ERC20, Ownable {
     uint8 constant DECIMALS = 4;
@@ -15,7 +14,7 @@ contract Miner is ERC20, Ownable {
         public
     {
         // explicitly require a minter to be created.
-        setMinter(address(0));
+        _minter = address(0);
         _setupDecimals(DECIMALS);
     }
 
@@ -24,6 +23,7 @@ contract Miner is ERC20, Ownable {
      * @param minter address The minter address.
      */
     function setMinter(address minter) public onlyOwner {
+        require(minter != address(0), "Miner/zero-address");
         _minter = minter;
     }
 
