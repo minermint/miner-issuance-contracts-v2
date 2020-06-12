@@ -7,7 +7,7 @@ const { ZERO_ADDRESS } = constants;
 
 const { expect } = require("chai");
 
-contract("Treasury", function(accounts) {
+contract("Treasury", (accounts) => {
     const OWNER = accounts[0];
     const OWNER_2 = accounts[1];
     const OWNER_3 = accounts[2];
@@ -34,8 +34,13 @@ contract("Treasury", function(accounts) {
             expect(minter).to.be.equal(treasury.address);
         })
 
-
         it("should have one (1) signatory who is also the contract owner",
+        async () => {
+            const totalSignatories = new BN(await treasury.getSignatoryCount());
+            expect(totalSignatories.toNumber()).to.be.equal(1);
+        });
+
+        it("should have one (1) granted signatory who is also the contract owner",
         async () => {
             const grantedCount = new BN(await treasury.grantedCount());
             expect(grantedCount.toNumber()).to.be.equal(1);
@@ -68,6 +73,11 @@ contract("Treasury", function(accounts) {
             await expectRevert(
                 treasury.sign({ from: OWNER }),
                 "Treasury/no-proposals");
+        });
+
+        it("should NOT be in signing period", async () => {
+            const actual = await treasury.inSigningPeriod();
+            expect(actual).to.be.false;
         });
     })
 
@@ -137,6 +147,8 @@ contract("Treasury", function(accounts) {
 
     describe("managing authorisations", () => {
         describe("making and signing proposals", () => {
+            const fastForward = 60*60*48;
+
             beforeEach(async () => {
                 // set up 3 more signatories.
                 await treasury.proposeGrant(OWNER_2);
@@ -171,6 +183,17 @@ contract("Treasury", function(accounts) {
                 expect(actual).to.be.true;
             });
 
+            it("should be outside signing period when proposal expires",
+            async () => {
+                await treasury.proposeMint(supply);
+
+                time.increase(fastForward);
+
+                const isActive = await treasury.inSigningPeriod();
+
+                expect(isActive).to.be.false;
+            });
+
             it("should NOT be able to sign when there are no open proposals",
             async () => {
                 await expectRevert(
@@ -178,7 +201,7 @@ contract("Treasury", function(accounts) {
                     "Treasury/proposal-closed");
             });
 
-            it.only("should NOT be able to sign when revoked", async() => {
+            it("should NOT be able to sign when revoked", async() => {
                 await treasury.proposeGrant(ALICE, { from: OWNER });
                 await treasury.sign({ from: OWNER_2} );
 
@@ -196,14 +219,14 @@ contract("Treasury", function(accounts) {
 
             it("should timeout a proposal to mint after 48 hours",
             async() => {
-                await treasury.proposeMint(1000);
+                await treasury.proposeMint(supply);
 
-                time.increase(60*60*48);
+                time.increase(fastForward);
 
                 await expectRevert(
                     treasury.sign({ from: OWNER_2 }),
                     "Treasury/proposal-expired");
-            })
+            });
         })
 
         describe("minting", async () => {
@@ -232,7 +255,7 @@ contract("Treasury", function(accounts) {
                 const proposal = await treasury.proposals(latestProposal);
                 const mintProposal = await treasury.mintProposals(latestProposal);
 
-                expect(new BN(mintProposal)).to.be.equal(supply.toNumber());
+                expect(new BN(mintProposal).toNumber()).to.be.equal(supply.toNumber());
                 expect(proposal.who).to.be.equal(OWNER);
                 expect(proposal.open).to.be.false;
             });
@@ -248,7 +271,7 @@ contract("Treasury", function(accounts) {
                 const aliceBalance = await miner.balanceOf(ALICE);
 
                 expect(new BN(treasuryBalance).toNumber()).to.be.equal(0);
-                expect(new BN(aliceBalance).toNumber()).to.be.equal(supply);
+                expect(new BN(aliceBalance).toNumber()).to.be.equal(supply.toNumber());
             });
 
             it("should fund issuance for distributing miner", async () => {

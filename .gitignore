@@ -12,6 +12,7 @@ coverage.json
 
 build/
 networks/development
+networks/soliditycoverage
 
 # Dependency directories
 node_modules/
