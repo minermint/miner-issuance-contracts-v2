@@ -30,10 +30,7 @@ contract("Issuance", (accounts) => {
 
         let actual = new BN(await miner.balanceOf(issuance.address));
 
-        assert.equal(
-            actual.toNumber(),
-            supply.toNumber(),
-            "Issuance/Incorrect amount");
+        expect(actual.toNumber()).to.be.equal(supply.toNumber());
     });
 
     describe("purchasing miner", () => {
