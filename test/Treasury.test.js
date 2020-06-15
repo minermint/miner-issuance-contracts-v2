@@ -150,9 +150,24 @@ contract("Treasury", (accounts) => {
             const fastForward = 60*60*48;
 
             beforeEach(async () => {
-                // set up 3 more signatories.
+                // set up 3 signatories.
                 await treasury.proposeGrant(OWNER_2);
                 await treasury.proposeGrant(OWNER_3);
+            });
+
+            it("should be able to list a proposal's signatures",
+            async () => {
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({ from: OWNER_2 });
+
+                const proposalCount = await treasury.getProposalsCount();
+                const latestProposal = await treasury.proposals(proposalCount - 1);
+
+                const signature = await treasury.signatureAddresses(
+                    proposalCount - 1,
+                    latestProposal.signatures - 1);
+
+                expect(signature).to.be.equal(OWNER_2);
             });
 
             it("should NOT be able to add a proposal when one is pending",

@@ -47,7 +47,14 @@ contract Treasury is Ownable {
     address[] public signatoriesIndex;
     uint256 public grantedCount;
 
-    mapping (uint256 => mapping(address => bool)) private _signatures;
+    // signatures[proposalIndex][signatoryAddress] = signed (true)
+    mapping (uint256 => mapping(address => bool)) public signatures;
+
+    // signatures[proposalIndex][signatureIndex] = signatoryAddress
+    mapping (uint256 => mapping(uint256 => address)) public signatureAddresses;
+
+    // signaturesIndex[proposalIndex][signedIndex] = signatoryAddress
+    address[][] public signaturesIndex;
 
     Proposal[] public proposals;
     mapping (uint256 => AccessProposal) public accessProposals;
@@ -185,9 +192,10 @@ contract Treasury is Ownable {
 
         require(inSigningPeriod(), "Treasury/proposal-expired");
         require(proposals[index].open == true, "Treasury/proposal-closed");
-        require(_signatures[index][msg.sender] != true, "Treasury/signatory-already-signed");
+        require(signatures[index][msg.sender] != true, "Treasury/signatory-already-signed");
 
-        _signatures[index][msg.sender] = true;
+        signatureAddresses[index][proposals[index].signatures] = msg.sender;
+        signatures[index][msg.sender] = true;
         proposals[index].signatures = proposals[index].signatures.add(1);
         emit Signed(index);
 
