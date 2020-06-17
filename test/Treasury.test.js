@@ -271,7 +271,7 @@ contract("Treasury", (accounts) => {
                 const mintProposal = await treasury.mintProposals(latestProposal);
 
                 expect(new BN(mintProposal).toNumber()).to.be.equal(supply.toNumber());
-                expect(proposal.who).to.be.equal(OWNER);
+                expect(proposal.proposer).to.be.equal(OWNER);
                 expect(proposal.open).to.be.false;
             });
 

@@ -10,7 +10,7 @@ enum ProposalType { Mint, Access, Withdrawal }
 enum AccessAction { Grant, Revoke }
 
 struct Proposal {
-    address who;
+    address proposer;
     uint256 expires;
     uint256 signatures;
     bool open;
