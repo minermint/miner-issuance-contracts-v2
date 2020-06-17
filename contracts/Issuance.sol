@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 enum TradeType { Buy, Sell }
 
 struct Transaction {
-    address who;
+    address recipient;
     TradeType trade;
     uint256 quantity;
     uint256 unitPrice;
@@ -30,32 +30,69 @@ contract Issuance is Ownable {
         _token = token;
     }
 
+    /**
+     * Gets the number of history entries.
+     * @return uint256 The number of history entries.
+     */
     function getHistoryCount() public view returns (uint256) {
         return history.length;
     }
 
-    function getAccountTradesCount(address who) public view returns (uint256) {
-        return _tradesByAccount[who].length;
+    /**
+     * Gets the number of trades for a particular recipient.
+     * @return address The number of trades for a particular recipient.
+     */
+    function getAccountTradesCount(address recipient)
+        public
+        view
+        returns (uint256)
+    {
+        return _tradesByAccount[recipient].length;
     }
 
-    function getAccountTradesIndexes(address who) public view returns (uint256[] memory) {
-        return _tradesByAccount[who];
+    /**
+     * Gets a list of transactions for a particular recipient.
+     * @return uint256[] An array of transactions for a particular recipient.
+     */
+    function getAccountTradesIndexes(address recipient)
+    public
+    view
+    returns (uint256[] memory) {
+        return _tradesByAccount[recipient];
     }
 
     /**
      * Issue miner tokens on a user's behalf.
-     * @param to address The address of the token recipient.
+     * @param recipient address The address of the token recipient.
      * @param amount uint256 The amount of Miner tokens ot purchase.
      * @param unitPrice unit256 The price, in USD, paid for each Miner token.
      * @param currencyCode string The currency code.
      */
-    function issue(address to, uint256 amount, uint256 unitPrice, string memory currencyCode) public onlyOwner() {
-        require(to != address(0), "Issuance/address-invalid");
+    function issue(
+        address recipient,
+        uint256 amount,
+        uint256 unitPrice,
+        string memory currencyCode
+    )
+        public
+        onlyOwner()
+    {
+        require(recipient != address(0), "Issuance/address-invalid");
         require(amount > 0, "Issuance/amount-invalid");
-        require(_token.balanceOf(address(this)) >= amount, "Issuance/balance-exceeded");
+        require(
+            _token.balanceOf(address(this)) >= amount,
+            "Issuance/balance-exceeded");
 
-        history.push(Transaction(to, TradeType.Sell, amount, unitPrice, currencyCode, now));
-        _tradesByAccount[to].push(history.length);
-        _token.transfer(to, amount);
+        history.push(
+            Transaction(
+                recipient,
+                TradeType.Sell,
+                amount,
+                unitPrice,
+                currencyCode,
+                now));
+
+        _tradesByAccount[recipient].push(history.length);
+        _token.transfer(recipient, amount);
     }
 }
