@@ -27,7 +27,7 @@ struct WithdrawalProposal {
 }
 
 struct AccessProposal {
-    address authority;
+    address signatory;
     AccessAction action;
 }
 
@@ -48,13 +48,9 @@ contract Treasury is Ownable {
     uint256 public grantedCount;
 
     // signatures[proposalIndex][signatoryAddress] = signed (true)
-    mapping (uint256 => mapping(address => bool)) public signatures;
+    mapping (uint256 => mapping(address => bool)) public signed;
 
-    // signatures[proposalIndex][signatureIndex] = signatoryAddress
-    mapping (uint256 => mapping(uint256 => address)) public signatureAddresses;
-
-    // signaturesIndex[proposalIndex][signedIndex] = signatoryAddress
-    address[][] public signaturesIndex;
+    mapping (uint256 => address[]) public signatures;
 
     Proposal[] public proposals;
     mapping (uint256 => AccessProposal) public accessProposals;
@@ -125,7 +121,10 @@ contract Treasury is Ownable {
         onlySignatory()
         proposalPending()
     {
-        require(grantedCount > MINIMUM_AUTHORITIES, "Treasury/minimum-signatories");
+        require(
+            grantedCount > MINIMUM_AUTHORITIES,
+            "Treasury/minimum-signatories"
+        );
         require(signatory != address(0), "Treasury/invalid-address");
         require(
             signatories[signatory].granted,
@@ -138,6 +137,12 @@ contract Treasury is Ownable {
         _propose(ProposalType.Access);
     }
 
+    /**
+     * Proposes the withdrawal of Miner to a recipient's wallet address.
+     * @param recipient address The address of the recipient.
+     * @param amount uint256 The amount of Miner to withdraw to the recipient's
+     * wallet.
+     */
     function proposeWithdrawal(address recipient, uint256 amount)
         public
         onlySignatory()
@@ -145,7 +150,10 @@ contract Treasury is Ownable {
     {
         require(amount > 0, "Treasury/zero-amount");
 
-        withdrawalProposals[proposals.length] = WithdrawalProposal(recipient, amount);
+        withdrawalProposals[proposals.length] = WithdrawalProposal(
+            recipient,
+            amount
+        );
 
         _propose(ProposalType.Withdrawal);
     }
@@ -169,15 +177,37 @@ contract Treasury is Ownable {
         sign();
     }
 
+    /**
+     * Gets the total number of signatories.
+     *
+     * The getSignatoryCount gets the total number of signatories, whether
+     * their access is granted or revoked. To retrieve the number of granted
+     * signatories, use grantedCount.
+     * @return uint256 The total number of signatories.
+     */
     function getSignatoryCount() public view returns(uint256) {
         return signatoriesIndex.length;
     }
 
     /**
      * Gets the number of proposals.
+     * @return uint256 The number of proposals.
      */
     function getProposalsCount() public view returns(uint256) {
         return proposals.length;
+    }
+
+    /**
+     * Gets the signatures for a proposal.
+     * @param proposal uint256 the proposal id.
+     * @return address[] A list if signatures for the proposal.
+     */
+    function getSignatures(uint256 proposal)
+        public
+        view
+        returns (address[] memory)
+    {
+        return signatures[proposal];
     }
 
     /**
@@ -192,10 +222,12 @@ contract Treasury is Ownable {
 
         require(inSigningPeriod(), "Treasury/proposal-expired");
         require(proposals[index].open == true, "Treasury/proposal-closed");
-        require(signatures[index][msg.sender] != true, "Treasury/signatory-already-signed");
+        require(
+            signed[index][msg.sender] != true,
+            "Treasury/signatory-already-signed");
 
-        signatureAddresses[index][proposals[index].signatures] = msg.sender;
-        signatures[index][msg.sender] = true;
+        signatures[index].push(msg.sender);
+        signed[index][msg.sender] = true;
         proposals[index].signatures = proposals[index].signatures.add(1);
         emit Signed(index);
 
@@ -204,7 +236,8 @@ contract Treasury is Ownable {
 
             if (proposals[index].proposalType == ProposalType.Mint) {
                 _printerGoesBrr(mintProposals[index].amount);
-            } else if (proposals[index].proposalType == ProposalType.Withdrawal) {
+            } else if (
+                proposals[index].proposalType == ProposalType.Withdrawal) {
                 _withdraw(
                     withdrawalProposals[index].recipient,
                     withdrawalProposals[index].amount);
@@ -221,7 +254,7 @@ contract Treasury is Ownable {
     function _updateSignatoryAccess() private {
         uint256 index = getProposalsCount().sub(1);
         // is this a new signatory?
-        address signatory = accessProposals[index].authority;
+        address signatory = accessProposals[index].signatory;
 
         // don't re-add a signatory if they already have been granted access.
         if (!signatories[signatory].granted) {
@@ -231,7 +264,8 @@ contract Treasury is Ownable {
                 emit AccessGranted(signatory);
             }
         } else {
-            // only revoke signatory status if they have previously been granted access.
+            // only revoke signatory status if they have previously been granted
+            // access.
             if (accessProposals[index].action == AccessAction.Revoke) {
                 signatories[signatory].granted = false;
                 grantedCount = grantedCount.sub(1);
@@ -256,7 +290,9 @@ contract Treasury is Ownable {
     }
 
     modifier onlySignatory() {
-        require(signatories[msg.sender].granted == true, "Treasury/invalid-signatory");
+        require(
+            signatories[msg.sender].granted == true,
+            "Treasury/invalid-signatory");
         _;
     }
 
@@ -274,7 +310,9 @@ contract Treasury is Ownable {
     }
 
     modifier miniumSignatories() {
-        require(grantedCount >= MINIMUM_AUTHORITIES, "Treasury/minimum-signatories");
+        require(
+            grantedCount >= MINIMUM_AUTHORITIES,
+            "Treasury/minimum-signatories");
         _;
     }
 
