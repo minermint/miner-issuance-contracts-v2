@@ -2,8 +2,12 @@ const Miner = artifacts.require("Miner");
 const Treasury = artifacts.require("Treasury");
 const Issuance = artifacts.require("Issuance");
 
-const { BN, constants, expectEvent, expectRevert, time } = require("@openzeppelin/test-helpers");
-const { ZERO_ADDRESS } = constants;
+const {
+    BN,
+    expectEvent,
+    expectRevert,
+    time
+} = require("@openzeppelin/test-helpers");
 
 const { expect } = require("chai");
 
@@ -22,7 +26,6 @@ contract("Treasury", (accounts) => {
 
     beforeEach(async () => {
         miner = await Miner.new();
-        issuance = await Issuance.new(miner.address);
         treasury = await Treasury.new(miner.address);
         await miner.setMinter(treasury.address);
     });
@@ -51,7 +54,7 @@ contract("Treasury", (accounts) => {
             await treasury.proposeGrant(OWNER_2);
             await treasury.proposeGrant(OWNER_3);
 
-            count = new BN(await treasury.grantedCount());
+            const count = new BN(await treasury.grantedCount());
             expect(count.toNumber()).to.be.equal(3);
         })
 
@@ -153,7 +156,6 @@ contract("Treasury", (accounts) => {
                 await treasury.sign({ from: OWNER_2 });
 
                 const proposalCount = await treasury.getProposalsCount();
-                const latestProposal = await treasury.proposals(proposalCount - 1);
 
                 const signatures = await treasury.getSignatures(
                     proposalCount - 1);
@@ -237,9 +239,9 @@ contract("Treasury", (accounts) => {
 
             it("should emit a Grant event", async () => {
                 await treasury.proposeGrant(ALICE);
-                const { logs } = await treasury.sign({ from : OWNER_2 })
+                const { logs } = await treasury.sign({ from: OWNER_2 });
 
-                const event = expectEvent.inLogs(logs, 'AccessGranted', {
+                expectEvent.inLogs(logs, 'AccessGranted', {
                     signatory: ALICE
                 });
             });
@@ -253,7 +255,7 @@ contract("Treasury", (accounts) => {
 
                 const { logs } = await treasury.sign({ from: ALICE });
 
-                const event = expectEvent.inLogs(logs, 'AccessRevoked', {
+                expectEvent.inLogs(logs, 'AccessRevoked', {
                     signatory: OWNER_2
                 });
             });
@@ -261,13 +263,17 @@ contract("Treasury", (accounts) => {
             it("should emit a Signed event", async () => {
                 const { logs } = await treasury.proposeGrant(ALICE);
 
-                const event = expectEvent.inLogs(logs, 'Signed', {
-                    index: "2"
-                });
+                expectEvent.inLogs(logs, 'Signed', { index: "2" });
             });
         })
 
         describe("minting", async () => {
+            let issuance;
+
+            beforeEach(async () => {
+                issuance = await Issuance.new(miner.address);
+            });
+
             it("should be able to mint Miner tokens", async () => {
                 await treasury.proposeMint(supply);
                 await treasury.sign({ from: OWNER_2 });
@@ -311,9 +317,7 @@ contract("Treasury", (accounts) => {
 
                 const { logs } = await treasury.sign({ from: OWNER_2 });
 
-                const event = expectEvent.inLogs(logs, 'Minted', {
-                    amount: supply
-                });
+                expectEvent.inLogs(logs, 'Minted', { amount: supply });
             });
 
             it("should emit Withdrawn event", async () => {
@@ -324,9 +328,9 @@ contract("Treasury", (accounts) => {
 
                 const { logs } = await treasury.sign({ from: OWNER_2 });
 
-                const event = expectEvent.inLogs(logs, 'Withdrawn', {
-                    recipient: OWNER_2,
-                    amount: supply
+                expectEvent.inLogs(logs, 'Withdrawn', {
+                    amount: supply,
+                    recipient: OWNER_2
                 });
             });
 

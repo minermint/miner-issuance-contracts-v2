@@ -7,8 +7,6 @@ const Issuance = artifacts.require("Issuance");
 
 contract("Issuance", (accounts) => {
     const OWNER = accounts[0];
-    const OWNER_2 = accounts[1];
-    const OWNER_3 = accounts[2];
 
     const ALICE = accounts[3];
     const BOB = accounts[4];
@@ -60,11 +58,11 @@ contract("Issuance", (accounts) => {
                 currencyCode
             );
 
-            const event = expectEvent.inLogs(logs, 'Issued', {
-                recipient: ALICE,
+            expectEvent.inLogs(logs, 'Issued', {
                 amount: amount.toString(),
-                unitPrice: unitPrice.toString(),
-                currencyCode: currencyCode
+                currencyCode: currencyCode,
+                recipient: ALICE,
+                unitPrice: unitPrice.toString()
             });
         });
 
@@ -95,33 +93,13 @@ contract("Issuance", (accounts) => {
                 "Issuance/address-invalid");
         });
 
-        it("should get trade count", async () => {
+        it("should get history count", async () => {
             await issuance.issue(BOB, amount, unitPrice, currencyCode);
             await issuance.issue(BOB, amount, unitPrice, currencyCode);
             await issuance.issue(BOB, amount, unitPrice, currencyCode);
 
             const actual = await issuance.getHistoryCount();
             expect(Number(actual)).to.be.equal(3);
-        });
-
-        it("should get alice trade count", async () => {
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-            await issuance.issue(ALICE, amount, unitPrice, currencyCode);
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-
-            const actual = await issuance.getAccountTradesCount(ALICE);
-            expect(Number(actual)).to.be.equal(1);
-        });
-
-        it("should get alice trade indexes", async () => {
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-            await issuance.issue(ALICE, amount, unitPrice, currencyCode);
-            await issuance.issue(ALICE, amount, unitPrice, currencyCode);
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-            var trades = await issuance.getAccountTradesIndexes(ALICE);
-            var tradesCount = await issuance.getAccountTradesCount(ALICE);
-
-            expect(trades).to.have.lengthOf(tradesCount);
         });
     });
 });
