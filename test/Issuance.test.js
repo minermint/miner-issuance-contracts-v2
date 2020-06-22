@@ -45,22 +45,38 @@ contract("Issuance", (accounts) => {
         });
 
         it("should issue miner tokens", async () => {
-            await issuance.issue(ALICE, amount, unitPrice, "USD");
+            await issuance.issue(ALICE, amount, unitPrice, currencyCode);
 
             const balance = await miner.balanceOf(ALICE);
 
             expect(balance.toNumber()).to.be.equal(amount.toNumber());
         });
 
+        it("should emit a Issued event", async () => {
+            const { logs } = await issuance.issue(
+                ALICE,
+                amount,
+                unitPrice,
+                currencyCode
+            );
+
+            const event = expectEvent.inLogs(logs, 'Issued', {
+                recipient: ALICE,
+                amount: amount.toString(),
+                unitPrice: unitPrice.toString(),
+                currencyCode: currencyCode
+            });
+        });
+
         it("should NOT issue zero tokens", async () => {
             await expectRevert(
-                issuance.issue(ALICE, zeroAmount, unitPrice, "USD"),
+                issuance.issue(ALICE, zeroAmount, unitPrice, currencyCode),
                 "Issuance/amount-invalid");
         });
 
         it("should NOT issue tokens as an invalid user", async () => {
             await expectRevert(
-                issuance.issue(ALICE, amount, unitPrice, "USD", { from: ALICE }),
+                issuance.issue(ALICE, amount, unitPrice, currencyCode, { from: ALICE }),
                 "Ownable: caller is not the owner");
         });
 
@@ -69,20 +85,20 @@ contract("Issuance", (accounts) => {
             let tooMuch = supply.add(new BN(1));
 
             await expectRevert(
-                issuance.issue(ALICE, tooMuch, unitPrice, "USD"),
+                issuance.issue(ALICE, tooMuch, unitPrice, currencyCode),
                 "Issuance/balance-exceeded");
         });
 
         it("should NOT issue tokens as zero address", async () => {
             await expectRevert(
-                issuance.issue(ZERO_ADDRESS, zeroAmount, unitPrice, "USD"),
+                issuance.issue(ZERO_ADDRESS, zeroAmount, unitPrice, currencyCode),
                 "Issuance/address-invalid");
         });
 
         it("should get trade count", async () => {
-            await issuance.issue(BOB, amount, unitPrice, "USD");
-            await issuance.issue(BOB, amount, unitPrice, "USD");
-            await issuance.issue(BOB, amount, unitPrice, "USD");
+            await issuance.issue(BOB, amount, unitPrice, currencyCode);
+            await issuance.issue(BOB, amount, unitPrice, currencyCode);
+            await issuance.issue(BOB, amount, unitPrice, currencyCode);
 
             const actual = await issuance.getHistoryCount();
             expect(Number(actual)).to.be.equal(3);
