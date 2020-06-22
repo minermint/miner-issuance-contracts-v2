@@ -81,79 +81,71 @@ contract("Treasury", (accounts) => {
         });
     })
 
-    describe("granting and revoking signatories", () => {
+    describe("proposals", () => {
         beforeEach(async () => {
             await treasury.proposeGrant(OWNER_2);
             await treasury.proposeGrant(OWNER_3);
         });
 
-        it("should be initialised with 3 signatories", async () => {
-            let actual = await treasury.signatories(OWNER);
-            expect(actual).to.be.true;
-
-            actual = await treasury.signatories(OWNER_2);
-            expect(actual).to.be.true;
-
-            actual = await treasury.signatories(OWNER_3);
-            expect(actual).to.be.true;
-        });
-
-        it("should reduce count when reovoking a signatory", async () => {
-            await treasury.proposeGrant(ALICE);
-            await treasury.sign({
-                from: OWNER_2
-            });
-
-            var count = new BN(await treasury.grantedCount());
-            expect(count.toNumber()).to.be.equal(4);
-
-            await treasury.proposeRevoke(OWNER_3);
-            await treasury.sign({ from: OWNER_2 });
-            await treasury.sign({ from: ALICE });
-
-            count = new BN(await treasury.grantedCount());
-            expect(count.toNumber()).to.be.equal(3);
-        });
-
-        it("should NOT be able to add an existing signatory", async () => {
-            await expectRevert(
-                treasury.proposeGrant(OWNER_2),
-                "Treasury/access-granted");
-
-            const count = new BN(await treasury.grantedCount());
-            expect(count.toNumber()).to.be.equal(3);
-        });
-
-        it("should revoke signatory when the minimum number of revoke authorities is met",
-        async () => {
-            await treasury.proposeGrant(ALICE);
-            await treasury.sign({ from: OWNER_2 });
-
-            await treasury.proposeRevoke(OWNER_3);
-            await treasury.sign({ from: ALICE });
-            await treasury.sign({ from: OWNER_2 });
-
-            const signatory = await treasury.signatories(OWNER_3);
-            expect(signatory).to.be.false;
-        })
-
-        it("should NOT revoke when the minimum number of signatories has not be reached",
-        async () => {
-            await expectRevert(
-                treasury.proposeRevoke(OWNER_2),
-                "Treasury/minimum-signatories");
-        })
-    });
-
-    describe("managing authorisations", () => {
-        describe("making and signing proposals", () => {
+        describe("granting and revoking signatories", () => {
             const fastForward = 60*60*48;
 
-            beforeEach(async () => {
-                // set up 3 signatories.
-                await treasury.proposeGrant(OWNER_2);
-                await treasury.proposeGrant(OWNER_3);
+            it("should be initialised with 3 signatories", async () => {
+                let actual = await treasury.signatories(OWNER);
+                expect(actual).to.be.true;
+
+                actual = await treasury.signatories(OWNER_2);
+                expect(actual).to.be.true;
+
+                actual = await treasury.signatories(OWNER_3);
+                expect(actual).to.be.true;
             });
+
+            it("should reduce count when reovoking a signatory", async () => {
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({
+                    from: OWNER_2
+                });
+
+                var count = new BN(await treasury.grantedCount());
+                expect(count.toNumber()).to.be.equal(4);
+
+                await treasury.proposeRevoke(OWNER_3);
+                await treasury.sign({ from: OWNER_2 });
+                await treasury.sign({ from: ALICE });
+
+                count = new BN(await treasury.grantedCount());
+                expect(count.toNumber()).to.be.equal(3);
+            });
+
+            it("should NOT be able to add an existing signatory", async () => {
+                await expectRevert(
+                    treasury.proposeGrant(OWNER_2),
+                    "Treasury/access-granted");
+
+                const count = new BN(await treasury.grantedCount());
+                expect(count.toNumber()).to.be.equal(3);
+            });
+
+            it("should revoke signatory when the minimum number of revoke authorities is met",
+            async () => {
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({ from: OWNER_2 });
+
+                await treasury.proposeRevoke(OWNER_3);
+                await treasury.sign({ from: ALICE });
+                await treasury.sign({ from: OWNER_2 });
+
+                const signatory = await treasury.signatories(OWNER_3);
+                expect(signatory).to.be.false;
+            })
+
+            it("should NOT revoke when the minimum number of signatories has not be reached",
+            async () => {
+                await expectRevert(
+                    treasury.proposeRevoke(OWNER_2),
+                    "Treasury/minimum-signatories");
+            })
 
             it("should be able to list a proposal's signatures",
             async () => {
@@ -242,15 +234,40 @@ contract("Treasury", (accounts) => {
                     treasury.sign({ from: OWNER_2 }),
                     "Treasury/proposal-expired");
             });
+
+            it("should emit a Grant event", async () => {
+                await treasury.proposeGrant(ALICE);
+                const { logs } = await treasury.sign({ from : OWNER_2 })
+
+                const event = expectEvent.inLogs(logs, 'AccessGranted', {
+                    signatory: ALICE
+                });
+            });
+
+            it("should emit a Revoke event", async () => {
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({ from: OWNER_2 });
+
+                await treasury.proposeRevoke(OWNER_2);
+                await treasury.sign({ from: OWNER_3 });
+
+                const { logs } = await treasury.sign({ from: ALICE });
+
+                const event = expectEvent.inLogs(logs, 'AccessRevoked', {
+                    signatory: OWNER_2
+                });
+            });
+
+            it("should emit a Signed event", async () => {
+                const { logs } = await treasury.proposeGrant(ALICE);
+
+                const event = expectEvent.inLogs(logs, 'Signed', {
+                    index: "2"
+                });
+            });
         })
 
         describe("minting", async () => {
-            beforeEach(async () => {
-                // set up 2 more signatories.
-                await treasury.proposeGrant(OWNER_2);
-                await treasury.proposeGrant(OWNER_3);
-            });
-
             it("should be able to mint Miner tokens", async () => {
                 await treasury.proposeMint(supply);
                 await treasury.sign({ from: OWNER_2 });
@@ -271,7 +288,7 @@ contract("Treasury", (accounts) => {
                 const mintProposal = await treasury.mintProposals(latestProposal);
 
                 expect(new BN(mintProposal).toNumber()).to.be.equal(supply.toNumber());
-                expect(proposal.who).to.be.equal(OWNER);
+                expect(proposal.proposer).to.be.equal(OWNER);
                 expect(proposal.open).to.be.false;
             });
 
@@ -287,6 +304,30 @@ contract("Treasury", (accounts) => {
 
                 expect(new BN(treasuryBalance).toNumber()).to.be.equal(0);
                 expect(new BN(aliceBalance).toNumber()).to.be.equal(supply.toNumber());
+            });
+
+            it("should emit Minted event", async () => {
+                await treasury.proposeMint(supply);
+
+                const { logs } = await treasury.sign({ from: OWNER_2 });
+
+                const event = expectEvent.inLogs(logs, 'Minted', {
+                    amount: supply
+                });
+            });
+
+            it("should emit Withdrawn event", async () => {
+                await treasury.proposeMint(supply);
+                await treasury.sign({ from: OWNER_2 });
+
+                await treasury.proposeWithdrawal(OWNER_2, supply);
+
+                const { logs } = await treasury.sign({ from: OWNER_2 });
+
+                const event = expectEvent.inLogs(logs, 'Withdrawn', {
+                    recipient: OWNER_2,
+                    amount: supply
+                });
             });
 
             it("should fund issuance for distributing miner", async () => {

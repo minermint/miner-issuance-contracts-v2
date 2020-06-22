@@ -17,12 +17,12 @@ struct Transaction {
 }
 
 contract Issuance is Ownable {
-    using SafeMath for uint;
+    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     IERC20 private _token;
 
-    mapping (address => uint256[]) private _tradesByAccount;
+    mapping(address => uint256[]) private _tradesByAccount;
 
     Transaction[] public history;
 
@@ -55,9 +55,10 @@ contract Issuance is Ownable {
      * @return uint256[] An array of transactions for a particular recipient.
      */
     function getAccountTradesIndexes(address recipient)
-    public
-    view
-    returns (uint256[] memory) {
+        public
+        view
+        returns (uint256[] memory)
+    {
         return _tradesByAccount[recipient];
     }
 
@@ -73,15 +74,13 @@ contract Issuance is Ownable {
         uint256 amount,
         uint256 unitPrice,
         string memory currencyCode
-    )
-        public
-        onlyOwner()
-    {
+    ) public onlyOwner() {
         require(recipient != address(0), "Issuance/address-invalid");
         require(amount > 0, "Issuance/amount-invalid");
         require(
             _token.balanceOf(address(this)) >= amount,
-            "Issuance/balance-exceeded");
+            "Issuance/balance-exceeded"
+        );
 
         history.push(
             Transaction(
@@ -90,9 +89,20 @@ contract Issuance is Ownable {
                 amount,
                 unitPrice,
                 currencyCode,
-                now));
+                now
+            )
+        );
 
         _tradesByAccount[recipient].push(history.length);
         _token.transfer(recipient, amount);
+
+        emit Issued(recipient, amount, unitPrice, currencyCode);
     }
+
+    event Issued(
+        address recipient,
+        uint256 amount,
+        uint256 unitPrice,
+        string currencyCode
+    );
 }

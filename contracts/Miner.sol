@@ -4,15 +4,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Miner is ERC20, Ownable {
-    uint8 constant DECIMALS = 4;
+    uint8 private constant DECIMALS = 4;
 
     address private _minter;
 
-    constructor()
-        ERC20("Miner", "MINER")
-        Ownable()
-        public
-    {
+    constructor() public ERC20("Miner", "MINER") Ownable() {
         // explicitly require a minter to be created.
         _minter = address(0);
         _setupDecimals(DECIMALS);
