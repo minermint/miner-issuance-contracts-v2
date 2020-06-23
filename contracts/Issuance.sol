@@ -22,8 +22,6 @@ contract Issuance is Ownable {
 
     IERC20 private _token;
 
-    mapping(address => uint256[]) private _tradesByAccount;
-
     Transaction[] public history;
 
     constructor(IERC20 token) public {
@@ -36,30 +34,6 @@ contract Issuance is Ownable {
      */
     function getHistoryCount() public view returns (uint256) {
         return history.length;
-    }
-
-    /**
-     * Gets the number of trades for a particular recipient.
-     * @return address The number of trades for a particular recipient.
-     */
-    function getAccountTradesCount(address recipient)
-        public
-        view
-        returns (uint256)
-    {
-        return _tradesByAccount[recipient].length;
-    }
-
-    /**
-     * Gets a list of transactions for a particular recipient.
-     * @return uint256[] An array of transactions for a particular recipient.
-     */
-    function getAccountTradesIndexes(address recipient)
-        public
-        view
-        returns (uint256[] memory)
-    {
-        return _tradesByAccount[recipient];
     }
 
     /**
@@ -93,7 +67,6 @@ contract Issuance is Ownable {
             )
         );
 
-        _tradesByAccount[recipient].push(history.length);
         _token.transfer(recipient, amount);
 
         emit Issued(recipient, amount, unitPrice, currencyCode);

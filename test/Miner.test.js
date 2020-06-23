@@ -29,15 +29,17 @@ contract("Miner", accounts => {
 
         it("should have a symbol of MINER", async () => {
             expect(await token.symbol()).to.be.bignumber.equal(symbol);
-        })
+        });
 
-    	it("should initiate a total supply of 0 Miner tokens.", async () => {
-    		expect(await token.totalSupply()).to.be.bignumber.equal(initialSupply);
-    	})
+        it("should initiate a total supply of 0 Miner tokens.", async () => {
+            expect(await token.totalSupply()).to.be.bignumber.equal(
+                initialSupply
+            );
+        });
 
         it("should have no minter assigned.", async () => {
             expect(await token.getMinter()).to.be.bignumber.equal(ZERO_ADDRESS);
-        })
+        });
     });
 
     describe("minting", () => {
