@@ -2,7 +2,7 @@ const { BN, constants, expectEvent, expectRevert } = require("@openzeppelin/test
 const { ZERO_ADDRESS } = constants;
 const { expect } = require("chai");
 
-var Miner = artifacts.require("./Miner.sol");
+const Miner = artifacts.require("./Miner.sol");
 
 contract("Miner", accounts => {
     const symbol = "MINER";
@@ -24,11 +24,11 @@ contract("Miner", accounts => {
 
     describe("instantiation", () => {
         it("should have a name of miner", async () => {
-            expect(await token.name()).to.be.bignumber.equal(name);
+            expect(await token.name()).to.be.equal(name);
         });
 
         it("should have a symbol of MINER", async () => {
-            expect(await token.symbol()).to.be.bignumber.equal(symbol);
+            expect(await token.symbol()).to.be.equal(symbol);
         });
 
         it("should initiate a total supply of 0 Miner tokens.", async () => {
