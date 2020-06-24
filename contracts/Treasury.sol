@@ -17,6 +17,14 @@ struct Proposal {
     ProposalType proposalType;
 }
 
+struct Veto {
+    address proposer;
+    uint256 expires;
+    uint256 signatures;
+    bool open;
+    uint256 proposal;
+}
+
 struct MintProposal {
     uint256 amount;
 }
@@ -41,18 +49,21 @@ contract Treasury is Ownable {
 
     Miner private _token;
 
-    uint8 public constant MINIMUM_AUTHORITIES = 3;
+    uint8 public constant MINIMUM_SIGNATORIES = 3;
 
     mapping(address => Signatory) public signatories;
     address[] public signatoriesIndex;
     uint256 public grantedCount;
 
+    Proposal[] public proposals;
     // signatures[proposalIndex][signatoryAddress] = signed (true)
     mapping(uint256 => mapping(address => bool)) public signed;
-
     mapping(uint256 => address[]) public signatures;
 
-    Proposal[] public proposals;
+    Veto[] public vetoes;
+    mapping(uint256 => mapping(address => bool)) public vetoed;
+    mapping(uint256 => address[]) public vetoers;
+
     mapping(uint256 => AccessProposal) public accessProposals;
     mapping(uint256 => MintProposal) public mintProposals;
     mapping(uint256 => WithdrawalProposal) public withdrawalProposals;
@@ -73,6 +84,19 @@ contract Treasury is Ownable {
 
     function _inSigningPeriod(uint256 i) private view returns (bool) {
         return proposals[i].expires > now;
+    }
+
+    function inVetoingPeriod() public view returns (bool) {
+        if (vetoes.length == 0) {
+            return false;
+        }
+
+        uint256 i = vetoes.length.sub(1);
+        return _inVetoingPeriod(i);
+    }
+
+    function _inVetoingPeriod(uint256 i) private view returns (bool) {
+        return vetoes[i].expires > now;
     }
 
     /**
@@ -99,7 +123,7 @@ contract Treasury is Ownable {
     function proposeGrant(address signatory)
         public
         onlySignatory()
-        proposalPending()
+        noPendingProposals()
     {
         require(signatory != address(0), "Treasury/invalid-address");
         require(!signatories[signatory].granted, "Treasury/access-granted");
@@ -119,10 +143,10 @@ contract Treasury is Ownable {
     function proposeRevoke(address signatory)
         public
         onlySignatory()
-        proposalPending()
+        noPendingProposals()
     {
         require(
-            grantedCount > MINIMUM_AUTHORITIES,
+            grantedCount > MINIMUM_SIGNATORIES,
             "Treasury/minimum-signatories"
         );
         require(signatory != address(0), "Treasury/invalid-address");
@@ -147,7 +171,7 @@ contract Treasury is Ownable {
     function proposeWithdrawal(address recipient, uint256 amount)
         public
         onlySignatory()
-        proposalPending()
+        noPendingProposals()
     {
         require(amount > 0, "Treasury/zero-amount");
 
@@ -159,10 +183,74 @@ contract Treasury is Ownable {
         _propose(ProposalType.Withdrawal);
     }
 
+    /**
+     * Veto an existing, pending proposal.
+     */
+    function vetoProposal()
+        public
+        onlySignatory()
+        noPendingVetoes()
+        miniumSignatories()
+        latestProposalPending()
+    {
+        require(msg.sender != address(0), "Treasury/invalid-address");
+
+        uint256 totalProposals = getProposalsCount();
+
+        if (totalProposals > 0) {
+            uint256 index = totalProposals.sub(1);
+
+            Veto memory veto = Veto(
+                msg.sender,
+                now + 48 hours,
+                0,
+                true,
+                index
+            );
+
+            vetoes.push(veto);
+
+            endorseVeto();
+        }
+    }
+
+    /**
+     * Endorse a veto.
+     */
+    function endorseVeto()
+        public
+        latestVetoPending()
+        latestProposalPending()
+        onlySignatory()
+    {
+        require(msg.sender != address(0), "Treasury/invalid-address");
+
+        uint256 totalVetoes = getVetoCount();
+
+        require(totalVetoes > 0, "Treasury/no-vetoes");
+
+        uint256 index = totalVetoes.sub(1);
+        Proposal storage vetoedProposal = proposals[vetoes[index].proposal];
+
+        vetoed[index][msg.sender] = true;
+        vetoers[index].push(msg.sender);
+
+        vetoes[index].signatures = vetoes[index].signatures.add(1);
+
+        if (vetoes[index].signatures >= _getRequiredSignatoryCount()) {
+            proposals[vetoes[index].proposal].open = false;
+            vetoes[index].open = false;
+
+            _revokeSignatory(vetoedProposal.proposer);
+
+            emit Vetoed(index, vetoes[index].proposal);
+        }
+    }
+
     function _propose(ProposalType proposalType)
         private
         onlySignatory()
-        proposalPending()
+        noPendingProposals()
         returns (uint256)
     {
         Proposal memory proposal = Proposal(
@@ -199,6 +287,14 @@ contract Treasury is Ownable {
     }
 
     /**
+     * Gets the number of vetoes.
+     * @return uint256 The number of vetoes.
+     */
+    function getVetoCount() public view returns (uint256) {
+        return vetoes.length;
+    }
+
+    /**
      * Gets the signatures for a proposal.
      * @param proposal uint256 the proposal id.
      * @return address[] A list if signatures for the proposal.
@@ -215,12 +311,10 @@ contract Treasury is Ownable {
      * Signs a proposal. If the required number of signatories is reached,
      * execute the appropriate proposal action.
      */
-    function sign() public onlySignatory() {
+    function sign() public onlySignatory() latestProposalPending() {
         require(proposals.length > 0, "Treasury/no-proposals");
         uint256 index = getProposalsCount().sub(1);
 
-        require(inSigningPeriod(), "Treasury/proposal-expired");
-        require(proposals[index].open == true, "Treasury/proposal-closed");
         require(
             signed[index][msg.sender] != true,
             "Treasury/signatory-already-signed"
@@ -270,8 +364,7 @@ contract Treasury is Ownable {
             // only revoke signatory status if they have previously been granted
             // access.
             if (accessProposals[index].action == AccessAction.Revoke) {
-                signatories[signatory].granted = false;
-                grantedCount = grantedCount.sub(1);
+                _revokeSignatory(signatory);
 
                 emit AccessRevoked(signatory);
             }
@@ -282,6 +375,11 @@ contract Treasury is Ownable {
         signatories[signatory] = Signatory(true);
         signatoriesIndex.push(signatory);
         grantedCount = grantedCount.add(1);
+    }
+
+    function _revokeSignatory(address signatory) private {
+        signatories[signatory].granted = false;
+        grantedCount = grantedCount.sub(1);
     }
 
     function _printerGoesBrr(uint256 amount) private {
@@ -304,7 +402,21 @@ contract Treasury is Ownable {
         _;
     }
 
-    modifier proposalPending() {
+    modifier latestProposalPending() {
+        uint256 totalProposals = getProposalsCount();
+
+        if (totalProposals > 0) {
+            uint256 index = totalProposals.sub(1);
+
+            require(
+                proposals[index].open && inSigningPeriod(),
+                "Treasury/proposal-expired"
+            );
+        }
+        _;
+    }
+
+    modifier noPendingProposals() {
         uint256 totalProposals = getProposalsCount();
 
         if (totalProposals > 0) {
@@ -318,9 +430,37 @@ contract Treasury is Ownable {
         _;
     }
 
+    modifier latestVetoPending() {
+        uint256 totalVetoes = getVetoCount();
+
+        if (totalVetoes > 0) {
+            uint256 index = totalVetoes.sub(1);
+
+            require(
+                vetoes[index].open && inVetoingPeriod(),
+                "Treasury/veto-expired"
+            );
+        }
+        _;
+    }
+
+    modifier noPendingVetoes() {
+        uint256 totalVetoes = getVetoCount();
+
+        if (totalVetoes > 0) {
+            uint256 index = totalVetoes.sub(1);
+
+            require(
+                !vetoes[index].open || !inVetoingPeriod(),
+                "Treasury/veto-pending"
+            );
+        }
+        _;
+    }
+
     modifier miniumSignatories() {
         require(
-            grantedCount >= MINIMUM_AUTHORITIES,
+            grantedCount >= MINIMUM_SIGNATORIES,
             "Treasury/minimum-signatories"
         );
         _;
@@ -334,4 +474,6 @@ contract Treasury is Ownable {
     event Minted(uint256 amount);
 
     event Withdrawn(address recipient, uint256 amount);
+
+    event Vetoed(uint256 veto, uint256 proposal);
 }

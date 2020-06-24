@@ -1,6 +1,6 @@
 {
   "contractName": "Issuance",
-  "address": "0x94867d1dD119677EA9F222100c0be8f4D59ac007",
+  "address": "0x2cd2eBEC05508643AD950d66A3C8eEca8b25c70D",
   "abi": [
     {
       "inputs": [
@@ -13,6 +13,38 @@
       "stateMutability": "nonpayable",
       "type": "constructor",
       "signature": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "unitPrice",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "currencyCode",
+          "type": "string"
+        }
+      ],
+      "name": "Issued",
+      "type": "event",
+      "signature": "0x75fe0779cf5bf3132c626bb75a5c97a5df96f16dc016812323851a983eec243f"
     },
     {
       "anonymous": false,
@@ -46,7 +78,7 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "who",
+          "name": "recipient",
           "type": "address"
         },
         {
@@ -136,49 +168,7 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "who",
-          "type": "address"
-        }
-      ],
-      "name": "getAccountTradesCount",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function",
-      "constant": true,
-      "signature": "0xc5ece867"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "who",
-          "type": "address"
-        }
-      ],
-      "name": "getAccountTradesIndexes",
-      "outputs": [
-        {
-          "internalType": "uint256[]",
-          "name": "",
-          "type": "uint256[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function",
-      "constant": true,
-      "signature": "0xb709e112"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "to",
+          "name": "recipient",
           "type": "address"
         },
         {

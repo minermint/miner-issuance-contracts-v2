@@ -74,13 +74,20 @@ contract("Treasury", (accounts) => {
         it("should NOT be able to sign when there are no proposals",
         async () => {
             await expectRevert(
-                treasury.sign({ from: OWNER }),
+                treasury.sign(),
                 "Treasury/no-proposals");
         });
 
         it("should NOT be in signing period", async () => {
             const actual = await treasury.inSigningPeriod();
             expect(actual).to.be.false;
+        });
+
+        it("should NOT be able to veto without minimum signatories",
+        async () => {
+            await expectRevert(
+                treasury.vetoProposal(),
+                "Treasury/minimum-signatories");
         });
     })
 
@@ -104,7 +111,7 @@ contract("Treasury", (accounts) => {
                 expect(actual).to.be.true;
             });
 
-            it("should reduce count when reovoking a signatory", async () => {
+            it("should reduce count when revoking a signatory", async () => {
                 await treasury.proposeGrant(ALICE);
                 await treasury.sign({
                     from: OWNER_2
@@ -206,19 +213,19 @@ contract("Treasury", (accounts) => {
             it("should NOT be able to sign when there are no open proposals",
             async () => {
                 await expectRevert(
-                    treasury.sign({ from: OWNER }),
-                    "Treasury/proposal-closed");
+                    treasury.sign(),
+                    "Treasury/proposal-expired");
             });
 
             it("should NOT be able to sign when revoked", async() => {
-                await treasury.proposeGrant(ALICE, { from: OWNER });
+                await treasury.proposeGrant(ALICE);
                 await treasury.sign({ from: OWNER_2} );
 
-                await treasury.proposeRevoke(ALICE, { from: OWNER });
+                await treasury.proposeRevoke(ALICE);
                 await treasury.sign({ from: OWNER_2 });
                 await treasury.sign({ from: OWNER_3} );
 
-                await treasury.proposeMint(supply, { from: OWNER });
+                await treasury.proposeMint(supply);
 
                 await expectRevert(
                     treasury.sign({ from: ALICE }),
@@ -349,4 +356,122 @@ contract("Treasury", (accounts) => {
             });
         });
     });
-})
+
+    describe("vetoing", () => {
+        beforeEach(async () => {
+            await treasury.proposeGrant(OWNER_2);
+            await treasury.proposeGrant(OWNER_3);
+        });
+
+        it("should veto an existing proposal", async () => {
+            await treasury.proposeGrant(ALICE, { from: OWNER_3 });
+
+            await treasury.vetoProposal({ from: OWNER_2 });
+
+            const vetoes = await treasury.getVetoCount();
+            expect(vetoes.toNumber()).to.be.equal(1);
+        });
+
+        it("should endorse the vetoing of a proposal", async () => {
+            await treasury.proposeGrant(ALICE, { from: OWNER_3 });
+
+            await treasury.vetoProposal({ from: OWNER_2 });
+            await treasury.endorseVeto({ from: OWNER });
+
+            const count = await treasury.getProposalsCount();
+            const latestProposal = await treasury.proposals(count - 1);
+            expect(latestProposal.open).to.be.false;
+            expect(await treasury.signatories(ALICE)).to.be.false;
+        });
+
+        it("should NOT be able to add a veto when one is pending",
+        async () => {
+            await treasury.proposeGrant(ALICE, { from: OWNER_3 });
+
+            await treasury.vetoProposal({ from: OWNER_2 });
+
+            await expectRevert(
+                treasury.vetoProposal(),
+                "Treasury/veto-pending");
+        });
+
+        it("should NOT be able to veto if not a signatory",
+        async () => {
+            await expectRevert(
+                treasury.vetoProposal({ from: ALICE }),
+                "Treasury/invalid-signatory");
+        });
+
+        it("should NOT be able to veto an expired proposal",
+        async () => {
+            await expectRevert(
+                treasury.vetoProposal(),
+                "Treasury/proposal-expired");
+        });
+
+        it("should NOT be able to endorse when no vetos", async () => {
+            await treasury.proposeGrant(ALICE, { from: OWNER_3 });
+
+            await expectRevert(
+                treasury.endorseVeto(),
+                "Treasury/no-vetoes"
+            );
+        });
+
+        describe("endorsing", () => {
+            beforeEach(async () => {
+                await treasury.proposeGrant(ALICE, { from: OWNER_3 });
+
+                await treasury.vetoProposal({ from: OWNER_2 });
+            });
+
+            it("should be able to endorse a veto", async () => {
+                await treasury.endorseVeto();
+
+                const latestVeto = await treasury.vetoes(0);
+
+                expect(latestVeto).to.include({
+                    proposer: OWNER_2,
+                    open: false
+                });
+            });
+
+            it("should emit a Vetoed event", async () => {
+                const { logs } = await treasury.endorseVeto();
+
+                expectEvent.inLogs(logs, 'Vetoed', {
+                    proposal: "2",
+                    veto: "0"
+                });
+            });
+
+            it("should NOT be able to endorse a veto when proposal expired",
+            async () => {
+                await treasury.sign({ from: OWNER_2 });
+
+                await expectRevert(
+                    treasury.endorseVeto(),
+                    "Treasury/proposal-expired"
+                );
+            });
+
+            it("should NOT be able to endorse a veto when expired",
+            async () => {
+                await treasury.endorseVeto();
+
+                await expectRevert(
+                    treasury.endorseVeto({ from: OWNER_3 }),
+                    "Treasury/veto-expired"
+                );
+            });
+
+            it("should NOT be able to endorse a veto when not a signatory",
+            async () => {
+                await expectRevert(
+                    treasury.endorseVeto({ from: ALICE }),
+                    "Treasury/invalid-signatory"
+                );
+            });
+        });
+    });
+});

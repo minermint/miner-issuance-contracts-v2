@@ -1,6 +1,6 @@
 {
   "contractName": "Treasury",
-  "address": "0xEEE8B4522617FE2f992351CB7C34568A77042d1d",
+  "address": "0xa0b8a4c682a685De231bf56fFd3eF9553Ce457FE",
   "abi": [
     {
       "inputs": [
@@ -46,6 +46,20 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Minted",
+      "type": "event",
+      "signature": "0x176b02bb2d12439ff7a20b59f402cca16c76f50508b13ef3166a600eb719354a"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": true,
           "internalType": "address",
           "name": "previousOwner",
@@ -81,6 +95,12 @@
       "inputs": [
         {
           "indexed": false,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "indexed": false,
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
@@ -88,7 +108,22 @@
       ],
       "name": "Withdrawn",
       "type": "event",
-      "signature": "0x430648de173157e069201c943adb2d4e340e7cf5b27b1b09c9cb852f03d63b56"
+      "signature": "0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5"
+    },
+    {
+      "inputs": [],
+      "name": "MINIMUM_AUTHORITIES",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xb65e379b"
     },
     {
       "inputs": [
@@ -102,7 +137,7 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "authority",
+          "name": "signatory",
           "type": "address"
         },
         {
@@ -179,7 +214,7 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "who",
+          "name": "proposer",
           "type": "address"
         },
         {
@@ -257,6 +292,58 @@
       "type": "function",
       "constant": true,
       "signature": "0xa58a0f21"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "signatures",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xde5ede65"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "signed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xbdaa4553"
     },
     {
       "inputs": [
@@ -403,6 +490,27 @@
       "type": "function",
       "constant": true,
       "signature": "0x98e527d3"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "proposal",
+          "type": "uint256"
+        }
+      ],
+      "name": "getSignatures",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xf4eccb8f"
     },
     {
       "inputs": [],

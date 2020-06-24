@@ -10,7 +10,9 @@
     "scripts": {
         "coverage": "truffle run coverage",
         "lint:solidity": "./node_modules/.bin/solhint -f table contracts/**/*.sol",
-        "lint:tests": "./node_modules/.bin/eslint ./test/"
+        "lint:tests": "./node_modules/.bin/eslint ./test/",
+        "deploy:development": "truffle deploy --network development",
+        "deploy:staging": "truffle deploy --network ropsten"
     },
     "dependencies": {
         "@openzeppelin/contracts": "^3.0.2",
