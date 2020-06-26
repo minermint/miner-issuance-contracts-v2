@@ -22,6 +22,8 @@ contract("Treasury", (accounts) => {
     const decimals = new BN("4");
     const supply = new BN("1000000").mul(new BN("10").pow(decimals));
 
+    const fastForward = 60*60*48;
+
     let miner, treasury;
 
     beforeEach(async () => {
@@ -83,6 +85,11 @@ contract("Treasury", (accounts) => {
             expect(actual).to.be.false;
         });
 
+        it("should NOT be in vetoing period", async () => {
+            const actual = await treasury.inVetoingPeriod();
+            expect(actual).to.be.false;
+        });
+
         it("should NOT be able to veto without minimum signatories",
         async () => {
             await expectRevert(
@@ -98,8 +105,6 @@ contract("Treasury", (accounts) => {
         });
 
         describe("granting and revoking signatories", () => {
-            const fastForward = 60*60*48;
-
             it("should be initialised with 3 signatories", async () => {
                 let actual = await treasury.signatories(OWNER);
                 expect(actual).to.be.true;
@@ -470,6 +475,38 @@ contract("Treasury", (accounts) => {
                 await expectRevert(
                     treasury.endorseVeto({ from: ALICE }),
                     "Treasury/invalid-signatory"
+                );
+            });
+
+            it("should be able to get a list of endorsements for a veto",
+            async () => {
+                await treasury.endorseVeto();
+
+                const vetoers = await treasury.getVetoEndorsements(0);
+                expect(vetoers).to.be.lengthOf(2);
+            });
+
+            it("should be in vetoing period", async () => {
+                const actual = await treasury.inVetoingPeriod();
+                expect(actual).to.be.true;
+            });
+
+            it("should be outside vetoing period when veto expires",
+            async () => {
+                time.increase(fastForward);
+
+                const isActive = await treasury.inVetoingPeriod();
+
+                expect(isActive).to.be.false;
+            });
+
+            it("should NOT be able to endorse a veto when times out",
+            async () => {
+                time.increase(fastForward);
+
+                await expectRevert(
+                    treasury.endorseVeto({ from: OWNER_3 }),
+                    "Treasury/veto-expired"
                 );
             });
         });

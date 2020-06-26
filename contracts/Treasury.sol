@@ -308,6 +308,19 @@ contract Treasury is Ownable {
     }
 
     /**
+     * Gets the signatures for a veto.
+     * @param veto uint256 the veto id.
+     * @return address[] A list if signatures for the veto.
+     */
+    function getVetoEndorsements(uint256 veto)
+        public
+        view
+        returns (address[] memory)
+    {
+        return vetoers[veto];
+    }
+
+    /**
      * Signs a proposal. If the required number of signatories is reached,
      * execute the appropriate proposal action.
      */
