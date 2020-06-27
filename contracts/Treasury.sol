@@ -200,13 +200,7 @@ contract Treasury is Ownable {
         if (totalProposals > 0) {
             uint256 index = totalProposals.sub(1);
 
-            Veto memory veto = Veto(
-                msg.sender,
-                now + 48 hours,
-                0,
-                true,
-                index
-            );
+            Veto memory veto = Veto(msg.sender, now + 48 hours, 0, true, index);
 
             vetoes.push(veto);
 

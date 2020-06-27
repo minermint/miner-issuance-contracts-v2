@@ -436,8 +436,8 @@ contract("Treasury", (accounts) => {
                 const latestVeto = await treasury.vetoes(0);
 
                 expect(latestVeto).to.include({
-                    proposer: OWNER_2,
-                    open: false
+                    open: false,
+                    proposer: OWNER_2
                 });
             });
 
