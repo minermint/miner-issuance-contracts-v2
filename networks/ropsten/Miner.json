@@ -1,12 +1,11 @@
 {
   "contractName": "Miner",
-  "address": "0x183f547b70648d4C9253fB6248Bf3fB631472F78",
+  "address": "0x8d3872CFAf8D132CA1C2645129a807958e39bA05",
   "abi": [
     {
       "inputs": [],
       "stateMutability": "nonpayable",
-      "type": "constructor",
-      "signature": "constructor"
+      "type": "constructor"
     },
     {
       "anonymous": false,

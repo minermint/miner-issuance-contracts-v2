@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 enum ProposalType { Mint, Access, Withdrawal }
 
-enum AccessAction { Grant, Revoke }
+enum AccessAction { None, Grant, Revoke }
 
 struct Proposal {
     address proposer;
@@ -40,7 +40,7 @@ struct AccessProposal {
 }
 
 struct Signatory {
-    bool granted;
+    AccessAction action;
 }
 
 contract Treasury is Ownable {
@@ -126,7 +126,7 @@ contract Treasury is Ownable {
         noPendingProposals()
     {
         require(signatory != address(0), "Treasury/invalid-address");
-        require(!signatories[signatory].granted, "Treasury/access-granted");
+        require(signatories[signatory].action != AccessAction.Grant, "Treasury/access-granted");
 
         uint256 index = getProposalsCount();
 
@@ -151,7 +151,7 @@ contract Treasury is Ownable {
         );
         require(signatory != address(0), "Treasury/invalid-address");
         require(
-            signatories[signatory].granted,
+            signatories[signatory].action == AccessAction.Grant,
             "Treasury/no-signatory-or-revoked"
         );
 
@@ -268,9 +268,9 @@ contract Treasury is Ownable {
      * signatories, use grantedCount.
      * @return uint256 The total number of signatories.
      */
-    function getSignatoryCount() public view returns (uint256) {
-        return signatoriesIndex.length;
-    }
+     function getSignatoryCount() public view returns (uint256) {
+         return signatoriesIndex.length;
+     }
 
     /**
      * Gets the number of proposals.
@@ -361,7 +361,7 @@ contract Treasury is Ownable {
         address signatory = accessProposals[index].signatory;
 
         // don't re-add a signatory if they already have been granted access.
-        if (!signatories[signatory].granted) {
+        if (signatories[signatory].action != AccessAction.Grant) {
             if (accessProposals[index].action == AccessAction.Grant) {
                 _grantSignatory(signatory);
 
@@ -379,13 +379,17 @@ contract Treasury is Ownable {
     }
 
     function _grantSignatory(address signatory) private {
-        signatories[signatory] = Signatory(true);
-        signatoriesIndex.push(signatory);
+        // if a new signatory, add to list.
+        if (signatories[signatory].action != AccessAction.Revoke) {
+            signatoriesIndex.push(signatory);
+        }
+
+        signatories[signatory] = Signatory(AccessAction.Grant);
         grantedCount = grantedCount.add(1);
     }
 
     function _revokeSignatory(address signatory) private {
-        signatories[signatory].granted = false;
+        signatories[signatory] = Signatory(AccessAction.Revoke);
         grantedCount = grantedCount.sub(1);
     }
 
@@ -403,7 +407,7 @@ contract Treasury is Ownable {
 
     modifier onlySignatory() {
         require(
-            signatories[msg.sender].granted == true,
+            signatories[msg.sender].action == AccessAction.Grant,
             "Treasury/invalid-signatory"
         );
         _;

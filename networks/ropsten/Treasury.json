@@ -1,6 +1,6 @@
 {
   "contractName": "Treasury",
-  "address": "0xa0b8a4c682a685De231bf56fFd3eF9553Ce457FE",
+  "address": "0x419457Cdb81841B81dF19a05b27F940a21bDb0b9",
   "abi": [
     {
       "inputs": [
@@ -95,6 +95,26 @@
       "inputs": [
         {
           "indexed": false,
+          "internalType": "uint256",
+          "name": "veto",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "proposal",
+          "type": "uint256"
+        }
+      ],
+      "name": "Vetoed",
+      "type": "event",
+      "signature": "0x2e05f9432e9563cf5cf2ba69bd0baa2a2a21e566be675059ee34035cf25a7fd7"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
           "internalType": "address",
           "name": "recipient",
           "type": "address"
@@ -112,7 +132,7 @@
     },
     {
       "inputs": [],
-      "name": "MINIMUM_AUTHORITIES",
+      "name": "MINIMUM_SIGNATORIES",
       "outputs": [
         {
           "internalType": "uint8",
@@ -123,7 +143,7 @@
       "stateMutability": "view",
       "type": "function",
       "constant": true,
-      "signature": "0xb65e379b"
+      "signature": "0xba0f2e7b"
     },
     {
       "inputs": [
@@ -262,9 +282,9 @@
       "name": "signatories",
       "outputs": [
         {
-          "internalType": "bool",
-          "name": "granted",
-          "type": "bool"
+          "internalType": "enum AccessAction",
+          "name": "action",
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -365,6 +385,99 @@
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "vetoed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0x31dc243b"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "vetoers",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0x314fb072"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "vetoes",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "proposer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "expires",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "signatures",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "open",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "proposal",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0x7c8520de"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "name": "withdrawalProposals",
@@ -399,6 +512,21 @@
       "type": "function",
       "constant": true,
       "signature": "0x37dab6d2"
+    },
+    {
+      "inputs": [],
+      "name": "inVetoingPeriod",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0x39b399ad"
     },
     {
       "inputs": [
@@ -463,6 +591,22 @@
     },
     {
       "inputs": [],
+      "name": "vetoProposal",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x3f1d1f04"
+    },
+    {
+      "inputs": [],
+      "name": "endorseVeto",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x3784fa4b"
+    },
+    {
+      "inputs": [],
       "name": "getSignatoryCount",
       "outputs": [
         {
@@ -492,6 +636,21 @@
       "signature": "0x98e527d3"
     },
     {
+      "inputs": [],
+      "name": "getVetoCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xdc17fb29"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint256",
@@ -511,6 +670,27 @@
       "type": "function",
       "constant": true,
       "signature": "0xf4eccb8f"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "veto",
+          "type": "uint256"
+        }
+      ],
+      "name": "getVetoEndorsements",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xef652d98"
     },
     {
       "inputs": [],
