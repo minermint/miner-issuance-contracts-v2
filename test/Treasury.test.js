@@ -24,6 +24,8 @@ contract("Treasury", (accounts) => {
 
     const fastForward = 60*60*48;
 
+    const Access = {"None": "0", "Grant": "1", "Revoke": "2"};
+
     let miner, treasury;
 
     beforeEach(async () => {
@@ -106,14 +108,17 @@ contract("Treasury", (accounts) => {
 
         describe("granting and revoking signatories", () => {
             it("should be initialised with 3 signatories", async () => {
+                await treasury.signatories(OWNER);
+                await treasury.signatories(OWNER_2);
+                await treasury.signatories(OWNER_3);
+
+                const count = await treasury.getSignatoryCount();
+                expect(count).to.be.bignumber.equal("3")
+            });
+
+            it("should have a signatory with grant access", async () => {
                 let actual = await treasury.signatories(OWNER);
-                expect(actual).to.be.true;
-
-                actual = await treasury.signatories(OWNER_2);
-                expect(actual).to.be.true;
-
-                actual = await treasury.signatories(OWNER_3);
-                expect(actual).to.be.true;
+                expect(actual).to.be.bignumber.equal(Access.Grant);
             });
 
             it("should reduce count when revoking a signatory", async () => {
@@ -152,8 +157,28 @@ contract("Treasury", (accounts) => {
                 await treasury.sign({ from: OWNER_2 });
 
                 const signatory = await treasury.signatories(OWNER_3);
-                expect(signatory).to.be.false;
+                expect(signatory).to.be.bignumber.equal(Access.Revoke);
             })
+
+            it("should be able to re-enable a revoked signatory", async () => {
+                const expected = new BN(4);
+
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({ from: OWNER_2 });
+
+                await treasury.proposeRevoke(OWNER_3);
+                await treasury.sign({ from: ALICE });
+                await treasury.sign({ from: OWNER_2 });
+
+                await treasury.proposeGrant(OWNER_3);
+                await treasury.sign({ from: OWNER_2 });
+
+                let count = await treasury.grantedCount();
+                expect(count).to.be.bignumber.equal(expected);
+
+                count = await treasury.getSignatoryCount();
+                expect(count).to.be.bignumber.equal(expected);
+            });
 
             it("should NOT revoke when the minimum number of signatories has not be reached",
             async () => {
@@ -386,7 +411,9 @@ contract("Treasury", (accounts) => {
             const count = await treasury.getProposalsCount();
             const latestProposal = await treasury.proposals(count - 1);
             expect(latestProposal.open).to.be.false;
-            expect(await treasury.signatories(ALICE)).to.be.false;
+
+            const signatory = await treasury.signatories(OWNER_3);
+            expect(signatory).to.be.bignumber.equal(Access.Revoke);
         });
 
         it("should NOT be able to add a veto when one is pending",
