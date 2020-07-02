@@ -537,7 +537,7 @@ contract("Treasury", (accounts) => {
                 );
             });
 
-            it.only("should NOT be able to endorse veto multiple times",
+            it("should NOT be able to endorse veto multiple times",
             async () => {
                 await expectRevert(
                     treasury.endorseVeto({ from: OWNER_2 }),
