@@ -224,6 +224,12 @@ contract Treasury is Ownable {
         require(totalVetoes > 0, "Treasury/no-vetoes");
 
         uint256 index = totalVetoes.sub(1);
+
+        require(
+            vetoed[index][msg.sender] != true,
+            "Treasury/signatory-already-vetoed"
+        );
+
         Proposal storage vetoedProposal = proposals[vetoes[index].proposal];
 
         vetoed[index][msg.sender] = true;

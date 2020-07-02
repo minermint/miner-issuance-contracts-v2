@@ -536,6 +536,13 @@ contract("Treasury", (accounts) => {
                     "Treasury/veto-expired"
                 );
             });
+
+            it.only("should NOT be able to endorse veto multiple times",
+            async () => {
+                await expectRevert(
+                    treasury.endorseVeto({ from: OWNER_2 }),
+                    "Treasury/signatory-already-vetoed");
+            });
         });
     });
 });
