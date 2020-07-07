@@ -31,6 +31,12 @@ contract("Issuance", (accounts) => {
         expect(actual.toNumber()).to.be.equal(supply.toNumber());
     });
 
+    it("should be able to change contract ownership", async () => {
+        await issuance.transferOwnership(ALICE);
+
+        expect(await issuance.owner()).to.be.equal(ALICE);
+    });
+
     describe("purchasing miner", () => {
         const unitPrice = 50;
         const currencyCode = "USD";
