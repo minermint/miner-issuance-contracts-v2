@@ -543,6 +543,14 @@ contract("Treasury", (accounts) => {
                     treasury.endorseVeto({ from: OWNER_2 }),
                     "Treasury/signatory-already-vetoed");
             });
+
+            it("should NOT be able to endorse a own veto proposal",
+            async () => {
+                await expectRevert(
+                    treasury.endorseVeto({ from: OWNER_2 }),
+                    "Treasury/signatory-already-vetoed"
+                );
+            });
         });
     });
 });
