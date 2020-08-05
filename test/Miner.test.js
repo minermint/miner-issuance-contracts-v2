@@ -7,7 +7,7 @@ const Miner = artifacts.require("./Miner.sol");
 contract("Miner", accounts => {
     const symbol = "MINER";
     const name = "Miner";
-    const decimals = new BN("4");
+    const decimals = new BN("18");
     const initialSupply = new BN("0").mul(new BN("10").pow(decimals));
     const mintedSupply = new BN("1000000").mul(new BN("10").pow(decimals));
 
