@@ -42,7 +42,7 @@
         "prettier-plugin-solidity": "^1.0.0-alpha.54",
         "solhint": "^3.0.0",
         "solhint-plugin-prettier": "0.0.4",
-        "solidity-coverage": "^0.7.7",
+        "solidity-coverage": "^0.7.9",
         "truffle-security": "git+https://github.com/ConsenSys/truffle-security.git"
     }
 }

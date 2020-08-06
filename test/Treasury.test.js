@@ -19,12 +19,13 @@ contract("Treasury", (accounts) => {
     const ALICE = accounts[3];
     const BOB = accounts[4];
 
-    const decimals = new BN("18");
-    const supply = new BN("1000000").mul(new BN("10").pow(decimals));
-
-    const fastForward = 60*60*48;
+    const FAST_FORWARD = 60*60*48;
+    const ZERO_BALANCE = new BN(0);
 
     const Access = {"None": "0", "Grant": "1", "Revoke": "2"};
+
+    const decimals = new BN("18");
+    const supply = new BN("1000000").mul(new BN("10").pow(decimals));
 
     let miner, treasury;
 
@@ -44,13 +45,17 @@ contract("Treasury", (accounts) => {
         it("should have one (1) signatory who is also the contract owner",
         async () => {
             const totalSignatories = new BN(await treasury.getSignatoryCount());
-            expect(totalSignatories.toNumber()).to.be.equal(1);
+            const expected = new BN(1);
+
+            expect(totalSignatories).to.be.bignumber.equal(expected);
         });
 
         it("should have one (1) granted signatory who is also the contract owner",
         async () => {
             const grantedCount = new BN(await treasury.grantedCount());
-            expect(grantedCount.toNumber()).to.be.equal(1);
+            const expected = new BN(1);
+
+            expect(grantedCount).to.be.bignumber.equal(expected);
         });
 
         it("should be able to add the minimum required number of signatories",
@@ -59,7 +64,9 @@ contract("Treasury", (accounts) => {
             await treasury.proposeGrant(OWNER_3);
 
             const count = new BN(await treasury.grantedCount());
-            expect(count.toNumber()).to.be.equal(3);
+            const expected = new BN(3);
+
+            expect(count).to.be.bignumber.equal(expected);
         });
 
         it("should NOT be able to remove signatories", async () => {
@@ -130,7 +137,8 @@ contract("Treasury", (accounts) => {
                 await treasury.signatories(OWNER_3);
 
                 const count = await treasury.getSignatoryCount();
-                expect(count).to.be.bignumber.equal("3")
+                const actual = new BN(3);
+                expect(count).to.be.bignumber.equal(actual);
             });
 
             it("should have a signatory with grant access", async () => {
@@ -145,14 +153,17 @@ contract("Treasury", (accounts) => {
                 });
 
                 var count = new BN(await treasury.grantedCount());
-                expect(count.toNumber()).to.be.equal(4);
+                const initialActual = new BN(4);
+                expect(count).to.be.bignumber.equal(initialActual);
 
                 await treasury.proposeRevoke(OWNER_3);
                 await treasury.sign({ from: OWNER_2 });
                 await treasury.sign({ from: ALICE });
 
                 count = new BN(await treasury.grantedCount());
-                expect(count.toNumber()).to.be.equal(3);
+                const newActual = new BN(3);
+
+                expect(count).to.be.bignumber.equal(newActual);
             });
 
             it("should NOT be able to add an existing signatory", async () => {
@@ -161,7 +172,9 @@ contract("Treasury", (accounts) => {
                     "Treasury/access-granted");
 
                 const count = new BN(await treasury.grantedCount());
-                expect(count.toNumber()).to.be.equal(3);
+                const expected = new BN(3);
+
+                expect(count).to.be.bignumber.equal(expected);
             });
 
             it("should revoke signatory when the minimum number of revoke authorities is met",
@@ -212,7 +225,7 @@ contract("Treasury", (accounts) => {
                 const proposalCount = await treasury.getProposalsCount();
 
                 const signatures = await treasury.getSignatures(
-                    proposalCount - 1);
+                    proposalCount.sub(new BN(1)));
 
                 expect(signatures).to.have.lengthOf(2);
                 expect(signatures[1]).to.be.equal(OWNER_2);
@@ -250,7 +263,7 @@ contract("Treasury", (accounts) => {
             async () => {
                 await treasury.proposeMint(supply);
 
-                time.increase(fastForward);
+                time.increase(FAST_FORWARD);
 
                 const isActive = await treasury.inSigningPeriod();
 
@@ -284,7 +297,7 @@ contract("Treasury", (accounts) => {
             async() => {
                 await treasury.proposeMint(supply);
 
-                time.increase(fastForward);
+                time.increase(FAST_FORWARD);
 
                 await expectRevert(
                     treasury.sign({ from: OWNER_2 }),
@@ -333,7 +346,7 @@ contract("Treasury", (accounts) => {
                 await treasury.sign({ from: OWNER_2 });
 
                 const balance = await miner.balanceOf(treasury.address);
-                expect(new BN(balance).toNumber()).to.be.equal(supply.toNumber());
+                expect(new BN(balance)).to.be.bignumber.equal(supply);
             });
 
             it("should propose the minting of tokens", async () => {
@@ -341,14 +354,17 @@ contract("Treasury", (accounts) => {
                 await treasury.sign({ from: OWNER_2 });
 
                 const balance = await miner.balanceOf(OWNER);
-                expect(balance.toNumber()).to.be.equal(0);
 
-                const latestProposal = new BN(await treasury.getProposalsCount()) - 1;
-                const proposal = await treasury.proposals(latestProposal);
-                const mintProposal = await treasury.mintProposals(latestProposal);
+                expect(balance).to.be.bignumber.equal(ZERO_BALANCE);
 
-                expect(new BN(mintProposal).toNumber()).to.be.equal(supply.toNumber());
-                expect(proposal.proposer).to.be.equal(OWNER);
+                const count = await treasury.getProposalsCount();
+                const index = count.sub(new BN(1));
+
+                const proposal = await treasury.proposals(index);
+                const mintProposal = await treasury.mintProposals(index);
+
+                expect(mintProposal).to.be.bignumber.equal(supply);
+                expect(proposal.proposer).to.be.bignumber.equal(OWNER);
                 expect(proposal.open).to.be.false;
             });
 
@@ -362,8 +378,8 @@ contract("Treasury", (accounts) => {
                 const treasuryBalance = await miner.balanceOf(treasury.address);
                 const aliceBalance = await miner.balanceOf(ALICE);
 
-                expect(new BN(treasuryBalance).toNumber()).to.be.equal(0);
-                expect(new BN(aliceBalance).toNumber()).to.be.equal(supply.toNumber());
+                expect(treasuryBalance).to.be.bignumber.equal(ZERO_BALANCE);
+                expect(aliceBalance).to.be.bignumber.equal(supply);
             });
 
             it("should emit Minted event", async () => {
@@ -397,9 +413,20 @@ contract("Treasury", (accounts) => {
 
                 const treasuryBalance = await miner.balanceOf(treasury.address);
                 const issuanceBalance = await miner.balanceOf(issuance.address);
+                const expectedIssuanceSupply = new BN(100);
+                const expectedTreasurySupply = supply.sub(expectedIssuanceSupply);
 
-                expect(new BN(treasuryBalance).toNumber()).to.be.equal(supply - 100);
-                expect(new BN(issuanceBalance).toNumber()).to.be.equal(100);
+                expect(
+                    treasuryBalance
+                ).to.be.bignumber.equal(
+                    expectedTreasurySupply
+                );
+
+                expect(
+                    issuanceBalance
+                ).to.be.bignumber.equal(
+                    expectedIssuanceSupply
+                );
             });
         });
     });
@@ -426,10 +453,13 @@ contract("Treasury", (accounts) => {
             await treasury.endorseVeto({ from: OWNER });
 
             const count = await treasury.getProposalsCount();
-            const latestProposal = await treasury.proposals(count - 1);
+            const index = count.sub(new BN(1));
+            const latestProposal = await treasury.proposals(index);
+
             expect(latestProposal.open).to.be.false;
 
             const signatory = await treasury.signatories(OWNER_3);
+
             expect(signatory).to.be.bignumber.equal(Access.Revoke);
         });
 
@@ -537,7 +567,7 @@ contract("Treasury", (accounts) => {
 
             it("should be outside vetoing period when veto expires",
             async () => {
-                time.increase(fastForward);
+                time.increase(FAST_FORWARD);
 
                 const isActive = await treasury.inVetoingPeriod();
 
@@ -546,7 +576,7 @@ contract("Treasury", (accounts) => {
 
             it("should NOT be able to endorse a veto when times out",
             async () => {
-                time.increase(fastForward);
+                time.increase(FAST_FORWARD);
 
                 await expectRevert(
                     treasury.endorseVeto({ from: OWNER_3 }),

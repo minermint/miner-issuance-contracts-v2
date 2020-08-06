@@ -11,6 +11,8 @@ contract("Issuance", (accounts) => {
     const ALICE = accounts[3];
     const BOB = accounts[4];
 
+    const ZERO_BALANCE = new BN(0);
+
     let miner, issuance;
 
     const decimals = new BN("18");
@@ -28,7 +30,7 @@ contract("Issuance", (accounts) => {
 
         let actual = new BN(await miner.balanceOf(issuance.address));
 
-        expect(actual.toNumber()).to.be.equal(supply.toNumber());
+        expect(actual).to.be.bignumber.equal(supply);
     });
 
     it("should be able to change contract ownership", async () => {
@@ -41,7 +43,6 @@ contract("Issuance", (accounts) => {
         const unitPrice = 50;
         const currencyCode = "USD";
         const amount = new BN("100000").mul(new BN("10").pow(decimals));
-        const zeroAmount = 0;
 
         beforeEach(async () => {
             await miner.mint(supply);
@@ -53,7 +54,7 @@ contract("Issuance", (accounts) => {
 
             const balance = await miner.balanceOf(ALICE);
 
-            expect(balance.toNumber()).to.be.equal(amount.toNumber());
+            expect(balance).to.be.bignumber.equal(amount);
         });
 
         it("should emit a Issued event", async () => {
@@ -74,13 +75,19 @@ contract("Issuance", (accounts) => {
 
         it("should NOT issue zero tokens", async () => {
             await expectRevert(
-                issuance.issue(ALICE, zeroAmount, unitPrice, currencyCode),
+                issuance.issue(ALICE, ZERO_BALANCE, unitPrice, currencyCode),
                 "Issuance/amount-invalid");
         });
 
         it("should NOT issue tokens as an invalid user", async () => {
             await expectRevert(
-                issuance.issue(ALICE, amount, unitPrice, currencyCode, { from: ALICE }),
+                issuance.issue(
+                    ALICE,
+                    amount,
+                    unitPrice,
+                    currencyCode,
+                    { from: ALICE }
+                ),
                 "Ownable: caller is not the owner");
         });
 
@@ -95,7 +102,12 @@ contract("Issuance", (accounts) => {
 
         it("should NOT issue tokens as zero address", async () => {
             await expectRevert(
-                issuance.issue(ZERO_ADDRESS, zeroAmount, unitPrice, currencyCode),
+                issuance.issue(
+                    ZERO_ADDRESS,
+                    ZERO_BALANCE,
+                    unitPrice,
+                    currencyCode
+                ),
                 "Issuance/address-invalid");
         });
 
@@ -105,7 +117,9 @@ contract("Issuance", (accounts) => {
             await issuance.issue(BOB, amount, unitPrice, currencyCode);
 
             const actual = await issuance.getHistoryCount();
-            expect(Number(actual)).to.be.equal(3);
+            const expected = new BN(3);
+
+            expect(actual).to.be.bignumber.equal(expected);
         });
     });
 });
