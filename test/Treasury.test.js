@@ -60,7 +60,7 @@ contract("Treasury", (accounts) => {
 
             const count = new BN(await treasury.grantedCount());
             expect(count.toNumber()).to.be.equal(3);
-        })
+        });
 
         it("should NOT be able to remove signatories", async () => {
             await treasury.proposeGrant(OWNER_2);
@@ -98,7 +98,24 @@ contract("Treasury", (accounts) => {
                 treasury.vetoProposal(),
                 "Treasury/minimum-signatories");
         });
-    })
+
+        describe("ownership", () => {
+            it("should be able to change contract ownership", async () => {
+                await treasury.transferOwnership(OWNER_2);
+
+                expect(await treasury.owner()).to.be.equal(OWNER_2);
+            });
+
+            it("should not allow new owner to be signatory", async () => {
+                await treasury.transferOwnership(OWNER_2);
+
+                await expectRevert(
+                    treasury.proposeGrant(OWNER_3, { from: OWNER_2 }),
+                    "Treasury/invalid-signatory"
+                );
+            });
+        });
+    });
 
     describe("proposals", () => {
         beforeEach(async () => {
@@ -542,6 +559,14 @@ contract("Treasury", (accounts) => {
                 await expectRevert(
                     treasury.endorseVeto({ from: OWNER_2 }),
                     "Treasury/signatory-already-vetoed");
+            });
+
+            it("should NOT be able to endorse a own veto proposal",
+            async () => {
+                await expectRevert(
+                    treasury.endorseVeto({ from: OWNER_2 }),
+                    "Treasury/signatory-already-vetoed"
+                );
             });
         });
     });
