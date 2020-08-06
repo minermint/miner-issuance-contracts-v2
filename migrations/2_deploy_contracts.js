@@ -4,7 +4,7 @@ const Treasury = artifacts.require("./Treasury.sol");
 const Issuance = artifacts.require("./Issuance.sol");
 
 const mkdirp = require('mkdirp');
-var fs = require('fs');
+const fs = require('fs');
 
 const saveNetworkArtifact = async function(contract, network) {
     const contractName = contract.constructor._json.contractName;
