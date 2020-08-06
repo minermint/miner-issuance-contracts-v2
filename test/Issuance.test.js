@@ -13,7 +13,7 @@ contract("Issuance", (accounts) => {
 
     let miner, issuance;
 
-    const decimals = new BN("18");
+    const decimals = new BN("4");
     const supply = new BN("1000000").mul(new BN("10").pow(decimals));
 
     beforeEach(async () => {

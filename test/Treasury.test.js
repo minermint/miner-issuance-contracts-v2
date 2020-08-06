@@ -19,7 +19,7 @@ contract("Treasury", (accounts) => {
     const ALICE = accounts[3];
     const BOB = accounts[4];
 
-    const decimals = new BN("18");
+    const decimals = new BN("4");
     const supply = new BN("1000000").mul(new BN("10").pow(decimals));
 
     const fastForward = 60*60*48;

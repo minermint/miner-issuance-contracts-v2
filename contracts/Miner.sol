@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Miner is ERC20, Ownable {
-    uint8 private constant DECIMALS = 18;
+    uint8 private constant DECIMALS = 4;
 
     address private _minter;
 
