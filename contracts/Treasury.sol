@@ -237,7 +237,7 @@ contract Treasury is Ownable {
 
         vetoes[index].signatures = vetoes[index].signatures.add(1);
 
-        if (vetoes[index].signatures >= _getRequiredSignatoryCount()) {
+        if (vetoes[index].signatures >= getRequiredSignatoryCount()) {
             proposals[vetoes[index].proposal].open = false;
             vetoes[index].open = false;
 
@@ -337,7 +337,7 @@ contract Treasury is Ownable {
         signed[index][msg.sender] = true;
         proposals[index].signatures = proposals[index].signatures.add(1);
 
-        if (proposals[index].signatures >= _getRequiredSignatoryCount()) {
+        if (proposals[index].signatures >= getRequiredSignatoryCount()) {
             proposals[index].open = false;
 
             if (proposals[index].proposalType == ProposalType.Mint) {
@@ -357,8 +357,8 @@ contract Treasury is Ownable {
         emit Signed(index);
     }
 
-    function _getRequiredSignatoryCount() private view returns (uint256) {
-        return grantedCount.sub(1);
+    function getRequiredSignatoryCount() public view returns (uint256) {
+        return grantedCount.div(2).add(1);
     }
 
     function _updateSignatoryAccess() private {

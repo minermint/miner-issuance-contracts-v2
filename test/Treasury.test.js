@@ -62,6 +62,7 @@ contract("Treasury", (accounts) => {
         async () => {
             await treasury.proposeGrant(OWNER_2);
             await treasury.proposeGrant(OWNER_3);
+            await treasury.sign({ from: OWNER_2 });
 
             const count = new BN(await treasury.grantedCount());
             const expected = new BN(3);
@@ -128,6 +129,7 @@ contract("Treasury", (accounts) => {
         beforeEach(async () => {
             await treasury.proposeGrant(OWNER_2);
             await treasury.proposeGrant(OWNER_3);
+            await treasury.sign({ from: OWNER_2 });
         });
 
         describe("granting and revoking signatories", () => {
@@ -435,6 +437,7 @@ contract("Treasury", (accounts) => {
         beforeEach(async () => {
             await treasury.proposeGrant(OWNER_2);
             await treasury.proposeGrant(OWNER_3);
+            await treasury.sign({ from: OWNER_2 });
         });
 
         it("should veto an existing proposal", async () => {
