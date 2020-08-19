@@ -1,6 +1,6 @@
 {
   "contractName": "Treasury",
-  "address": "0x610026fC5B71Cc223f9AB1Eb783e68eB4fF702F6",
+  "address": "0xc30134780383259eBC67c2f5Cb1f6df9Cec91Cd6",
   "abi": [
     {
       "inputs": [
@@ -699,6 +699,21 @@
       "stateMutability": "nonpayable",
       "type": "function",
       "signature": "0x2ca15122"
+    },
+    {
+      "inputs": [],
+      "name": "getRequiredSignatoryCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xc628fdf9"
     }
   ]
 }
