@@ -40,8 +40,6 @@ contract("Issuance", (accounts) => {
     });
 
     describe("purchasing miner", () => {
-        const unitPrice = 50;
-        const currencyCode = "USD";
         const amount = new BN("100000").mul(new BN("10").pow(decimals));
 
         beforeEach(async () => {
@@ -50,7 +48,7 @@ contract("Issuance", (accounts) => {
         });
 
         it("should issue miner tokens", async () => {
-            await issuance.issue(ALICE, amount, unitPrice, currencyCode);
+            await issuance.issue(ALICE, amount);
 
             const balance = await miner.balanceOf(ALICE);
 
@@ -58,36 +56,23 @@ contract("Issuance", (accounts) => {
         });
 
         it("should emit a Issued event", async () => {
-            const { logs } = await issuance.issue(
-                ALICE,
-                amount,
-                unitPrice,
-                currencyCode
-            );
+            const { logs } = await issuance.issue(ALICE, amount);
 
             expectEvent.inLogs(logs, 'Issued', {
                 amount: amount.toString(),
-                currencyCode: currencyCode,
                 recipient: ALICE,
-                unitPrice: unitPrice.toString()
             });
         });
 
         it("should NOT issue zero tokens", async () => {
             await expectRevert(
-                issuance.issue(ALICE, ZERO_BALANCE, unitPrice, currencyCode),
+                issuance.issue(ALICE, ZERO_BALANCE),
                 "Issuance/amount-invalid");
         });
 
         it("should NOT issue tokens as an invalid user", async () => {
             await expectRevert(
-                issuance.issue(
-                    ALICE,
-                    amount,
-                    unitPrice,
-                    currencyCode,
-                    { from: ALICE }
-                ),
+                issuance.issue(ALICE, amount, { from: ALICE }),
                 "Ownable: caller is not the owner");
         });
 
@@ -96,30 +81,14 @@ contract("Issuance", (accounts) => {
             let tooMuch = supply.add(new BN(1));
 
             await expectRevert(
-                issuance.issue(ALICE, tooMuch, unitPrice, currencyCode),
+                issuance.issue(ALICE, tooMuch),
                 "Issuance/balance-exceeded");
         });
 
         it("should NOT issue tokens as zero address", async () => {
             await expectRevert(
-                issuance.issue(
-                    ZERO_ADDRESS,
-                    ZERO_BALANCE,
-                    unitPrice,
-                    currencyCode
-                ),
+                issuance.issue(ZERO_ADDRESS, ZERO_BALANCE),
                 "Issuance/address-invalid");
-        });
-
-        it("should get history count", async () => {
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-            await issuance.issue(BOB, amount, unitPrice, currencyCode);
-
-            const actual = await issuance.getHistoryCount();
-            const expected = new BN(3);
-
-            expect(actual).to.be.bignumber.equal(expected);
         });
     });
 });
