@@ -95,11 +95,6 @@ contract("Treasury", (accounts) => {
             expect(actual).to.be.false;
         });
 
-        it("should NOT be in vetoing period", async () => {
-            const actual = await treasury.inVetoingPeriod();
-            expect(actual).to.be.false;
-        });
-
         it("should NOT be able to veto without minimum signatories",
         async () => {
             await expectRevert(
@@ -406,6 +401,12 @@ contract("Treasury", (accounts) => {
                 });
             });
 
+            it("should not withdraw when amount is zero (0)", async () => {
+                await expectRevert(
+                    treasury.proposeWithdrawal(OWNER_2, ZERO_BALANCE),
+                    "Treasury/zero-amount");
+            });
+
             it("should fund issuance for distributing miner", async () => {
                 await treasury.proposeMint(supply);
                 await treasury.sign({ from: OWNER_2 });
@@ -513,7 +514,7 @@ contract("Treasury", (accounts) => {
                 const latestVeto = await treasury.vetoes(0);
 
                 expect(latestVeto).to.include({
-                    open: false,
+                    enforced: true,
                     proposer: OWNER_2
                 });
             });
@@ -537,16 +538,6 @@ contract("Treasury", (accounts) => {
                 );
             });
 
-            it("should NOT be able to endorse a veto when expired",
-            async () => {
-                await treasury.endorseVeto();
-
-                await expectRevert(
-                    treasury.endorseVeto({ from: OWNER_3 }),
-                    "Treasury/veto-expired"
-                );
-            });
-
             it("should NOT be able to endorse a veto when not a signatory",
             async () => {
                 await expectRevert(
@@ -563,27 +554,13 @@ contract("Treasury", (accounts) => {
                 expect(vetoers).to.be.lengthOf(2);
             });
 
-            it("should be in vetoing period", async () => {
-                const actual = await treasury.inVetoingPeriod();
-                expect(actual).to.be.true;
-            });
-
-            it("should be outside vetoing period when veto expires",
-            async () => {
-                time.increase(FAST_FORWARD);
-
-                const isActive = await treasury.inVetoingPeriod();
-
-                expect(isActive).to.be.false;
-            });
-
-            it("should NOT be able to endorse a veto when times out",
+            it("should NOT be able to endorse a veto when proposal times out",
             async () => {
                 time.increase(FAST_FORWARD);
 
                 await expectRevert(
                     treasury.endorseVeto({ from: OWNER_3 }),
-                    "Treasury/veto-expired"
+                    "Treasury/proposal-expired"
                 );
             });
 
@@ -592,14 +569,6 @@ contract("Treasury", (accounts) => {
                 await expectRevert(
                     treasury.endorseVeto({ from: OWNER_2 }),
                     "Treasury/signatory-already-vetoed");
-            });
-
-            it("should NOT be able to endorse a own veto proposal",
-            async () => {
-                await expectRevert(
-                    treasury.endorseVeto({ from: OWNER_2 }),
-                    "Treasury/signatory-already-vetoed"
-                );
             });
         });
     });

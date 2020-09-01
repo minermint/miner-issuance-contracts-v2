@@ -19,9 +19,8 @@ struct Proposal {
 
 struct Veto {
     address proposer;
-    uint256 expires;
-    uint256 signatures;
-    bool open;
+    uint256 endorsements;
+    bool enforced;
     uint256 proposal;
 }
 
@@ -61,6 +60,7 @@ contract Treasury is Ownable {
     mapping(uint256 => address[]) public signatures;
 
     Veto[] public vetoes;
+    mapping(uint256 => bool) public vetoedProposals;
     mapping(uint256 => mapping(address => bool)) public vetoed;
     mapping(uint256 => address[]) public vetoers;
 
@@ -84,19 +84,6 @@ contract Treasury is Ownable {
 
     function _inSigningPeriod(uint256 i) private view returns (bool) {
         return proposals[i].expires > now;
-    }
-
-    function inVetoingPeriod() public view returns (bool) {
-        if (vetoes.length == 0) {
-            return false;
-        }
-
-        uint256 i = vetoes.length.sub(1);
-        return _inVetoingPeriod(i);
-    }
-
-    function _inVetoingPeriod(uint256 i) private view returns (bool) {
-        return vetoes[i].expires > now;
     }
 
     /**
@@ -193,7 +180,6 @@ contract Treasury is Ownable {
     function vetoProposal()
         external
         onlySignatory()
-        noPendingVetoes()
         minimumSignatories()
         latestProposalPending()
     {
@@ -201,8 +187,11 @@ contract Treasury is Ownable {
 
         uint256 index = totalProposals.sub(1);
 
-        Veto memory veto = Veto(msg.sender, now + 48 hours, 0, true, index);
+        require(!vetoedProposals[index], "Treasury/veto-pending");
 
+        Veto memory veto = Veto(msg.sender, 0, false, index);
+
+        vetoedProposals[index] = true;
         vetoes.push(veto);
 
         endorseVeto();
@@ -213,7 +202,6 @@ contract Treasury is Ownable {
      */
     function endorseVeto()
         public
-        latestVetoPending()
         latestProposalPending()
         onlySignatory()
     {
@@ -233,11 +221,11 @@ contract Treasury is Ownable {
         vetoed[index][msg.sender] = true;
         vetoers[index].push(msg.sender);
 
-        vetoes[index].signatures = vetoes[index].signatures.add(1);
+        vetoes[index].endorsements = vetoes[index].endorsements.add(1);
 
-        if (vetoes[index].signatures >= getRequiredSignatoryCount()) {
+        if (vetoes[index].endorsements >= getRequiredSignatoryCount()) {
             proposals[vetoes[index].proposal].open = false;
-            vetoes[index].open = false;
+            vetoes[index].enforced = true;
 
             _revokeSignatory(vetoedProposal.proposer);
 
@@ -435,34 +423,6 @@ contract Treasury is Ownable {
             require(
                 !proposals[index].open || !inSigningPeriod(),
                 "Treasury/proposal-pending"
-            );
-        }
-        _;
-    }
-
-    modifier latestVetoPending() {
-        uint256 totalVetoes = getVetoCount();
-
-        if (totalVetoes > 0) {
-            uint256 index = totalVetoes.sub(1);
-
-            require(
-                vetoes[index].open && inVetoingPeriod(),
-                "Treasury/veto-expired"
-            );
-        }
-        _;
-    }
-
-    modifier noPendingVetoes() {
-        uint256 totalVetoes = getVetoCount();
-
-        if (totalVetoes > 0) {
-            uint256 index = totalVetoes.sub(1);
-
-            require(
-                !vetoes[index].open || !inVetoingPeriod(),
-                "Treasury/veto-pending"
             );
         }
         _;
