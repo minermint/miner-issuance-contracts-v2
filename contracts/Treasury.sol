@@ -347,21 +347,14 @@ contract Treasury is Ownable {
         // is this a new signatory?
         address signatory = accessProposals[index].signatory;
 
-        // don't re-add a signatory if they already have been granted access.
-        if (signatories[signatory].action != AccessAction.Grant) {
-            if (accessProposals[index].action == AccessAction.Grant) {
-                _grantSignatory(signatory);
+        if (accessProposals[index].action == AccessAction.Grant) {
+            _grantSignatory(signatory);
 
-                emit AccessGranted(signatory);
-            }
+            emit AccessGranted(signatory);
         } else {
-            // only revoke signatory status if they have previously been granted
-            // access.
-            if (accessProposals[index].action == AccessAction.Revoke) {
-                _revokeSignatory(signatory);
+            _revokeSignatory(signatory);
 
-                emit AccessRevoked(signatory);
-            }
+            emit AccessRevoked(signatory);
         }
     }
 

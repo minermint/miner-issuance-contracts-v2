@@ -6,7 +6,8 @@ const {
     BN,
     expectEvent,
     expectRevert,
-    time
+    time,
+    constants: { ZERO_ADDRESS }
 } = require("@openzeppelin/test-helpers");
 
 const { expect } = require("chai");
@@ -163,6 +164,13 @@ contract("Treasury", (accounts) => {
                 expect(count).to.be.bignumber.equal(newActual);
             });
 
+            it("should NOT be able to propose grant access to a zero address",
+            async ()=> {
+                await expectRevert(
+                    treasury.proposeGrant(ZERO_ADDRESS),
+                    "Treasury/invalid-address");
+            });
+
             it("should NOT be able to add an existing signatory", async () => {
                 await expectRevert(
                     treasury.proposeGrant(OWNER_2),
@@ -212,6 +220,33 @@ contract("Treasury", (accounts) => {
                 await expectRevert(
                     treasury.proposeRevoke(OWNER_2),
                     "Treasury/minimum-signatories");
+            })
+
+            it("should NOT be able to propose revoke access to a zero address",
+            async ()=> {
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({ from: OWNER_2 });
+
+                await expectRevert(
+                    treasury.proposeRevoke(ZERO_ADDRESS),
+                    "Treasury/invalid-address");
+            });
+
+            it("should NOT propose revoke on already revoked", async () => {
+                await treasury.proposeGrant(ALICE);
+                await treasury.sign({ from: OWNER_2 });
+
+                await treasury.proposeGrant(BOB);
+                await treasury.sign({ from: OWNER_2 });
+                await treasury.sign({ from: OWNER_3 });
+
+                await treasury.proposeRevoke(BOB);
+                await treasury.sign({ from: OWNER_2 });
+                await treasury.sign({ from: OWNER_3 });
+
+                await expectRevert(
+                    treasury.proposeRevoke(BOB),
+                    "Treasury/no-signatory-or-revoked");
             })
 
             it("should be able to list a proposal's signatures",
@@ -344,6 +379,12 @@ contract("Treasury", (accounts) => {
 
                 const balance = await miner.balanceOf(treasury.address);
                 expect(new BN(balance)).to.be.bignumber.equal(supply);
+            });
+
+            it("should NOT be able to mint zero (0) tokens", async ()=> {
+                await expectRevert(
+                    treasury.proposeMint(ZERO_BALANCE),
+                    "Treasury/zero-amount");
             });
 
             it("should propose the minting of tokens", async () => {
