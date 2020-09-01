@@ -37,7 +37,7 @@ contract Issuance is Ownable {
     }
 
     event Issued(
-        address recipient,
+        address indexed recipient,
         uint256 amount
     );
 }
