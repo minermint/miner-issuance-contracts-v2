@@ -1,6 +1,6 @@
 {
   "contractName": "Issuance",
-  "address": "0xCc081b0157224258617676807CC3e27B88F52AA7",
+  "address": "0x78f68b66381129F865e29C32DBca3B0d9609e270",
   "abi": [
     {
       "inputs": [
@@ -18,7 +18,7 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "recipient",
           "type": "address"
@@ -28,23 +28,11 @@
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "unitPrice",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "currencyCode",
-          "type": "string"
         }
       ],
       "name": "Issued",
       "type": "event",
-      "signature": "0x75fe0779cf5bf3132c626bb75a5c97a5df96f16dc016812323851a983eec243f"
+      "signature": "0xa59f12e354e8cd10bb74c559844c2dd69a5458e31fe56c7594c62ca57480509a"
     },
     {
       "anonymous": false,
@@ -65,52 +53,6 @@
       "name": "OwnershipTransferred",
       "type": "event",
       "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "history",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "recipient",
-          "type": "address"
-        },
-        {
-          "internalType": "enum TradeType",
-          "name": "trade",
-          "type": "uint8"
-        },
-        {
-          "internalType": "uint256",
-          "name": "quantity",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "unitPrice",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "currencyCode",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "timeStamp",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function",
-      "constant": true,
-      "signature": "0xa7a38f0b"
     },
     {
       "inputs": [],
@@ -150,21 +92,6 @@
       "signature": "0xf2fde38b"
     },
     {
-      "inputs": [],
-      "name": "getHistoryCount",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function",
-      "constant": true,
-      "signature": "0xa18861a3"
-    },
-    {
       "inputs": [
         {
           "internalType": "address",
@@ -175,23 +102,13 @@
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "unitPrice",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "currencyCode",
-          "type": "string"
         }
       ],
       "name": "issue",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function",
-      "signature": "0xe3ffc2e4"
+      "signature": "0x867904b4"
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "contractName": "Treasury",
-  "address": "0xc30134780383259eBC67c2f5Cb1f6df9Cec91Cd6",
+  "address": "0x5BB5B7C8a01275BD7788dBC0a3897A365d44D46D",
   "abi": [
     {
       "inputs": [
@@ -411,6 +411,27 @@
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        }
+      ],
+      "name": "vetoedProposals",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true,
+      "signature": "0xf5ff624d"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         },
         {
           "internalType": "uint256",
@@ -448,17 +469,12 @@
         },
         {
           "internalType": "uint256",
-          "name": "expires",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "signatures",
+          "name": "endorsements",
           "type": "uint256"
         },
         {
           "internalType": "bool",
-          "name": "open",
+          "name": "enforced",
           "type": "bool"
         },
         {
@@ -512,21 +528,6 @@
       "type": "function",
       "constant": true,
       "signature": "0x37dab6d2"
-    },
-    {
-      "inputs": [],
-      "name": "inVetoingPeriod",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function",
-      "constant": true,
-      "signature": "0x39b399ad"
     },
     {
       "inputs": [
