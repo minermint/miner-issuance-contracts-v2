@@ -78,7 +78,7 @@ contract("Treasury", (accounts) => {
                 "Treasury/minimum-signatories");
         })
 
-        it("should NOT not be able to propose a mint", async () => {
+        it("should NOT be able to propose a mint", async () => {
             await expectRevert(
                 treasury.proposeMint(supply),
                 "Treasury/minimum-signatories");
@@ -102,6 +102,15 @@ contract("Treasury", (accounts) => {
                 treasury.vetoProposal(),
                 "Treasury/minimum-signatories");
         });
+
+        it("should NOT be able to propose a withdrawal with less than 3 signatories",
+        async () => {
+            await treasury.proposeGrant(OWNER_2);
+
+            await expectRevert(
+                treasury.proposeWithdrawal(OWNER, supply),
+                "Treasury/minimum-signatories");
+        })
 
         describe("ownership", () => {
             it("should be able to change contract ownership", async () => {
@@ -541,6 +550,18 @@ contract("Treasury", (accounts) => {
                 "Treasury/no-vetoes"
             );
         });
+
+        it("should NOT be able to propose a withdrawal if veto reduces signatories to 2",
+        async () => {
+            await treasury.proposeGrant(ALICE, { from: OWNER_3 });
+
+            await treasury.vetoProposal({ from: OWNER_2 });
+            await treasury.endorseVeto({ from: OWNER });
+
+            await expectRevert(
+                treasury.proposeWithdrawal(OWNER, supply),
+                "Treasury/minimum-signatories");
+        })
 
         describe("endorsing", () => {
             beforeEach(async () => {

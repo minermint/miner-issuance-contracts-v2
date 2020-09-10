@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.6.0;
 
 import "./Miner.sol";
@@ -163,6 +165,7 @@ contract Treasury is Ownable {
         external
         onlySignatory()
         noPendingProposals()
+        minimumSignatories()
     {
         require(amount > 0, "Treasury/zero-amount");
 
