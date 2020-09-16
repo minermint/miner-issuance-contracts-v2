@@ -62,7 +62,7 @@ To flatten the contract code:
 
 ```
 cd /path/to/project/files/
-npx truffle-flattener contracts/Token.sol > build/contracts/Token.flattened.sol
+npx truffle-flattener contracts/Miner.sol > build/contracts/Miner.flattened.sol
 ```
 
 Go to Etherscan (https://etherscan.io/) and load the contract. There will be a
