@@ -3,41 +3,47 @@ require('dotenv').config();
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 
 module.exports = {
-  plugins: [
-    "truffle-security",
-    "solidity-coverage"
-  ],
-  networks: {
-    development: {
-      host: "localhost",
-      port: 8545,
-      network_id: "*", // Match any network id
-      gas: 6721975
+    plugins: [
+        "truffle-security",
+        "solidity-coverage"
+    ],
+    networks: {
+        development: {
+            host: "localhost",
+            port: 8545,
+            network_id: "*", // Match any network id
+            gas: 6721975
+        },
+        ropsten: {
+            provider: new HDWalletProvider(
+                process.env.MNEMONIC,
+                process.env.ROPSTEN_URL),
+            network_id: "3",
+            confirmations: 4,
+            timeoutBlocks: 200,
+            skipDryRun: true,
+            gasPrice: 140000000000,
+        },
+        mainnet: {
+            provider: new HDWalletProvider(
+                process.env.PRIVATE_KEY,
+                process.env.MAINNET_URL),
+            network_id: "1",
+            confirmations: 6,
+            timeoutBlocks: 200,
+            gasPrice: 140000000000,
+        },
     },
-    ropsten: {
-      provider:  () => {
-        return new HDWalletProvider(
-          process.env.MNEMONIC,
-          process.env.ROPSTEN_URL,
-          process.env.ROPSTEN_ACCOUNT_ID)
-      },
-      network_id: "3",
-      gas: 4500000,
-      confirmations: 2,
-      timeoutBlocks: 200,
-      skipDryRun: true
-   },
-  },
-  // Configure your compilers
-  compilers: {
-    solc: {
-      version: "0.6.8"
+    // Configure your compilers
+    compilers: {
+        solc: {
+            version: "0.6.8"
+        }
+    },
+    mocha: {
+        reporter: "eth-gas-reporter",
+        reporterOptions: {
+            currency: "USD"
+        }
     }
-  },
-  mocha: {
-    reporter: "eth-gas-reporter",
-    reporterOptions : {
-      currency: "USD"
-    }
-  }
 };
