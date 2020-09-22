@@ -22,7 +22,7 @@ module.exports = {
             confirmations: 4,
             timeoutBlocks: 200,
             skipDryRun: true,
-            gasPrice: 140000000000,
+            gasPrice: 130000000000,
         },
         mainnet: {
             provider: new HDWalletProvider(
@@ -31,7 +31,7 @@ module.exports = {
             network_id: "1",
             confirmations: 6,
             timeoutBlocks: 200,
-            gasPrice: 140000000000,
+            gasPrice: 130000000000,
         },
     },
     // Configure your compilers
