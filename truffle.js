@@ -16,13 +16,13 @@ module.exports = {
         },
         ropsten: {
             provider: new HDWalletProvider(
-                process.env.MNEMONIC,
+                process.env.PRIVATE_KEY,
                 process.env.ROPSTEN_URL),
             network_id: "3",
             confirmations: 4,
             timeoutBlocks: 200,
             skipDryRun: true,
-            gasPrice: 130000000000,
+            gasPrice: 10000000000,
         },
         mainnet: {
             provider: new HDWalletProvider(
