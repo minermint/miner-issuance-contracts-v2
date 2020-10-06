@@ -1,4 +1,4 @@
-const PriceFeed = artifacts.require("./PriceFeed.sol");
+const PriceFeed = artifacts.require("./mocks/PriceFeed.sol");
 const MinerOracle = artifacts.require("./MinerOracle.sol");
 
 const mkdirp = require('mkdirp');
