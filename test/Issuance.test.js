@@ -9,6 +9,7 @@ const PriceFeed = artifacts.require("PriceFeed");
 
 contract("Issuance", (accounts) => {
     const OWNER = accounts[0];
+    const MINTER = accounts[1];
 
     const ALICE = accounts[3];
     const BOB = accounts[4];
@@ -18,11 +19,11 @@ contract("Issuance", (accounts) => {
     let miner, issuance;
 
     const decimals = new BN("18");
-    const supply = new BN("1000000").mul(new BN("10").pow(decimals));
+    const supply = new BN("1000").mul(new BN("10").pow(decimals));
 
     beforeEach(async () => {
         miner = await Miner.new();
-        await miner.setMinter(OWNER);
+        await miner.setMinter(MINTER);
 
         aggregator = await PriceFeed.new();
         oracle = await MinerOracle.new(aggregator.address);
@@ -33,8 +34,6 @@ contract("Issuance", (accounts) => {
 
         minerUSD = minerUSD.mul(padding);
 
-        console.log('minerUSD', minerUSD.toString())
-
         oracle.setMinerUSD(minerUSD);
 
         issuance = await Issuance.new(miner.address);
@@ -42,8 +41,8 @@ contract("Issuance", (accounts) => {
     });
 
     it("should fund the token issuance", async () => {
-        await miner.mint(supply);
-        await miner.transfer(issuance.address, supply);
+        await miner.mint(supply, { from: MINTER });
+        await miner.transfer(issuance.address, supply, { from: MINTER });
 
         let actual = new BN(await miner.balanceOf(issuance.address));
 
@@ -57,61 +56,104 @@ contract("Issuance", (accounts) => {
     });
 
     describe("purchasing miner", () => {
-        const amount = new BN("100000").mul(new BN("10").pow(decimals));
+        const amount = new BN("235320000000000048297");
 
         beforeEach(async () => {
-            await miner.mint(supply);
-            await miner.transfer(issuance.address, supply);
-        });
-
-        it.only("should get the latest price from the oracle", async() => {
-            await issuance.issue(ALICE, { value: web3.utils.toWei("1", "ether") });
-
-            console.log("alice's miner balance", (await miner.balanceOf(ALICE)).toString());
+            await miner.mint(supply, { from: MINTER });
+            await miner.transfer(issuance.address, supply, { from: MINTER });
         });
 
         it("should issue miner tokens", async () => {
-            await issuance.issue(ALICE, amount);
+            await issuance.issue(
+                ALICE,
+                {
+                    value: web3.utils.toWei("1", "ether")
+                }
+            );
 
             const balance = await miner.balanceOf(ALICE);
 
             expect(balance).to.be.bignumber.equal(amount);
         });
 
+        it("should withdraw issuance balance to BOB", async () => {
+            const wei = web3.utils.toWei("1", "ether");
+            let ownerBalanceBeforeWithdrawal = new web3.utils.BN(
+                await web3.eth.getBalance(BOB)
+            );
+
+            await issuance.transferOwnership(BOB);
+
+            await issuance.issue(
+                ALICE,
+                {
+                    value: wei
+                }
+            );
+
+            await issuance.withdrawPayments(BOB);
+
+            let ownerBalanceAfterWithdrawal = new web3.utils.BN(
+                await web3.eth.getBalance(BOB)
+            );
+
+            const expected = ownerBalanceBeforeWithdrawal.add(
+                new web3.utils.BN(wei)
+            );
+
+            expect(expected).to.be.bignumber.equal(ownerBalanceAfterWithdrawal);
+        });
+
         it("should emit a Issued event", async () => {
-            const { logs } = await issuance.issue(ALICE, amount);
+            const { logs } = await issuance.issue(
+                ALICE,
+                {
+                    value: web3.utils.toWei("1", "ether")
+                }
+            );
 
             expectEvent.inLogs(logs, 'Issued', {
-                amount: amount.toString(),
+                sent: amount.toString(),
+                received: web3.utils.toWei("1", "ether"),
                 recipient: ALICE,
             });
         });
 
         it("should NOT issue zero tokens", async () => {
             await expectRevert(
-                issuance.issue(ALICE, ZERO_BALANCE),
-                "Issuance/amount-invalid");
-        });
-
-        it("should NOT issue tokens as an invalid user", async () => {
-            await expectRevert(
-                issuance.issue(ALICE, amount, { from: ALICE }),
-                "Ownable: caller is not the owner");
+                issuance.issue(
+                    ALICE,
+                    {
+                        value: web3.utils.toWei(ZERO_BALANCE, "ether")
+                    }
+                ),
+                "Issuance/deposit-invalid"
+            );
         });
 
         it("should NOT exceed issuing more tokens than are available",
         async () => {
-            let tooMuch = supply.add(new BN(1));
-
             await expectRevert(
-                issuance.issue(ALICE, tooMuch),
-                "Issuance/balance-exceeded");
+                issuance.issue(
+                    ALICE,
+                    {
+                        value: web3.utils.toWei("50", "ether")
+                    }
+                ),
+                "Issuance/balance-exceeded"
+            );
         });
 
         it("should NOT issue tokens as zero address", async () => {
             await expectRevert(
-                issuance.issue(ZERO_ADDRESS, ZERO_BALANCE),
-                "Issuance/address-invalid");
+                issuance.issue(
+                    ZERO_ADDRESS,
+                    {
+                        value: web3.utils.toWei("1", "ether")
+                    }
+                ),
+                "Issuance/address-invalid"
+            );
         });
     });
 });
