@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import "./IMinerOracle.sol";
 
 contract Issuance is Ownable {
     using SafeMath for uint256;
@@ -13,21 +15,29 @@ contract Issuance is Ownable {
 
     IERC20 private _token;
 
+    IMinerOracle private _minerOracle;
+
     constructor(IERC20 token) public {
         _token = token;
+    }
+
+    function setMinerOracle(IMinerOracle minerOracle) public {
+         _minerOracle = minerOracle;
     }
 
     /**
      * Issue miner tokens on a user's behalf.
      * @param recipient address The address of the token recipient.
-     * @param amount uint256 The amount of Miner tokens ot purchase.
      */
     function issue(
-        address recipient,
-        uint256 amount
-    ) public onlyOwner() {
+        address recipient
+    ) public payable {
         require(recipient != address(0), "Issuance/address-invalid");
-        require(amount > 0, "Issuance/amount-invalid");
+        require(msg.value > 0, "Issuance/zero-deposit");
+
+        uint256 minerEthUnitPrice = _minerOracle.getLatestMinerEth();
+        uint256 amount = msg.value.mul(1e18).div(minerEthUnitPrice);
+
         require(
             _token.balanceOf(address(this)) >= amount,
             "Issuance/balance-exceeded"

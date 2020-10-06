@@ -4,6 +4,8 @@ const { ZERO_ADDRESS } = constants;
 
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
+const MinerOracle = artifacts.require("MinerOracle");
+const PriceFeed = artifacts.require("PriceFeed");
 
 contract("Issuance", (accounts) => {
     const OWNER = accounts[0];
@@ -20,8 +22,23 @@ contract("Issuance", (accounts) => {
 
     beforeEach(async () => {
         miner = await Miner.new();
-        issuance = await Issuance.new(miner.address);
         await miner.setMinter(OWNER);
+
+        aggregator = await PriceFeed.new();
+        oracle = await MinerOracle.new(aggregator.address);
+
+        let minerUSD = new web3.utils.BN(150)
+        let padding = new web3.utils.BN(10)
+        padding = padding.pow(new web3.utils.BN(6));
+
+        minerUSD = minerUSD.mul(padding);
+
+        console.log('minerUSD', minerUSD.toString())
+
+        oracle.setMinerUSD(minerUSD);
+
+        issuance = await Issuance.new(miner.address);
+        issuance.setMinerOracle(oracle.address);
     });
 
     it("should fund the token issuance", async () => {
@@ -45,6 +62,12 @@ contract("Issuance", (accounts) => {
         beforeEach(async () => {
             await miner.mint(supply);
             await miner.transfer(issuance.address, supply);
+        });
+
+        it.only("should get the latest price from the oracle", async() => {
+            await issuance.issue(ALICE, { value: web3.utils.toWei("1", "ether") });
+
+            console.log("alice's miner balance", (await miner.balanceOf(ALICE)).toString());
         });
 
         it("should issue miner tokens", async () => {

@@ -15,6 +15,7 @@
         "deploy:staging": "truffle deploy --network ropsten"
     },
     "dependencies": {
+        "@chainlink/contracts": "0.0.10",
         "@openzeppelin/contracts": "^3.2.0",
         "bip39": "^3.0.2",
         "eth-json-rpc-filters": "^4.2.1",
