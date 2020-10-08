@@ -22,36 +22,35 @@ contract Issuance is Ownable, PullPayment {
         _token = token;
     }
 
-    function setMinerOracle(IMinerOracle minerOracle) public {
+    function setMinerOracle(IMinerOracle minerOracle) public onlyOwner() {
          _minerOracle = minerOracle;
     }
 
     /**
      * Issue miner tokens on a user's behalf.
-     * @param recipient address The address of the token recipient.
      */
-    function issue(address recipient) external payable {
-        require(recipient != address(0), "Issuance/address-invalid");
+    function issue() external payable {
         require(msg.value > 0, "Issuance/deposit-invalid");
 
         uint256 minerEthUnitPrice = _minerOracle.getLatestMinerEth();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
         // miner.
-        uint256 amount = msg.value.mul(1e18).div(minerEthUnitPrice);
+        uint256 miner = msg.value.mul(1e18).div(minerEthUnitPrice);
 
         require(
-            _token.balanceOf(address(this)) >= amount,
+            _token.balanceOf(address(this)) >= miner,
             "Issuance/balance-exceeded"
         );
 
         address owner = owner();
+        uint eth = msg.value;
 
-        _asyncTransfer(owner, msg.value);
+        _asyncTransfer(owner, eth);
 
-        _token.transfer(recipient, amount);
+        _token.transfer(_msgSender(), miner);
 
-        emit Issued(recipient, msg.value, amount);
+        emit Issued(_msgSender(), eth, miner);
     }
 
     event Issued(

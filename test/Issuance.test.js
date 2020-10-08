@@ -65,8 +65,8 @@ contract("Issuance", (accounts) => {
 
         it("should issue miner tokens", async () => {
             await issuance.issue(
-                ALICE,
                 {
+                    from: ALICE,
                     value: web3.utils.toWei("1", "ether")
                 }
             );
@@ -85,8 +85,8 @@ contract("Issuance", (accounts) => {
             await issuance.transferOwnership(BOB);
 
             await issuance.issue(
-                ALICE,
                 {
+                    from: ALICE,
                     value: wei
                 }
             );
@@ -106,8 +106,8 @@ contract("Issuance", (accounts) => {
 
         it("should emit a Issued event", async () => {
             const { logs } = await issuance.issue(
-                ALICE,
                 {
+                    from: ALICE,
                     value: web3.utils.toWei("1", "ether")
                 }
             );
@@ -122,8 +122,8 @@ contract("Issuance", (accounts) => {
         it("should NOT issue zero tokens", async () => {
             await expectRevert(
                 issuance.issue(
-                    ALICE,
                     {
+                        from: ALICE,
                         value: web3.utils.toWei(ZERO_BALANCE, "ether")
                     }
                 ),
@@ -135,24 +135,12 @@ contract("Issuance", (accounts) => {
         async () => {
             await expectRevert(
                 issuance.issue(
-                    ALICE,
                     {
+                        from: ALICE,
                         value: web3.utils.toWei("50", "ether")
                     }
                 ),
                 "Issuance/balance-exceeded"
-            );
-        });
-
-        it("should NOT issue tokens as zero address", async () => {
-            await expectRevert(
-                issuance.issue(
-                    ZERO_ADDRESS,
-                    {
-                        value: web3.utils.toWei("1", "ether")
-                    }
-                ),
-                "Issuance/address-invalid"
             );
         });
     });

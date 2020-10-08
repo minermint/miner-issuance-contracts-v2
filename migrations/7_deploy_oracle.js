@@ -1,5 +1,6 @@
 const PriceFeed = artifacts.require("./mocks/PriceFeed.sol");
 const MinerOracle = artifacts.require("./MinerOracle.sol");
+const Issuance = artifacts.require("./Issuance.sol");
 
 const mkdirp = require('mkdirp');
 const fs = require('fs');
@@ -20,12 +21,23 @@ const saveNetworkArtifact = async function(contract, network) {
     fs.writeFileSync(contractPath, JSON.stringify(artifact, null, 2));
 }
 
-module.exports = async function(deployer) {
-    await deployer.deploy(PriceFeed);
-    const priceFeed = await PriceFeed.deployed();
+module.exports = async function(deployer, network) {
+    let priceFeedAddress = process.env.CHAINLINK_PRICE_FEED;
 
-    await deployer.deploy(MinerOracle, priceFeed.address);
+    // if development, deploy the mock price feed.
+    if (network === "development") {
+        await deployer.deploy(PriceFeed);
+        const priceFeed = await PriceFeed.deployed();
+        priceFeedAddress = priceFeed.address;
+    }
+
+    await deployer.deploy(MinerOracle, priceFeedAddress);
     const oracle = await MinerOracle.deployed();
+
+    const issuance = await Issuance.deployed();
+    issuance.setMinerOracle(oracle.address);
+
+    await oracle.setMinerUSD("150000000")
 
     saveNetworkArtifact(oracle, deployer.network);
 }
