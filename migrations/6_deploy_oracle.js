@@ -37,7 +37,5 @@ module.exports = async function(deployer, network) {
     const issuance = await Issuance.deployed();
     issuance.setMinerOracle(oracle.address);
 
-    await oracle.setMinerUSD("150000000")
-
     saveNetworkArtifact(oracle, deployer.network);
 }

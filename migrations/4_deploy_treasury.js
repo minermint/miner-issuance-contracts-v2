@@ -30,8 +30,5 @@ module.exports = async function(deployer, network, accounts) {
     saveNetworkArtifact(treasury, deployer.network);
 
     const issuance = await Issuance.deployed();
-    await miner.setMinter(accounts[0])
-    await miner.mint("1000000000000000000000000")
-    await miner.transfer(issuance.address, "1000000000000000000000")
-    //await miner.setMinter(treasury.address);
+    await miner.setMinter(treasury.address);
 }
