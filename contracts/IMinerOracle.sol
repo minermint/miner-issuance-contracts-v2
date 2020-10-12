@@ -1,9 +1,11 @@
 pragma solidity ^0.6.0;
 
 interface IMinerOracle {
-    function setMinerUSD(uint minerUSD) external;
+    function setExchangeRate(string calldata currencyCode, uint rate) external;
 
-    function getMinerUSD() external view returns (uint);
+    function getExchangeRate(uint blockNumber) external view returns (string memory, uint, uint);
+
+    function getLatestExchangeRate() external view returns (string memory, uint, uint);
 
     function getLatestMinerEth() external view returns (uint);
 }
