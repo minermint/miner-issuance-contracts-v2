@@ -31,11 +31,12 @@ module.exports = async function(deployer, network) {
         priceFeedAddress = priceFeed.address;
     }
 
-    await deployer.deploy(MinerOracle, priceFeedAddress);
+    await deployer.deploy(MinerOracle);
     const oracle = await MinerOracle.deployed();
 
     const issuance = await Issuance.deployed();
     issuance.setMinerOracle(oracle.address);
+    issuance.setPriceFeedOracle(priceFeedAddress);
 
     saveNetworkArtifact(oracle, deployer.network);
 }

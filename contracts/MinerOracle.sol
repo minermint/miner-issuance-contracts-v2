@@ -2,7 +2,6 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import "./IMinerOracle.sol";
 
 struct ExchangeRate {
@@ -14,16 +13,12 @@ struct ExchangeRate {
 contract MinerOracle is AccessControl, IMinerOracle {
     using SafeMath for uint256;
 
-    AggregatorV3Interface internal priceFeed;
-
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant WRITE = keccak256("WRITE");
 
     ExchangeRate[] public exchangeRates;
 
-    constructor(address priceFeedAddress) public {
-        priceFeed = AggregatorV3Interface(priceFeedAddress);
-
+    constructor() public {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, ADMIN);
         _setupRole(WRITE, _msgSender());
@@ -62,21 +57,6 @@ contract MinerOracle is AccessControl, IMinerOracle {
         uint index = exchangeRates.length.sub(1);
 
         return _getExchangeRate(index);
-    }
-
-    function getLatestMinerEth() override external view returns (uint) {
-        (
-            uint80 roundID,
-            int price,
-            uint startedAt,
-            uint timeStamp,
-            uint80 answeredInRound
-        ) = priceFeed.latestRoundData();
-
-        ExchangeRate memory latestExchangeRate = _getLatestExchangeRate();
-
-        uint ethPrice = (latestExchangeRate.rate.mul(1e18)).div(uint256(price));
-        return ethPrice;
     }
 
     modifier writeOnly()

@@ -3,7 +3,6 @@ const { expect } = require("chai");
 const { ZERO_ADDRESS } = constants;
 
 const MinerOracle = artifacts.require("MinerOracle");
-const PriceFeed = artifacts.require("PriceFeed");
 
 contract("MinerOracle", (accounts) => {
     const OWNER = accounts[0];
@@ -20,8 +19,7 @@ contract("MinerOracle", (accounts) => {
     let aggregator, oracle;
 
     beforeEach(async () => {
-        aggregator = await PriceFeed.new();
-        oracle = await MinerOracle.new(aggregator.address);
+        oracle = await MinerOracle.new();
     });
 
     it("Sets up role access", async () => {

@@ -1,30 +1,5 @@
 # Miner Token Contracts
 
-# Dev Debugging Environment Setup
-
-# Contract addresses
-
-### Mainnet
-Mainnet: ``
-
-### Ropsten
-Mnemonic Phrase: `...`
-
-Owner Address `m/44'/60'/0'/0`: `0x`
-
-Owner Private Key: `0x`
-
-xPub key from: `m/44'/60'/0'/x`
-Contract Address: `0x`
-
-## Owner addresses
-
-| Index | Public Key | Private |
-| --- | --- | --- |
-| 0 | `0xa1138fccd5f8E126E8d779CF78a547517307559d` | `0x600f003a6ed434917afbbc7f03f2edf86a19f72448e2e9d05917e73e502f6970` |
-| 1 | `0xbd9F7DAEe6d5Fc5595567AeD84f0f52D694F056C` | `0x60f54928d665c30e3055863a7254d0eb9dc5d4aa14ef2b1af230085c690adada` |
-| 2 | `0x9e1525DA6AB3498dda99B97dc13E79f4c44b79d8` | `0x90b00e527c4ad18ee427fe1ee074eec77e33378796a24b8ae35970210acc3274` |
-
 # Building Contracts
 
 ## Deploying a contract

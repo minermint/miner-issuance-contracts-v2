@@ -16,6 +16,9 @@ contract("Issuance", (accounts) => {
 
     const ZERO_BALANCE = new BN(0);
 
+    const CURRENCY_CODE = "USD";
+    const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
+
     let miner, issuance;
 
     const decimals = new BN("18");
@@ -26,24 +29,19 @@ contract("Issuance", (accounts) => {
         await miner.setMinter(MINTER);
 
         aggregator = await PriceFeed.new();
-        oracle = await MinerOracle.new(aggregator.address);
+        oracle = await MinerOracle.new();
 
-        let minerUSD = new web3.utils.BN(150)
-        let padding = new web3.utils.BN(10)
-        padding = padding.pow(new web3.utils.BN(6));
-
-        minerUSD = minerUSD.mul(padding);
-
-        oracle.setMinerUSD(minerUSD);
+        oracle.setExchangeRate(CURRENCY_CODE, EXCHANGE_RATE);
 
         issuance = await Issuance.new(miner.address);
         issuance.setMinerOracle(oracle.address);
+        issuance.setPriceFeedOracle(aggregator.address);
+
+        await miner.mint(supply, { from: MINTER });
+        await miner.transfer(issuance.address, supply, { from: MINTER });
     });
 
     it("should fund the token issuance", async () => {
-        await miner.mint(supply, { from: MINTER });
-        await miner.transfer(issuance.address, supply, { from: MINTER });
-
         let actual = new BN(await miner.balanceOf(issuance.address));
 
         expect(actual).to.be.bignumber.equal(supply);
@@ -56,11 +54,13 @@ contract("Issuance", (accounts) => {
     });
 
     describe("purchasing miner", () => {
-        const amount = new BN("235320000000000048297");
+        const expected = new BN("235320000000000048297");
 
-        beforeEach(async () => {
-            await miner.mint(supply, { from: MINTER });
-            await miner.transfer(issuance.address, supply, { from: MINTER });
+        it("should get conversion rate", async () => {
+            const amount = web3.utils.toWei("1", "ether");
+            const converted = await issuance.convert(amount);
+
+            expect(converted).to.be.bignumber.equal(expected);
         });
 
         it("should issue miner tokens", async () => {
@@ -73,11 +73,12 @@ contract("Issuance", (accounts) => {
 
             const balance = await miner.balanceOf(ALICE);
 
-            expect(balance).to.be.bignumber.equal(amount);
+            expect(balance).to.be.bignumber.equal(expected);
         });
 
         it("should withdraw issuance balance to BOB", async () => {
             const wei = web3.utils.toWei("1", "ether");
+
             let ownerBalanceBeforeWithdrawal = new web3.utils.BN(
                 await web3.eth.getBalance(BOB)
             );
@@ -113,7 +114,7 @@ contract("Issuance", (accounts) => {
             );
 
             expectEvent.inLogs(logs, 'Issued', {
-                sent: amount.toString(),
+                sent: expected.toString(),
                 received: web3.utils.toWei("1", "ether"),
                 recipient: ALICE,
             });
@@ -141,6 +142,21 @@ contract("Issuance", (accounts) => {
                     }
                 ),
                 "Issuance/balance-exceeded"
+            );
+        });
+
+        it("should NOT issue if rate is zero",
+        async () => {
+            oracle.setExchangeRate(CURRENCY_CODE, ZERO_BALANCE);
+
+            await expectRevert(
+                issuance.issue(
+                    {
+                        from: ALICE,
+                        value: web3.utils.toWei("10", "ether")
+                    }
+                ),
+                "SafeMath: division by zero -- Reason given: SafeMath: division by zero."
             );
         });
     });
