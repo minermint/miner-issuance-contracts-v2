@@ -40,7 +40,6 @@
         "dotenv": "^8.2.0",
         "eslint": "^7.9.0",
         "eth-gas-reporter": "^0.2.17",
-        "ganache-core": "^2.13.0",
         "jest": "^25.1.0",
         "nodemon": "^1.19.1",
         "prettier": "^2.1.2",
