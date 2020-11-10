@@ -6,6 +6,7 @@ const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
 const MinerOracle = artifacts.require("MinerOracle");
 const PriceFeed = artifacts.require("PriceFeed");
+const MinerEthPair = artifacts.require("MinerEthPair");
 
 contract("Issuance", (accounts) => {
     const OWNER = accounts[0];
@@ -19,7 +20,7 @@ contract("Issuance", (accounts) => {
     const CURRENCY_CODE = "USD";
     const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
 
-    let miner, issuance;
+    let miner, issuance, minerEthPair;
 
     const decimals = new BN("18");
     const supply = new BN("1000").mul(new BN("10").pow(decimals));
@@ -33,9 +34,12 @@ contract("Issuance", (accounts) => {
 
         oracle.setExchangeRate(CURRENCY_CODE, EXCHANGE_RATE);
 
+        minerEthPair = await MinerEthPair.new(
+            oracle.address,
+            aggregator.address);
+
         issuance = await Issuance.new(miner.address);
-        issuance.setMinerOracle(oracle.address);
-        issuance.setPriceFeedOracle(aggregator.address);
+        await issuance.registerSwapPair("eth", minerEthPair.address);
 
         await miner.mint(supply, { from: MINTER });
         await miner.transfer(issuance.address, supply, { from: MINTER });
@@ -58,7 +62,7 @@ contract("Issuance", (accounts) => {
 
         it("should get conversion rate", async () => {
             const amount = web3.utils.toWei("1", "ether");
-            const converted = await issuance.convert(amount);
+            const converted = await minerEthPair.convert(amount);
 
             expect(converted).to.be.bignumber.equal(expected);
         });
