@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/payment/PullPayment.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
-import "./pairs/IMinerPair.sol";
+import "./IMinerOracle.sol";
 
 struct Swap {
     IERC20 token;
@@ -23,7 +24,8 @@ contract Issuance is Ownable, PullPayment {
     IERC20 private _miner;
     IMinerOracle private _minerOracle;
     AggregatorV3Interface private _ethPriceFeedOracle;
-    Swap[] public swaps;
+
+    mapping (address => Swap) swaps;
 
     constructor(IERC20 miner) public {
         _miner = miner;
@@ -34,28 +36,27 @@ contract Issuance is Ownable, PullPayment {
     }
 
     function setEthPriceFeedOracle(AggregatorV3Interface priceFeedOracle) public onlyOwner {
-        _priceFeedOracle = priceFeedOracle;
+        _ethPriceFeedOracle = priceFeedOracle;
     }
 
-    function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external returns (uint256) {
-        Swap memory swap = Swap(token, priceFeedOracle, true);
-        swaps.push(swap);
+    function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external returns (uint256) onlyOwner {
+        swapMap[token] = swap;
     }
 
-    function getConversionRate() external override view returns (uint256) {
+    function getConversionRate() external view returns (uint256) {
         return _getConversionRate();
     }
 
-    function _getConversionRate() internal view returns (uint256) {
+    function _getConversionRate(IERC20 token) internal view returns (uint256) {
         ( , uint256 rate, ) = _minerOracle.getLatestExchangeRate();
 
-        ( , int256 answer, , , ) = _priceFeedOracle.latestRoundData();
+        ( , int256 answer, , , ) = _ethPriceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         return rate.mul(1e18).div(uint(answer));
     }
 
-    function convert(uint256 amount) external override view returns (uint256) {
+    function convert(uint256 amount, IERC20 token) public view returns (uint256) {
         uint256 conversionRate = _getConversionRate();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
@@ -74,14 +75,11 @@ contract Issuance is Ownable, PullPayment {
 
         Swap memory swap = swaps[0];
 
-        IMinerPair pair = swap.pair;
-
         address owner = owner();
         uint256 eth = msg.value;
+        uint256 miner = convert(eth);
 
         require(eth > 0, "Issuance/deposit-invalid");
-
-        uint256 miner = pair.convert(eth);
 
         require(
             _miner.balanceOf(address(this)) >= miner,
@@ -102,7 +100,7 @@ contract Issuance is Ownable, PullPayment {
     function withdraw() external onlyOwner {
         address owner = owner();
 
-        withdrawPaymentsWithGas(owner());
+        //withdrawPaymentsWithGas(owner());
     }
 
     event Issued(

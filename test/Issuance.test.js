@@ -5,8 +5,7 @@ const { ZERO_ADDRESS } = constants;
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
 const MinerOracle = artifacts.require("MinerOracle");
-const PriceFeed = artifacts.require("PriceFeed");
-const MinerEthPair = artifacts.require("MinerEthPair");
+const PriceFeed = artifacts.require("PriceFeedETH");
 
 contract("Issuance", (accounts) => {
     const OWNER = accounts[0];
@@ -20,7 +19,7 @@ contract("Issuance", (accounts) => {
     const CURRENCY_CODE = "USD";
     const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
 
-    let miner, issuance, minerEthPair;
+    let miner, issuance;
 
     const decimals = new BN("18");
     const supply = new BN("1000").mul(new BN("10").pow(decimals));
@@ -34,12 +33,9 @@ contract("Issuance", (accounts) => {
 
         oracle.setExchangeRate(CURRENCY_CODE, EXCHANGE_RATE);
 
-        minerEthPair = await MinerEthPair.new(
-            oracle.address,
-            aggregator.address);
-
         issuance = await Issuance.new(miner.address);
-        await issuance.registerSwapPair("eth", minerEthPair.address);
+        issuance.setEthPriceFeedOracle(aggregator.address);
+        issuance.setMinerOracle(oracle.address);
 
         await miner.mint(supply, { from: MINTER });
         await miner.transfer(issuance.address, supply, { from: MINTER });
@@ -57,12 +53,21 @@ contract("Issuance", (accounts) => {
         expect(await issuance.owner()).to.be.equal(ALICE);
     });
 
+    describe("managing tokens", () => {
+        it("should add a token", () => {
+            const tokenAddress = "0x777A68032a88E5A84678A77Af2CD65A7b3c0775a";
+            const priceFeedOracleAddress = "";
+
+            issuance.registerSwap(priceFeedOracleAddress, tokenAddress);
+        });
+    });
+
     describe("purchasing miner", () => {
         const expected = new BN("235320000000000048297");
 
-        it("should get conversion rate", async () => {
+        it.only("should get conversion rate", async () => {
             const amount = web3.utils.toWei("1", "ether");
-            const converted = await minerEthPair.convert(amount);
+            const converted = await issuance.convert(amount);
 
             expect(converted).to.be.bignumber.equal(expected);
         });
