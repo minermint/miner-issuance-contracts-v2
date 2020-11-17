@@ -6,6 +6,7 @@ const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
 const MinerOracle = artifacts.require("MinerOracle");
 const PriceFeed = artifacts.require("PriceFeedETH");
+const EthSwap = artifacts.require("EthSwap");
 
 contract("Issuance", (accounts) => {
     const OWNER = accounts[0];
@@ -19,7 +20,7 @@ contract("Issuance", (accounts) => {
     const CURRENCY_CODE = "USD";
     const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
 
-    let miner, issuance;
+    let miner, issuance, swapEth;
 
     const decimals = new BN("18");
     const supply = new BN("1000").mul(new BN("10").pow(decimals));
@@ -28,17 +29,18 @@ contract("Issuance", (accounts) => {
         miner = await Miner.new();
         await miner.setMinter(MINTER);
 
-        aggregator = await PriceFeed.new();
-        oracle = await MinerOracle.new();
+        aggregator = await PriceFeed.deployed();
+        oracle = await MinerOracle.deployed();
 
         oracle.setExchangeRate(CURRENCY_CODE, EXCHANGE_RATE);
 
         issuance = await Issuance.new(miner.address);
-        issuance.setEthPriceFeedOracle(aggregator.address);
-        issuance.setMinerOracle(oracle.address);
 
         await miner.mint(supply, { from: MINTER });
         await miner.transfer(issuance.address, supply, { from: MINTER });
+
+        ethSwap = await EthSwap.new(oracle.address, aggregator.address, issuance.address);
+        issuance.addIssuer(ethSwap.address);
     });
 
     it("should fund the token issuance", async () => {
@@ -53,30 +55,23 @@ contract("Issuance", (accounts) => {
         expect(await issuance.owner()).to.be.equal(ALICE);
     });
 
-    describe("managing tokens", () => {
-        it("should add a token", () => {
-            const tokenAddress = "0x777A68032a88E5A84678A77Af2CD65A7b3c0775a";
-            const priceFeedOracleAddress = "";
-
-            issuance.registerSwap(priceFeedOracleAddress, tokenAddress);
-        });
-    });
-
     describe("purchasing miner", () => {
         const expected = new BN("235320000000000048297");
 
-        it.only("should get conversion rate", async () => {
+        it("should get conversion rate", async () => {
             const amount = web3.utils.toWei("1", "ether");
-            const converted = await issuance.convert(amount);
+            const converted = await ethSwap.convert(amount);
 
             expect(converted).to.be.bignumber.equal(expected);
         });
 
-        it("should issue miner tokens", async () => {
-            await issuance.issue(
+        it.only("should issue miner tokens", async () => {
+            const amount = web3.utils.toWei("1", "ether");
+
+            await ethSwap.issue(
                 {
                     from: ALICE,
-                    value: web3.utils.toWei("1", "ether")
+                    value: amount
                 }
             );
 
@@ -94,7 +89,7 @@ contract("Issuance", (accounts) => {
 
             await issuance.transferOwnership(BOB);
 
-            await issuance.issue(
+            await ethSwap.issue(
                 {
                     from: ALICE,
                     value: wei

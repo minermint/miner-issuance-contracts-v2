@@ -3,6 +3,7 @@ const { getIssuance, saveNetworkArtifact } = require("../lib/deployer");
 const MinerOracle = artifacts.require("./MinerOracle.sol");
 const PriceFeedETH = artifacts.require("./PriceFeedETH.sol");
 const PriceFeedDAI = artifacts.require("./PriceFeedDAI.sol");
+const EthSwap = artifacts.require("./EthSwap.sol");
 
 module.exports = async function(deployer, network) {
     let priceFeedETHAddress = process.env.CHAINLINK_PRICE_FEED_ETH;
@@ -16,9 +17,15 @@ module.exports = async function(deployer, network) {
 
     await deployer.deploy(MinerOracle);
     const oracle = await MinerOracle.deployed();
-
     const issuance = await getIssuance(network);
-    issuance.setEthPriceFeedOracle(priceFeedETHAddress);
+
+    const ethSwap = await deployer.deploy(
+        EthSwap,
+        oracle.address,
+        priceFeedETHAddress,
+        issuance.address);
+
+    await issuance.addIssuer(ethSwap.address);
 
     saveNetworkArtifact(oracle, deployer.network);
 }

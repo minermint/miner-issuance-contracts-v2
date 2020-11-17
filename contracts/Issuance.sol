@@ -4,108 +4,69 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/payment/PullPayment.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-import "./IMinerOracle.sol";
-
-struct Swap {
-    IERC20 token;
-    AggregatorV3Interface priceFeedOracle;
-    bool enabled;
-}
-
-contract Issuance is Ownable, PullPayment {
+contract Issuance is AccessControl, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 private _miner;
-    IMinerOracle private _minerOracle;
-    AggregatorV3Interface private _ethPriceFeedOracle;
+    IERC20 private _token;
 
-    mapping (address => Swap) swaps;
+    bytes32 public constant ADMIN = keccak256("ADMIN");
+    bytes32 public constant ISSUER = keccak256("ISSUER");
 
-    constructor(IERC20 miner) public {
-        _miner = miner;
+    constructor(IERC20 token) public {
+        _token = token;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, ADMIN);
     }
 
-    function setMinerOracle(IMinerOracle minerOracle) public onlyOwner {
-         _minerOracle = minerOracle;
+    function addIssuer(address issuer) public {
+        grantRole(ISSUER, issuer);
     }
 
-    function setEthPriceFeedOracle(AggregatorV3Interface priceFeedOracle) public onlyOwner {
-        _ethPriceFeedOracle = priceFeedOracle;
+    function renmoveIssuer(address issuer) public onlyAdmin {
+        revokeRole(ISSUER, issuer);
     }
 
-    function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external returns (uint256) onlyOwner {
-        swapMap[token] = swap;
-    }
-
-    function getConversionRate() external view returns (uint256) {
-        return _getConversionRate();
-    }
-
-    function _getConversionRate(IERC20 token) internal view returns (uint256) {
-        ( , uint256 rate, ) = _minerOracle.getLatestExchangeRate();
-
-        ( , int256 answer, , , ) = _ethPriceFeedOracle.latestRoundData();
-
-        // latest per miner price * by 18 dp, divide by latest price per eth.
-        return rate.mul(1e18).div(uint(answer));
-    }
-
-    function convert(uint256 amount, IERC20 token) public view returns (uint256) {
-        uint256 conversionRate = _getConversionRate();
-
-        // multiply sent eth by 10^18 so that it transfers the correct amount of
-        // miner.
-        return amount.mul(1e18).div(conversionRate);
-    }
-
-    function issue(uint amount, IERC20 token) external {
-        require(amount > 0, "Issuance/zero-amount");
-
-        emit Issued(_msgSender(), amount, 100);
-    }
-
-    function issue() external payable {
-        require(swaps.length > 0, "Issuance/no-pairs");
-
-        Swap memory swap = swaps[0];
-
-        address owner = owner();
-        uint256 eth = msg.value;
-        uint256 miner = convert(eth);
-
-        require(eth > 0, "Issuance/deposit-invalid");
-
+    /**
+     * Issue miner tokens on a user's behalf.
+     * @param recipient address The address of the token recipient.
+     * @param amount uint256 The amount of Miner tokens to purchase.
+     */
+    function issue(
+        address recipient,
+        uint256 amount
+    ) public onlyIssuer {
+        require(recipient != address(0), "Issuance/address-invalid");
+        require(amount > 0, "Issuance/amount-invalid");
         require(
-            _miner.balanceOf(address(this)) >= miner,
+            _token.balanceOf(address(this)) >= amount,
             "Issuance/balance-exceeded"
         );
 
-        _asyncTransfer(owner, eth);
+        _token.transfer(recipient, amount);
 
-        _miner.transfer(_msgSender(), miner);
-
-        emit Issued(_msgSender(), eth, miner);
+        emit Issued(recipient, amount);
     }
 
-    function withdraw(IERC20 token) external onlyOwner {
-        address owner = owner();
+    modifier onlyAdmin()
+    {
+        require(hasRole(ADMIN, _msgSender()), "Issuance/no-admin-privileges");
+        _;
     }
 
-    function withdraw() external onlyOwner {
-        address owner = owner();
-
-        //withdrawPaymentsWithGas(owner());
+    modifier onlyIssuer()
+    {
+        require(hasRole(ISSUER, _msgSender()), "Issuance/no-issuer-privileges");
+        _;
     }
 
     event Issued(
         address indexed recipient,
-        uint256 received,
-        uint256 sent
+        uint256 amount
     );
 }
