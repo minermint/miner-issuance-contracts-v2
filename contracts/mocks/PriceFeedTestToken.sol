@@ -2,7 +2,7 @@ pragma solidity ^0.6.0;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
-contract PriceFeedDAI is AggregatorV3Interface {
+contract PriceFeedTestToken is AggregatorV3Interface {
     function decimals() override external view returns (uint8) {
         return 8;
     }
