@@ -28,7 +28,7 @@ contract Issuance is AccessControl, Ownable {
         grantRole(ISSUER, issuer);
     }
 
-    function renmoveIssuer(address issuer) public onlyAdmin {
+    function removeIssuer(address issuer) public {
         revokeRole(ISSUER, issuer);
     }
 
@@ -51,12 +51,6 @@ contract Issuance is AccessControl, Ownable {
         _token.transfer(recipient, amount);
 
         emit Issued(recipient, amount);
-    }
-
-    modifier onlyAdmin()
-    {
-        require(hasRole(ADMIN, _msgSender()), "Issuance/no-admin-privileges");
-        _;
     }
 
     modifier onlyIssuer()

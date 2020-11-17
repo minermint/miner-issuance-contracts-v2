@@ -54,7 +54,7 @@ contract EthSwap is Ownable, PullPayment {
         return rate.mul(1e18).div(uint(answer));
     }
 
-    function convert(uint256 amount) public view returns (uint256) {
+    function getConversionAmount(uint256 amount) public view returns (uint256) {
         uint256 conversionRate = _getConversionRate();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
@@ -62,22 +62,25 @@ contract EthSwap is Ownable, PullPayment {
         return amount.mul(1e18).div(conversionRate);
     }
 
-    function issue() external payable {
+    function convert() external payable {
         address owner = owner();
         uint256 eth = msg.value;
 
         require(eth > 0, "Issuance/deposit-invalid");
 
-        uint256 miner = convert(eth);
+        uint256 miner = getConversionAmount(eth);
 
         _asyncTransfer(owner, eth);
 
         _issuance.issue(_msgSender(), miner);
+
+        emit Converted(_msgSender(), address(_issuance), eth, miner);
     }
 
-    function withdraw() external onlyOwner {
-        address owner = owner();
-
-        //withdrawPaymentsWithGas(owner());
-    }
+    event Converted(
+        address recipient,
+        address sender,
+        uint256 sent,
+        uint256 received
+    );
 }
