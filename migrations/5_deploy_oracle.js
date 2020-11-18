@@ -13,11 +13,18 @@ module.exports = async function(deployer, network) {
     // if development, deploy the mock price feed.
     if (network === "development") {
         await deployer.deploy(PriceFeedETH);
-        const priceFeed = await PriceFeedETH.deployed();
-        priceFeedETHAddress = priceFeed.address;
+        const priceFeedEth = await PriceFeedETH.deployed();
+        priceFeedETHAddress = priceFeedEth.address;
 
         await deployer.deploy(PriceFeedTestToken);
+        const priceFeedTestToken = await PriceFeedTestToken.deployed();
+
         await deployer.deploy(TestToken);
+        const testToken = await TestToken.deployed();
+
+        saveNetworkArtifact(priceFeedEth, deployer.network);
+        saveNetworkArtifact(priceFeedTestToken, deployer.network);
+        saveNetworkArtifact(testToken, deployer.network);
     }
 
     await deployer.deploy(MinerOracle);
@@ -37,5 +44,7 @@ module.exports = async function(deployer, network) {
 
     await issuance.addIssuer(ethSwap.address);
 
+    saveNetworkArtifact(ethSwap, deployer.network);
+    saveNetworkArtifact(tokenSwap, deployer.network);
     saveNetworkArtifact(oracle, deployer.network);
 }
