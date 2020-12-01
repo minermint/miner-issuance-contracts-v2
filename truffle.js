@@ -15,35 +15,6 @@ module.exports = {
             network_id: "*", // Match any network id
             gas: 6721975
         },
-        ropsten: {
-            provider: new HDWalletProvider(
-                process.env.PRIVATE_KEY,
-                process.env.ROPSTEN_URL),
-            network_id: "3",
-            confirmations: 4,
-            timeoutBlocks: 200,
-            skipDryRun: true,
-            gasPrice: 10000000000,
-        },
-        kovan: {
-            provider: new HDWalletProvider(
-                process.env.PRIVATE_KEY,
-                process.env.KOVAN_URL),
-            network_id: "42",
-            confirmations: 4,
-            timeoutBlocks: 200,
-            skipDryRun: true,
-            gasPrice: 10000000000,
-        },
-        mainnet: {
-            provider: new HDWalletProvider(
-                process.env.PRIVATE_KEY,
-                process.env.MAINNET_URL),
-            network_id: "1",
-            confirmations: 6,
-            timeoutBlocks: 200,
-            gasPrice: 130000000000,
-        },
     },
     // Configure your compilers
     compilers: {
