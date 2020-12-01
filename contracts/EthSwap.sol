@@ -62,13 +62,15 @@ contract EthSwap is Ownable, PullPayment {
         return amount.mul(1e18).div(conversionRate);
     }
 
-    function convert() external payable {
+    function convert(uint256 minerMin) external payable {
         address owner = owner();
         uint256 eth = msg.value;
 
-        require(eth > 0, "Issuance/deposit-invalid");
+        require(eth > 0, "EthSwap/deposit-invalid");
 
         uint256 miner = getConversionAmount(eth);
+
+        require(miner >= minerMin, 'EthSwap/slippage');
 
         _asyncTransfer(owner, eth);
 
