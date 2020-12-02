@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -5,13 +7,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IMinerOracle.sol";
 
 struct ExchangeRate {
-    string currencyCode;
     uint256 rate;
     uint256 blockNumber;
 }
 
-contract MinerOracle is AccessControl, IMinerOracle {
+abstract contract MinerOracle is AccessControl, IMinerOracle {
     using SafeMath for uint256;
+
+    string currencyCode;
 
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant WRITE = keccak256("WRITE");
@@ -24,16 +27,16 @@ contract MinerOracle is AccessControl, IMinerOracle {
         _setupRole(WRITE, _msgSender());
     }
 
-    function setExchangeRate(string calldata currencyCode, uint rate) override external writeOnly {
-        ExchangeRate memory xRate = ExchangeRate(currencyCode, rate, block.number);
+    function setExchangeRate(uint rate) override external writeOnly {
+        ExchangeRate memory xRate = ExchangeRate(rate, block.number);
 
         exchangeRates.push(xRate);
     }
 
-    function getExchangeRate(uint index) override external view returns (string memory, uint, uint) {
+    function getExchangeRate(uint index) override external view returns (uint, uint) {
         ExchangeRate memory xRate = _getExchangeRate(index);
 
-        return (xRate.currencyCode, xRate.rate, xRate.blockNumber);
+        return (xRate.rate, xRate.blockNumber);
     }
 
     function _getExchangeRate(uint index) private view returns (ExchangeRate memory) {
@@ -42,12 +45,11 @@ contract MinerOracle is AccessControl, IMinerOracle {
         return xRate;
     }
 
-    function getLatestExchangeRate() override external view returns (string memory, uint, uint) {
+    function getLatestExchangeRate() override external view returns (uint, uint) {
         ExchangeRate memory latestExchangeRate = _getLatestExchangeRate();
 
         return
         (
-            latestExchangeRate.currencyCode,
             latestExchangeRate.rate,
             latestExchangeRate.blockNumber
         );

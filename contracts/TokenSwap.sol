@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
-import "./IMinerOracle.sol";
+import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
 
 struct Swap {
@@ -43,7 +43,7 @@ contract TokenSwap is Ownable {
         swaps[address(token)].enabled = false;
     }
 
-    function getSwapAddressCount() external returns (uint256) {
+    function getSwapAddressCount() external view returns (uint256) {
         return swapAddresses.length;
     }
 
@@ -60,7 +60,7 @@ contract TokenSwap is Ownable {
     }
 
     function _getConversionRate(IERC20 token) internal view returns (uint256) {
-        ( , uint256 rate, ) = _minerOracle.getLatestExchangeRate();
+        ( uint256 rate, ) = _minerOracle.getLatestExchangeRate();
 
         Swap memory swap = swaps[address(token)];
 

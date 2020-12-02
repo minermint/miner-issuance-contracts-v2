@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
-import "./IMinerOracle.sol";
+import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
 
 contract EthSwap is Ownable, PullPayment {
@@ -46,7 +46,7 @@ contract EthSwap is Ownable, PullPayment {
     }
 
     function _getConversionRate() internal view returns (uint256) {
-        ( , uint256 rate, ) = _minerOracle.getLatestExchangeRate();
+        ( uint256 rate, ) = _minerOracle.getLatestExchangeRate();
 
         ( , int256 answer, , , ) = _priceFeedOracle.latestRoundData();
 
