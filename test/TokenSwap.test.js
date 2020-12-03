@@ -4,7 +4,7 @@ const { ZERO_ADDRESS, MAX_UINT256 } = constants;
 
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
-const MinerOracle = artifacts.require("MinerOracle");
+const MinerUSDOracle = artifacts.require("MinerUSDOracle");
 const PriceFeed = artifacts.require("PriceFeedTestToken");
 const TokenSwap = artifacts.require("TokenSwap");
 const TestToken = artifacts.require("TestToken");
@@ -18,7 +18,6 @@ contract("TokenSwap", (accounts) => {
 
     const ZERO_BALANCE = new BN(0);
 
-    const CURRENCY_CODE = "USD";
     const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
 
     let miner, issuance, tokenSwap, testToken;
@@ -31,9 +30,9 @@ contract("TokenSwap", (accounts) => {
         await miner.setMinter(MINTER);
 
         aggregator = await PriceFeed.deployed();
-        oracle = await MinerOracle.deployed();
+        oracle = await MinerUSDOracle.deployed();
 
-        oracle.setExchangeRate(CURRENCY_CODE, EXCHANGE_RATE);
+        oracle.setExchangeRate(EXCHANGE_RATE);
 
         issuance = await Issuance.new(miner.address);
 

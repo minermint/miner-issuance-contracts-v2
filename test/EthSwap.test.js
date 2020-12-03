@@ -4,7 +4,7 @@ const { ZERO_ADDRESS } = constants;
 
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
-const MinerOracle = artifacts.require("MinerOracle");
+const MinerUSDOracle = artifacts.require("MinerUSDOracle");
 const PriceFeed = artifacts.require("PriceFeedETH");
 const EthSwap = artifacts.require("EthSwap");
 
@@ -17,7 +17,6 @@ contract("EthSwap", (accounts) => {
 
     const ZERO_BALANCE = new BN(0);
 
-    const CURRENCY_CODE = "USD";
     const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
 
     let miner, issuance, swapEth;
@@ -30,9 +29,9 @@ contract("EthSwap", (accounts) => {
         await miner.setMinter(MINTER);
 
         aggregator = await PriceFeed.deployed();
-        oracle = await MinerOracle.deployed();
+        oracle = await MinerUSDOracle.deployed();
 
-        oracle.setExchangeRate(CURRENCY_CODE, EXCHANGE_RATE);
+        oracle.setExchangeRate(EXCHANGE_RATE);
 
         issuance = await Issuance.new(miner.address);
 
@@ -69,6 +68,7 @@ contract("EthSwap", (accounts) => {
             const amount = web3.utils.toWei("1", "ether");
 
             await ethSwap.convert(
+                0,
                 {
                     from: ALICE,
                     value: amount
@@ -90,6 +90,7 @@ contract("EthSwap", (accounts) => {
             await ethSwap.transferOwnership(BOB);
 
             await ethSwap.convert(
+                0,
                 {
                     from: ALICE,
                     value: wei
@@ -111,6 +112,7 @@ contract("EthSwap", (accounts) => {
 
         it("should emit a Converted event", async () => {
             const { logs } = await ethSwap.convert(
+                0,
                 {
                     from: ALICE,
                     value: web3.utils.toWei("1", "ether")
@@ -128,12 +130,13 @@ contract("EthSwap", (accounts) => {
         it("should NOT convert zero tokens", async () => {
             await expectRevert(
                 ethSwap.convert(
+                    0,
                     {
                         from: ALICE,
                         value: web3.utils.toWei(ZERO_BALANCE, "ether")
                     }
                 ),
-                "Issuance/deposit-invalid"
+                "EthSwap/deposit-invalid"
             );
         });
 
@@ -141,6 +144,7 @@ contract("EthSwap", (accounts) => {
         async () => {
             await expectRevert(
                 ethSwap.convert(
+                    0,
                     {
                         from: ALICE,
                         value: web3.utils.toWei("50", "ether")
@@ -152,10 +156,11 @@ contract("EthSwap", (accounts) => {
 
         it("should NOT convert if rate is zero",
         async () => {
-            oracle.setExchangeRate(CURRENCY_CODE, ZERO_BALANCE);
+            oracle.setExchangeRate(ZERO_BALANCE);
 
             await expectRevert(
                 ethSwap.convert(
+                    0,
                     {
                         from: ALICE,
                         value: web3.utils.toWei("10", "ether")
