@@ -12,8 +12,11 @@ coverage.json
 .coverage*/
 
 build/
-networks/development
 networks/soliditycoverage
+
+# Certain build definitions
+constants/contracts/abis
+constants/contracts/development.json
 
 # Dependency directories
 node_modules/
