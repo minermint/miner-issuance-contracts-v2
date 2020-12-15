@@ -16,18 +16,13 @@ abstract contract MinerOracle is AccessControl, IMinerOracle {
 
     string currencyCode;
 
-    bytes32 public constant ADMIN = keccak256("ADMIN");
-    bytes32 public constant WRITE = keccak256("WRITE");
-
     ExchangeRate[] public exchangeRates;
 
     constructor() public {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, ADMIN);
-        _setupRole(WRITE, _msgSender());
     }
 
-    function setExchangeRate(uint rate) override external writeOnly {
+    function setExchangeRate(uint rate) override external adminOnly {
         ExchangeRate memory xRate = ExchangeRate(rate, block.number);
 
         exchangeRates.push(xRate);
@@ -61,9 +56,11 @@ abstract contract MinerOracle is AccessControl, IMinerOracle {
         return _getExchangeRate(index);
     }
 
-    modifier writeOnly()
+    modifier adminOnly()
     {
-        require(hasRole(WRITE, msg.sender), "MinerOracle/no-write-privileges");
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "MinerOracle/no-admin-privileges");
         _;
     }
 }
