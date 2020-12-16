@@ -80,8 +80,8 @@ contract EthSwap is Ownable, PullPayment {
     }
 
     event Converted(
-        address recipient,
-        address sender,
+        address indexed recipient,
+        address indexed sender,
         uint256 sent,
         uint256 received
     );
