@@ -82,7 +82,7 @@ contract("TokenSwap", (accounts) => {
         );
     });
 
-    it.only("should exchange TestToken for Miner", async() => {
+    it("should exchange TestToken for Miner", async() => {
         const amount = new BN("1").mul(new BN("10").pow(decimals));
         const minerMin = new BN("0"); // TODO: make this a proper min.
 

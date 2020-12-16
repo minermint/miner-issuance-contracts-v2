@@ -2,14 +2,12 @@
 
 pragma solidity ^0.6.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
-import "./oracles/IMinerOracle.sol";
-import "./Issuance.sol";
+import "./MinerSwap.sol";
 
 struct Swap {
     IERC20 token;
@@ -17,20 +15,16 @@ struct Swap {
     bool enabled;
 }
 
-contract TokenSwap is Ownable {
+contract TokenSwap is MinerSwap {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-
-    IMinerOracle private _minerOracle;
-    AggregatorV3Interface private _priceFeedOracle;
-    Issuance private _issuance;
 
     address[] public swapAddresses;
     mapping (address => Swap) public swaps;
 
-    constructor(IMinerOracle minerOracle, Issuance issuance) public {
-        setMinerOracle(minerOracle);
-        setIssuance(issuance);
+    constructor(IMinerOracle minerOracleAddress, Issuance issuanceAddress) public {
+        setMinerOracle(minerOracleAddress);
+        setIssuance(issuanceAddress);
     }
 
     function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyOwner {
@@ -47,20 +41,12 @@ contract TokenSwap is Ownable {
         return swapAddresses.length;
     }
 
-    function setMinerOracle(IMinerOracle minerOracle) public onlyOwner {
-         _minerOracle = minerOracle;
-    }
-
-    function setIssuance(Issuance issuance) public onlyOwner {
-        _issuance = issuance;
-    }
-
     function getConversionRate(IERC20 token) external view returns (uint256) {
         return _getConversionRate(token);
     }
 
     function _getConversionRate(IERC20 token) internal view returns (uint256) {
-        ( uint256 rate, ) = _minerOracle.getLatestExchangeRate();
+        ( uint256 rate, ) = minerOracle.getLatestExchangeRate();
 
         Swap memory swap = swaps[address(token)];
 
@@ -89,9 +75,9 @@ contract TokenSwap is Ownable {
 
         token.transferFrom(_msgSender(), owner, amount);
 
-        _issuance.issue(_msgSender(), miner);
+        issuance.issue(_msgSender(), miner);
 
-        emit Converted(_msgSender(), address(_issuance), amount, miner);
+        emit Converted(_msgSender(), address(issuance), amount, miner);
     }
 
     event Converted(

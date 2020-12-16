@@ -9,36 +9,25 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
-import "./oracles/IMinerOracle.sol";
-import "./Issuance.sol";
+import "./MinerSwap.sol";
 
-contract EthSwap is Ownable, PullPayment {
+contract EthSwap is MinerSwap, PullPayment {
     using SafeMath for uint256;
 
-    IMinerOracle private _minerOracle;
-    AggregatorV3Interface private _priceFeedOracle;
-    Issuance _issuance;
+    AggregatorV3Interface private priceFeedOracle;
 
     constructor(
-        IMinerOracle minerOracle,
-        AggregatorV3Interface priceFeedOracle,
-        Issuance issuance
+        IMinerOracle minerOracleAddress,
+        AggregatorV3Interface priceFeedOracleAddress,
+        Issuance issuanceAddress
     ) public {
-        setMinerOracle(minerOracle);
-        setPriceFeedOracle(priceFeedOracle);
-        setIssuance(issuance);
+        setMinerOracle(minerOracleAddress);
+        setPriceFeedOracle(priceFeedOracleAddress);
+        setIssuance(issuanceAddress);
     }
 
-    function setMinerOracle(IMinerOracle minerOracle) public onlyOwner {
-         _minerOracle = minerOracle;
-    }
-
-    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracle) public onlyOwner {
-        _priceFeedOracle = priceFeedOracle;
-    }
-
-    function setIssuance(Issuance issuance) public onlyOwner {
-        _issuance = issuance;
+    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyOwner {
+        priceFeedOracle = priceFeedOracleAddress;
     }
 
     function getConversionRate() external view returns (uint256) {
@@ -46,9 +35,9 @@ contract EthSwap is Ownable, PullPayment {
     }
 
     function _getConversionRate() internal view returns (uint256) {
-        ( uint256 rate, ) = _minerOracle.getLatestExchangeRate();
+        ( uint256 rate, ) = minerOracle.getLatestExchangeRate();
 
-        ( , int256 answer, , , ) = _priceFeedOracle.latestRoundData();
+        ( , int256 answer, , , ) = priceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         return rate.mul(1e18).div(uint(answer));
@@ -74,9 +63,9 @@ contract EthSwap is Ownable, PullPayment {
 
         _asyncTransfer(owner, eth);
 
-        _issuance.issue(_msgSender(), miner);
+        issuance.issue(_msgSender(), miner);
 
-        emit Converted(_msgSender(), address(_issuance), eth, miner);
+        emit Converted(_msgSender(), address(issuance), eth, miner);
     }
 
     event Converted(
