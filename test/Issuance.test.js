@@ -43,7 +43,21 @@ contract("Issuance", (accounts) => {
     });
 
     describe("permitting issuance", () => {
+        const ADMIN_ROLE = web3.utils.soliditySha3('ADMIN');
         const ISSUER_ROLE = web3.utils.soliditySha3('ISSUER');
+
+        it("should add a new admin as owner", async () => {
+            await issuance.grantRole(ADMIN_ROLE, ALICE);
+
+            expect(await issuance.hasRole(ADMIN_ROLE, ALICE)).to.be.true;
+        });
+
+        it("should add a new admin as admin", async () => {
+            await issuance.grantRole(ADMIN_ROLE, ALICE);
+            await issuance.grantRole(ADMIN_ROLE, BOB, { from: ALICE });
+
+            expect(await issuance.hasRole(ADMIN_ROLE, BOB)).to.be.true;
+        });
 
         it("should add an issuer", async () => {
             await issuance.addIssuer(ISSUER);
@@ -59,6 +73,13 @@ contract("Issuance", (accounts) => {
                 account: ISSUER,
                 sender: OWNER
             });
+        });
+
+        it("should add an issuer as admin", async () => {
+            await issuance.grantRole(ADMIN_ROLE, ALICE);
+            await issuance.grantRole(ISSUER_ROLE, BOB, { from: ALICE });
+
+            expect(await issuance.hasRole(ISSUER_ROLE, BOB)).to.be.true;
         });
 
         it("should remove an issuer", async () => {

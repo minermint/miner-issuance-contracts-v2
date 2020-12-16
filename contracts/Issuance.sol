@@ -20,8 +20,9 @@ contract Issuance is AccessControl, Ownable {
     constructor(IERC20 token) public {
         _token = token;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, ADMIN);
+        _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
+        _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
+        _setRoleAdmin(ISSUER, ADMIN); // admins can manage issuers.
     }
 
     function addIssuer(address issuer) public {
