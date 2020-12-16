@@ -29,13 +29,13 @@ contract TokenSwap is MinerSwap {
     MinerSwap(minerOracleAddress, issuanceAddress) public {
     }
 
-    function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyOwner {
+    function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyAdmin {
         Swap memory swap = Swap(token, priceFeedOracle, true);
         swapAddresses.push(address(token));
         swaps[address(token)] = swap;
     }
 
-    function deregisterSwap(IERC20 token) external onlyOwner {
+    function deregisterSwap(IERC20 token) external onlyAdmin {
         swaps[address(token)].enabled = false;
     }
 

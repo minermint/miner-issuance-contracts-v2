@@ -14,7 +14,7 @@ import "./MinerSwap.sol";
 contract EthSwap is MinerSwap, PullPayment {
     using SafeMath for uint256;
 
-    AggregatorV3Interface private priceFeedOracle;
+    AggregatorV3Interface public priceFeedOracle;
 
     constructor(
         IMinerOracle minerOracleAddress,
@@ -25,7 +25,7 @@ contract EthSwap is MinerSwap, PullPayment {
         setPriceFeedOracle(priceFeedOracleAddress);
     }
 
-    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyOwner {
+    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyAdmin {
         priceFeedOracle = priceFeedOracleAddress;
     }
 

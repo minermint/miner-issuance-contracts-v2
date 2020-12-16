@@ -25,6 +25,8 @@ contract("EthSwap", (accounts) => {
     const decimals = new BN("18");
     const supply = new BN("1000").mul(new BN("10").pow(decimals));
 
+    const oracleAddress = "0x9326BFA02ADD2366b30bacB125260Af641031331";
+
     beforeEach(async () => {
         miner = await Miner.new();
         await miner.setMinter(MINTER);
@@ -43,16 +45,40 @@ contract("EthSwap", (accounts) => {
         issuance.addIssuer(ethSwap.address);
     });
 
-    it("should fund the token issuance", async () => {
-        let actual = new BN(await miner.balanceOf(issuance.address));
+    it("should be able to change price feed oracle", async () => {
+        await ethSwap.setPriceFeedOracle(oracleAddress);
 
-        expect(actual).to.be.bignumber.equal(supply);
+        expect(await ethSwap.priceFeedOracle())
+            .to
+            .be
+            .bignumber
+            .equal(oracleAddress);
     });
 
-    it("should be able to change contract ownership", async () => {
-        await issuance.transferOwnership(ALICE);
+    it("should NOT be able to change price feed oracle without permission",
+    async () => {
+        await expectRevert(
+            ethSwap.setPriceFeedOracle(oracleAddress, { from: ALICE }),
+            "Issuance/no-admin-privileges"
+        );
+    });
 
-        expect(await issuance.owner()).to.be.equal(ALICE);
+    it("should be able to change miner oracle", async () => {
+        await ethSwap.setMinerOracle(oracleAddress);
+
+        expect(await ethSwap.minerOracle())
+            .to
+            .be
+            .bignumber
+            .equal(oracleAddress);
+    });
+
+    it("should NOT be able to change miner oracle without permission",
+    async () => {
+        await expectRevert(
+            ethSwap.setMinerOracle(oracleAddress, { from: ALICE }),
+            "Issuance/no-admin-privileges"
+        );
     });
 
     describe("converting eth for miner", () => {

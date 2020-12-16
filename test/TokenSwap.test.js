@@ -78,7 +78,7 @@ contract("TokenSwap", (accounts) => {
                 testToken.address,
                 { from: BOB }
             ),
-            "Ownable: caller is not the owner."
+            "Issuance/no-admin-privileges"
         );
     });
 
