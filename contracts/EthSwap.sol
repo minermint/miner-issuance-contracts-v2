@@ -20,10 +20,9 @@ contract EthSwap is MinerSwap, PullPayment {
         IMinerOracle minerOracleAddress,
         AggregatorV3Interface priceFeedOracleAddress,
         Issuance issuanceAddress
-    ) public {
-        setMinerOracle(minerOracleAddress);
+    )
+    MinerSwap(minerOracleAddress, issuanceAddress) public {
         setPriceFeedOracle(priceFeedOracleAddress);
-        setIssuance(issuanceAddress);
     }
 
     function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyOwner {

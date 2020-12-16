@@ -22,9 +22,11 @@ contract TokenSwap is MinerSwap {
     address[] public swapAddresses;
     mapping (address => Swap) public swaps;
 
-    constructor(IMinerOracle minerOracleAddress, Issuance issuanceAddress) public {
-        setMinerOracle(minerOracleAddress);
-        setIssuance(issuanceAddress);
+    constructor(
+        IMinerOracle minerOracleAddress,
+        Issuance issuanceAddress
+    )
+    MinerSwap(minerOracleAddress, issuanceAddress) public {
     }
 
     function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyOwner {
