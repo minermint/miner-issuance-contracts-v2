@@ -11,6 +11,7 @@ const EthSwap = artifacts.require("EthSwap");
 contract("EthSwap", (accounts) => {
     const OWNER = accounts[0];
     const MINTER = accounts[1];
+    const OWNER_2 = accounts[2];
 
     const ALICE = accounts[3];
     const BOB = accounts[4];
@@ -80,36 +81,6 @@ contract("EthSwap", (accounts) => {
             expect(balance).to.be.bignumber.equal(expected);
         });
 
-        it("should withdraw eth swap balance to BOB", async () => {
-            const wei = web3.utils.toWei("1", "ether");
-
-            let ownerBalanceBeforeWithdrawal = new web3.utils.BN(
-                await web3.eth.getBalance(BOB)
-            );
-
-            await ethSwap.transferOwnership(BOB);
-
-            await ethSwap.convert(
-                0,
-                {
-                    from: ALICE,
-                    value: wei
-                }
-            );
-
-            await ethSwap.withdrawPayments(BOB);
-
-            let ownerBalanceAfterWithdrawal = new web3.utils.BN(
-                await web3.eth.getBalance(BOB)
-            );
-
-            const expected = ownerBalanceBeforeWithdrawal.add(
-                new web3.utils.BN(wei)
-            );
-
-            expect(expected).to.be.bignumber.equal(ownerBalanceAfterWithdrawal);
-        });
-
         it("should emit a Converted event", async () => {
             const { logs } = await ethSwap.convert(
                 0,
@@ -168,6 +139,56 @@ contract("EthSwap", (accounts) => {
                 ),
                 "SafeMath: division by zero -- Reason given: SafeMath: division by zero."
             );
+        });
+    });
+
+    describe("escrow", () => {
+        it("should withdraw to owner only",
+        async () => {
+            await ethSwap.transferOwnership(OWNER_2);
+
+            const wei = web3.utils.toWei("1", "ether");
+
+            const balanceBeforeWithdrawal = new web3.utils
+                .BN(await web3.eth.getBalance(OWNER_2));
+
+            await ethSwap.convert(0, { from: ALICE, value: wei });
+
+            await ethSwap.withdrawPayments(OWNER_2);
+
+            const balanceAfterWithdrawal = new web3.utils.BN(
+                await web3.eth.getBalance(OWNER_2)
+            );
+
+            const expected = balanceBeforeWithdrawal.add(
+                new web3.utils.BN(wei)
+            );
+
+            expect(expected).to.be.bignumber.equal(balanceAfterWithdrawal);
+        });
+
+        it("should NOT withdraw eth swap balance to BOB", async () => {
+            const wei = web3.utils.toWei("1", "ether");
+
+            const balanceBeforeWithdrawal = new web3.utils.BN(
+                await web3.eth.getBalance(BOB)
+            );
+
+            await ethSwap.convert(
+                0,
+                {
+                    from: ALICE,
+                    value: wei
+                }
+            );
+
+            await ethSwap.withdrawPayments(BOB);
+
+            const balanceAfterWithdrawal = new web3.utils.BN(
+                await web3.eth.getBalance(BOB)
+            );
+
+            expect(balanceBeforeWithdrawal).to.be.bignumber.equal(balanceAfterWithdrawal);
         });
     });
 });
