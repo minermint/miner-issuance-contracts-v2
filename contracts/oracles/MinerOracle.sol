@@ -18,8 +18,11 @@ abstract contract MinerOracle is AccessControl, IMinerOracle {
 
     ExchangeRate[] public exchangeRates;
 
+    bytes32 public constant ADMIN = keccak256("ADMIN");
+
     constructor() public {
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
+        _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
     }
 
     function setExchangeRate(uint rate) override external adminOnly {
@@ -59,7 +62,7 @@ abstract contract MinerOracle is AccessControl, IMinerOracle {
     modifier adminOnly()
     {
         require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            hasRole(ADMIN, msg.sender),
             "MinerOracle/no-admin-privileges");
         _;
     }
