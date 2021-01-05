@@ -19,7 +19,7 @@ contract TokenSwap is MinerSwap {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address[] public swapAddresses;
+    address[] public tokens;
     mapping (address => Swap) public swaps;
 
     constructor(
@@ -31,7 +31,7 @@ contract TokenSwap is MinerSwap {
 
     function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyAdmin {
         Swap memory swap = Swap(token, priceFeedOracle, true);
-        swapAddresses.push(address(token));
+        tokens.push(address(token));
         swaps[address(token)] = swap;
     }
 
@@ -40,7 +40,7 @@ contract TokenSwap is MinerSwap {
     }
 
     function getSwapAddressCount() external view returns (uint256) {
-        return swapAddresses.length;
+        return tokens.length;
     }
 
     function getConversionRate(IERC20 token) external view returns (uint256) {
