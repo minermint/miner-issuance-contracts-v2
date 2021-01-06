@@ -82,7 +82,7 @@ contract("EthSwap", (accounts) => {
             );
         });
 
-        it.only("should NOT be able to convert with a zero address price feed",
+        it("should NOT be able to convert with a zero address price feed",
         async () => {
             const amount = web3.utils.toWei("1", "ether");
 
