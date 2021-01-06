@@ -41,180 +41,199 @@ contract("EthSwap", (accounts) => {
         await miner.mint(supply, { from: MINTER });
         await miner.transfer(issuance.address, supply, { from: MINTER });
 
-        ethSwap = await EthSwap.new(oracle.address, aggregator.address, issuance.address);
+        ethSwap = await EthSwap.new(oracle.address, issuance.address);
         issuance.addIssuer(ethSwap.address);
     });
 
-    it("should be able to change price feed oracle", async () => {
-        await ethSwap.setPriceFeedOracle(oracleAddress);
+    describe("instantiation", () => {
+        it("should be able to change price feed oracle", async () => {
+            await ethSwap.setPriceFeedOracle(oracleAddress);
 
-        expect(await ethSwap.priceFeedOracle())
-            .to
-            .be
-            .bignumber
-            .equal(oracleAddress);
+            expect(await ethSwap.priceFeedOracle())
+                .to
+                .be
+                .bignumber
+                .equal(oracleAddress);
+        });
+
+        it("should NOT be able to change price feed oracle without permission",
+        async () => {
+            await expectRevert(
+                ethSwap.setPriceFeedOracle(oracleAddress, { from: ALICE }),
+                "Issuance/no-admin-privileges"
+            );
+        });
+
+        it("should be able to change miner oracle", async () => {
+            await ethSwap.setMinerOracle(oracleAddress);
+
+            expect(await ethSwap.minerOracle())
+                .to
+                .be
+                .bignumber
+                .equal(oracleAddress);
+        });
+
+        it("should NOT be able to change miner oracle without permission",
+        async () => {
+            await expectRevert(
+                ethSwap.setMinerOracle(oracleAddress, { from: ALICE }),
+                "Issuance/no-admin-privileges"
+            );
+        });
+
+        it.only("should NOT be able to convert with a zero address price feed",
+        async () => {
+            const amount = web3.utils.toWei("1", "ether");
+
+            await expectRevert(
+                ethSwap.convert(0, { value: amount }),
+                "EthSwap/no-oracle-set"
+            );
+        });
     });
 
-    it("should NOT be able to change price feed oracle without permission",
-    async () => {
-        await expectRevert(
-            ethSwap.setPriceFeedOracle(oracleAddress, { from: ALICE }),
-            "Issuance/no-admin-privileges"
-        );
-    });
-
-    it("should be able to change miner oracle", async () => {
-        await ethSwap.setMinerOracle(oracleAddress);
-
-        expect(await ethSwap.minerOracle())
-            .to
-            .be
-            .bignumber
-            .equal(oracleAddress);
-    });
-
-    it("should NOT be able to change miner oracle without permission",
-    async () => {
-        await expectRevert(
-            ethSwap.setMinerOracle(oracleAddress, { from: ALICE }),
-            "Issuance/no-admin-privileges"
-        );
-    });
-
-    describe("converting eth for miner", () => {
+    describe("swapping ether for miner", () => {
         const expected = new BN("235320000000000048297");
 
-        it("should get conversion rate", async () => {
-            const amount = web3.utils.toWei("1", "ether");
-            const converted = await ethSwap.getConversionAmount(amount);
-
-            expect(converted).to.be.bignumber.equal(expected);
+        beforeEach(async () => {
+            ethSwap.setPriceFeedOracle(aggregator.address);
         });
 
-        it("should swap eth for miner", async () => {
-            const amount = web3.utils.toWei("1", "ether");
 
-            await ethSwap.convert(
-                0,
-                {
-                    from: ALICE,
-                    value: amount
-                }
-            );
+        describe("converting eth for miner", () => {
+            it("should get conversion rate", async () => {
+                const amount = web3.utils.toWei("1", "ether");
+                const converted = await ethSwap.getConversionAmount(amount);
 
-            const balance = await miner.balanceOf(ALICE);
+                expect(converted).to.be.bignumber.equal(expected);
+            });
 
-            expect(balance).to.be.bignumber.equal(expected);
-        });
+            it("should swap eth for miner", async () => {
+                const amount = web3.utils.toWei("1", "ether");
 
-        it("should emit a Converted event", async () => {
-            const { logs } = await ethSwap.convert(
-                0,
-                {
-                    from: ALICE,
-                    value: web3.utils.toWei("1", "ether")
-                }
-            );
+                await ethSwap.convert(
+                    0,
+                    {
+                        from: ALICE,
+                        value: amount
+                    }
+                );
 
-            expectEvent.inLogs(logs, 'Converted', {
-                recipient: ALICE,
-                sender: issuance.address,
-                sent: web3.utils.toWei("1", "ether"),
-                received: expected.toString()
+                const balance = await miner.balanceOf(ALICE);
+
+                expect(balance).to.be.bignumber.equal(expected);
+            });
+
+            it("should emit a Converted event", async () => {
+                const { logs } = await ethSwap.convert(
+                    0,
+                    {
+                        from: ALICE,
+                        value: web3.utils.toWei("1", "ether")
+                    }
+                );
+
+                expectEvent.inLogs(logs, 'Converted', {
+                    recipient: ALICE,
+                    sender: issuance.address,
+                    sent: web3.utils.toWei("1", "ether"),
+                    received: expected.toString()
+                });
+            });
+
+            it("should NOT convert zero tokens", async () => {
+                await expectRevert(
+                    ethSwap.convert(
+                        0,
+                        {
+                            from: ALICE,
+                            value: web3.utils.toWei(ZERO_BALANCE, "ether")
+                        }
+                    ),
+                    "EthSwap/deposit-invalid"
+                );
+            });
+
+            it("should NOT exceed converting more tokens than are available",
+            async () => {
+                await expectRevert(
+                    ethSwap.convert(
+                        0,
+                        {
+                            from: ALICE,
+                            value: web3.utils.toWei("50", "ether")
+                        }
+                    ),
+                    "Issuance/balance-exceeded"
+                );
+            });
+
+            it("should NOT convert if rate is zero",
+            async () => {
+                oracle.setExchangeRate(ZERO_BALANCE);
+
+                await expectRevert(
+                    ethSwap.convert(
+                        0,
+                        {
+                            from: ALICE,
+                            value: web3.utils.toWei("10", "ether")
+                        }
+                    ),
+                    "SafeMath: division by zero -- Reason given: SafeMath: division by zero."
+                );
             });
         });
 
-        it("should NOT convert zero tokens", async () => {
-            await expectRevert(
-                ethSwap.convert(
+        describe("escrow", () => {
+            it("should withdraw to owner only",
+            async () => {
+                await ethSwap.transferOwnership(OWNER_2);
+
+                const wei = web3.utils.toWei("1", "ether");
+
+                const balanceBeforeWithdrawal = new web3.utils
+                    .BN(await web3.eth.getBalance(OWNER_2));
+
+                await ethSwap.convert(0, { from: ALICE, value: wei });
+
+                await ethSwap.withdrawPayments(OWNER_2);
+
+                const balanceAfterWithdrawal = new web3.utils.BN(
+                    await web3.eth.getBalance(OWNER_2)
+                );
+
+                const expected = balanceBeforeWithdrawal.add(
+                    new web3.utils.BN(wei)
+                );
+
+                expect(expected).to.be.bignumber.equal(balanceAfterWithdrawal);
+            });
+
+            it("should NOT withdraw eth swap balance to BOB", async () => {
+                const wei = web3.utils.toWei("1", "ether");
+
+                const balanceBeforeWithdrawal = new web3.utils.BN(
+                    await web3.eth.getBalance(BOB)
+                );
+
+                await ethSwap.convert(
                     0,
                     {
                         from: ALICE,
-                        value: web3.utils.toWei(ZERO_BALANCE, "ether")
+                        value: wei
                     }
-                ),
-                "EthSwap/deposit-invalid"
-            );
-        });
+                );
 
-        it("should NOT exceed converting more tokens than are available",
-        async () => {
-            await expectRevert(
-                ethSwap.convert(
-                    0,
-                    {
-                        from: ALICE,
-                        value: web3.utils.toWei("50", "ether")
-                    }
-                ),
-                "Issuance/balance-exceeded"
-            );
-        });
+                await ethSwap.withdrawPayments(BOB);
 
-        it("should NOT convert if rate is zero",
-        async () => {
-            oracle.setExchangeRate(ZERO_BALANCE);
+                const balanceAfterWithdrawal = new web3.utils.BN(
+                    await web3.eth.getBalance(BOB)
+                );
 
-            await expectRevert(
-                ethSwap.convert(
-                    0,
-                    {
-                        from: ALICE,
-                        value: web3.utils.toWei("10", "ether")
-                    }
-                ),
-                "SafeMath: division by zero -- Reason given: SafeMath: division by zero."
-            );
-        });
-    });
-
-    describe("escrow", () => {
-        it("should withdraw to owner only",
-        async () => {
-            await ethSwap.transferOwnership(OWNER_2);
-
-            const wei = web3.utils.toWei("1", "ether");
-
-            const balanceBeforeWithdrawal = new web3.utils
-                .BN(await web3.eth.getBalance(OWNER_2));
-
-            await ethSwap.convert(0, { from: ALICE, value: wei });
-
-            await ethSwap.withdrawPayments(OWNER_2);
-
-            const balanceAfterWithdrawal = new web3.utils.BN(
-                await web3.eth.getBalance(OWNER_2)
-            );
-
-            const expected = balanceBeforeWithdrawal.add(
-                new web3.utils.BN(wei)
-            );
-
-            expect(expected).to.be.bignumber.equal(balanceAfterWithdrawal);
-        });
-
-        it("should NOT withdraw eth swap balance to BOB", async () => {
-            const wei = web3.utils.toWei("1", "ether");
-
-            const balanceBeforeWithdrawal = new web3.utils.BN(
-                await web3.eth.getBalance(BOB)
-            );
-
-            await ethSwap.convert(
-                0,
-                {
-                    from: ALICE,
-                    value: wei
-                }
-            );
-
-            await ethSwap.withdrawPayments(BOB);
-
-            const balanceAfterWithdrawal = new web3.utils.BN(
-                await web3.eth.getBalance(BOB)
-            );
-
-            expect(balanceBeforeWithdrawal).to.be.bignumber.equal(balanceAfterWithdrawal);
+                expect(balanceBeforeWithdrawal).to.be.bignumber.equal(balanceAfterWithdrawal);
+            });
         });
     });
 });

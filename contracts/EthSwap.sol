@@ -18,11 +18,10 @@ contract EthSwap is MinerSwap, PullPayment {
 
     constructor(
         IMinerOracle minerOracleAddress,
-        AggregatorV3Interface priceFeedOracleAddress,
         Issuance issuanceAddress
     )
     MinerSwap(minerOracleAddress, issuanceAddress) public {
-        setPriceFeedOracle(priceFeedOracleAddress);
+
     }
 
     function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyAdmin {
@@ -33,7 +32,7 @@ contract EthSwap is MinerSwap, PullPayment {
         return _getConversionRate();
     }
 
-    function _getConversionRate() internal view returns (uint256) {
+    function _getConversionRate() internal view priceFeedSet returns (uint256) {
         ( uint256 rate, ) = minerOracle.getLatestExchangeRate();
 
         ( , int256 answer, , , ) = priceFeedOracle.latestRoundData();
@@ -65,6 +64,11 @@ contract EthSwap is MinerSwap, PullPayment {
         issuance.issue(_msgSender(), miner);
 
         emit Converted(_msgSender(), address(issuance), eth, miner);
+    }
+
+    modifier priceFeedSet() {
+        require(address(priceFeedOracle) != address(0), "EthSwap/no-oracle-set");
+        _;
     }
 
     event Converted(
