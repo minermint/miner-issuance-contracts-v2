@@ -25,23 +25,6 @@ module.exports = async function(deployer, network) {
         oracle.address,
         issuance.address);
 
-    // if development, deploy the mock price feed.
-    if (network == "development" || network == "test") {
-        await deployer.deploy(PriceFeedETH);
-        const priceFeedEth = await PriceFeedETH.deployed();
-        priceFeedETHAddress = priceFeedEth.address;
-
-        await deployer.deploy(PriceFeedTestToken);
-        const priceFeedTestToken = await PriceFeedTestToken.deployed();
-
-        await deployer.deploy(TestToken);
-        const testToken = await TestToken.deployed();
-
-        saveNetworkArtifact(priceFeedEth, deployer.network);
-        saveNetworkArtifact(priceFeedTestToken, deployer.network);
-        saveNetworkArtifact(testToken, deployer.network);
-    }
-
     await issuance.addIssuer(ethSwap.address);
     await issuance.addIssuer(tokenSwap.address);
 
