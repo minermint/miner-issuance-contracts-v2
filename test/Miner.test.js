@@ -23,7 +23,7 @@ contract("Miner", accounts => {
 	})
 
     describe("instantiation", () => {
-        it("should have a name of miner", async () => {
+        it.only("should have a name of miner", async () => {
             expect(await token.name()).to.be.equal(name);
         });
 
