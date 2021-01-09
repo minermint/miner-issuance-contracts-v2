@@ -2,6 +2,7 @@
 
 pragma solidity ^0.6.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IMinerOracle.sol";
@@ -11,7 +12,7 @@ struct ExchangeRate {
     uint256 blockNumber;
 }
 
-abstract contract MinerOracle is AccessControl, IMinerOracle {
+abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
     using SafeMath for uint256;
 
     string currencyCode;
