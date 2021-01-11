@@ -96,28 +96,101 @@ contract("TokenSwap", (accounts) => {
 
         const balance = await testToken.balanceOf(tokenSwap.address);
 
-        console.log("balance", balance);
+        const escrowed = (await tokenSwap.swaps(testToken.address)).escrowed;
+
+        expect(balance).to.be.bignumber.equal(escrowed);
     });
 
-    describe("access control", async () => {
-        const ADMIN = web3.utils.soliditySha3("ADMIN");
+    describe("admin", async () => {
+        describe("access control", async () => {
+            const ADMIN = web3.utils.soliditySha3("ADMIN");
 
-        it("should transfer ownership and set the new owner as an admin",
-        async () => {
-            await tokenSwap.transferOwnership(ALICE);
-            const newOwner = await tokenSwap.owner();
-            const isAdmin = await tokenSwap.hasRole(ADMIN, ALICE);
+            it("should transfer ownership and set the new owner as an admin",
+            async () => {
+                await tokenSwap.transferOwnership(ALICE);
+                const newOwner = await tokenSwap.owner();
+                const isAdmin = await tokenSwap.hasRole(ADMIN, ALICE);
 
-            expect(newOwner).to.be.equal(ALICE);
-            expect(isAdmin).to.be.true;
+                expect(newOwner).to.be.equal(ALICE);
+                expect(isAdmin).to.be.true;
+            });
+
+            it('should emit OwnershipTransferred event', async () => {
+                const { logs } = await tokenSwap.transferOwnership(ALICE);
+
+                const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
+                    previousOwner: OWNER,
+                    newOwner: ALICE,
+                });
+            });
         });
 
-        it('should emit OwnershipTransferred event', async () => {
-            const { logs } = await tokenSwap.transferOwnership(ALICE);
+        describe("withdrawals", async () => {
+            const amount = new BN("1").mul(new BN("10").pow(decimals));
 
-            const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
-                previousOwner: OWNER,
-                newOwner: ALICE,
+            beforeEach(async () => {
+                await testToken.transfer(ALICE, amount);
+            });
+
+            it("should withdraw TestToken and sets contract escrow to zero",
+            async () => {
+                const minerMin = new BN("0"); // TODO: make this a proper min.
+                const ownerBalance = await testToken.balanceOf(OWNER);
+
+                await tokenSwap.registerSwap(aggregator.address, testToken.address);
+
+                await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
+
+                await tokenSwap.convert(testToken.address, amount, minerMin, { from: ALICE });
+
+                await tokenSwap.withdraw(testToken.address);
+
+                const escrowed = (await tokenSwap.swaps(testToken.address)).escrowed;
+                const balance = await testToken.balanceOf(tokenSwap.address);
+
+                expect(escrowed).to.be.bignumber.equal(new BN(0));
+                expect(balance).to.be.bignumber.equal(new BN(0));
+            });
+
+            it("should withdraw TestToken and credits owner's account", async () => {
+                const amount = new BN("1").mul(new BN("10").pow(decimals));
+                const minerMin = new BN("0"); // TODO: make this a proper min.
+                const ownerBalance = await testToken.balanceOf(OWNER);
+                const expected = ownerBalance.add(amount);
+
+                await tokenSwap.registerSwap(aggregator.address, testToken.address);
+
+                await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
+
+                await tokenSwap.convert(testToken.address, amount, minerMin, { from: ALICE });
+
+                await tokenSwap.withdraw(testToken.address);
+
+                const balance = await testToken.balanceOf(OWNER);
+
+                expect(balance).to.be.bignumber.equal(expected);
+            });
+
+
+            it("should emit Withdrawn event", async () => {
+                const amount = new BN("1").mul(new BN("10").pow(decimals));
+                const minerMin = new BN("0"); // TODO: make this a proper min.
+                const ownerBalance = await testToken.balanceOf(OWNER);
+                const expected = ownerBalance.add(amount);
+
+                await tokenSwap.registerSwap(aggregator.address, testToken.address);
+
+                await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
+
+                await tokenSwap.convert(testToken.address, amount, minerMin, { from: ALICE });
+
+                const { logs } = await tokenSwap.withdraw(testToken.address);
+
+                const event = expectEvent.inLogs(logs, 'Withdrawn', {
+                    token: testToken.address,
+                    recipient: OWNER,
+                    amount: amount,
+                });
             });
         });
     });

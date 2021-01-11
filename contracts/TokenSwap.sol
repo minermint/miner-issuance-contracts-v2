@@ -13,6 +13,7 @@ struct Swap {
     IERC20 token;
     AggregatorV3Interface priceFeedOracle;
     bool enabled;
+    uint256 escrowed;
 }
 
 contract TokenSwap is MinerSwap {
@@ -30,7 +31,7 @@ contract TokenSwap is MinerSwap {
     }
 
     function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyAdmin {
-        Swap memory swap = Swap(token, priceFeedOracle, true);
+        Swap memory swap = Swap(token, priceFeedOracle, true, 0);
         tokens.push(address(token));
         swaps[address(token)] = swap;
     }
@@ -67,26 +68,35 @@ contract TokenSwap is MinerSwap {
     }
 
     function convert(IERC20 token, uint256 amount, uint256 minerMin) external {
-        address owner = owner();
-
         require(amount > 0, "Issuance/deposit-invalid");
 
         uint256 miner = getConversionAmount(token, amount);
 
         require(miner >= minerMin, 'EthSwap/slippage');
 
-        _deposit(owner, amount, token);
+        _deposit(amount, token);
 
         issuance.issue(_msgSender(), miner);
 
         emit Converted(_msgSender(), address(issuance), amount, miner);
     }
 
-    function _deposit(address payee, uint256 amount, IERC20 token) private {
-        Swap memory swap = swaps[address(token)];
+    function _deposit(uint256 amount, IERC20 token) private {
+        Swap storage swap = swaps[address(token)];
 
         token.transferFrom(_msgSender(), address(this), amount);
-        //swap.deposits[payee] = swap.deposits[payee].add(amount);
+        swap.escrowed = swap.escrowed.add(amount);
+    }
+
+    function withdraw(IERC20 token) public onlyOwner {
+        Swap storage swap = swaps[address(token)];
+        address owner = owner();
+        uint256 balance = swap.escrowed;
+
+        swap.escrowed = 0;
+        token.transfer(owner, balance);
+
+        emit Withdrawn(owner, address(token), balance);
     }
 
     event Converted(
@@ -94,5 +104,11 @@ contract TokenSwap is MinerSwap {
         address indexed sender,
         uint256 sent,
         uint256 received
+    );
+
+    event Withdrawn(
+        address indexed recipient,
+        address indexed token,
+        uint256 amount
     );
 }
