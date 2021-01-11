@@ -15,6 +15,10 @@ module.exports = {
             network_id: "*", // Match any network id
             gas: 6721975
         },
+        teams: {
+          url: "https://sandbox.truffleteams.com/2671a237-02b5-4db2-88da-0225e774e2a8",
+          network_id: 1609904286339
+        }
     },
     // Configure your compilers
     compilers: {
