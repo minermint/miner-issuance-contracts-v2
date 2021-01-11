@@ -93,5 +93,32 @@ contract("TokenSwap", (accounts) => {
         await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
 
         await tokenSwap.convert(testToken.address, amount, minerMin, { from: ALICE });
-    })
+
+        const balance = await testToken.balanceOf(tokenSwap.address);
+
+        console.log("balance", balance);
+    });
+
+    describe("access control", async () => {
+        const ADMIN = web3.utils.soliditySha3("ADMIN");
+
+        it("should transfer ownership and set the new owner as an admin",
+        async () => {
+            await tokenSwap.transferOwnership(ALICE);
+            const newOwner = await tokenSwap.owner();
+            const isAdmin = await tokenSwap.hasRole(ADMIN, ALICE);
+
+            expect(newOwner).to.be.equal(ALICE);
+            expect(isAdmin).to.be.true;
+        });
+
+        it('should emit OwnershipTransferred event', async () => {
+            const { logs } = await tokenSwap.transferOwnership(ALICE);
+
+            const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
+                previousOwner: OWNER,
+                newOwner: ALICE,
+            });
+        });
+    });
 });

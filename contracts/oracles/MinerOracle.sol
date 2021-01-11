@@ -60,6 +60,11 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
         return _getExchangeRate(index);
     }
 
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        grantRole(ADMIN, newOwner);
+        super.transferOwnership(newOwner);
+    }
+
     modifier adminOnly()
     {
         require(

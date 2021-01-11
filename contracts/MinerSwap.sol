@@ -34,6 +34,11 @@ abstract contract MinerSwap is AccessControl, Ownable {
         issuance = issuanceAddress;
     }
 
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        grantRole(ADMIN, newOwner);
+        super.transferOwnership(newOwner);
+    }
+
     modifier onlyAdmin()
     {
         require(hasRole(ADMIN, _msgSender()), "Issuance/no-admin-privileges");

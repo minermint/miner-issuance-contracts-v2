@@ -95,4 +95,23 @@ contract("MinerUSDOracle", (accounts) => {
             "MinerOracle/no-admin-privileges"
         );
     });
+
+    it("should transfer ownership and set the new owner as an admin",
+    async () => {
+        await oracle.transferOwnership(ALICE);
+        const newOwner = await oracle.owner();
+        const isAdmin = await oracle.hasRole(ADMIN, ALICE);
+
+        expect(newOwner).to.be.equal(ALICE);
+        expect(isAdmin).to.be.true;
+    });
+
+    it('should emit OwnershipTransferred event', async () => {
+        const { logs } = await oracle.transferOwnership(ALICE);
+
+        const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
+            previousOwner: OWNER,
+            newOwner: ALICE,
+        });
+    });
 });

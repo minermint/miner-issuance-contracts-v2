@@ -75,11 +75,18 @@ contract TokenSwap is MinerSwap {
 
         require(miner >= minerMin, 'EthSwap/slippage');
 
-        token.transferFrom(_msgSender(), owner, amount);
+        _deposit(owner, amount, token);
 
         issuance.issue(_msgSender(), miner);
 
         emit Converted(_msgSender(), address(issuance), amount, miner);
+    }
+
+    function _deposit(address payee, uint256 amount, IERC20 token) private {
+        Swap memory swap = swaps[address(token)];
+
+        token.transferFrom(_msgSender(), address(this), amount);
+        //swap.deposits[payee] = swap.deposits[payee].add(amount);
     }
 
     event Converted(
