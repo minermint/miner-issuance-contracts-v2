@@ -52,7 +52,29 @@ contract("TokenSwap", (accounts) => {
             "enabled": true
         }
 
-        await tokenSwap.registerSwap(aggregator.address, testToken.address);
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
+
+        expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
+    });
+
+    it("should NOT register a token twice", async () => {
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
+
+        await expectRevert(
+            tokenSwap.registerSwap(testToken.address, aggregator.address),
+            "TokenSwap/token-already-registered"
+        );
+    });
+
+    it("should update a token's oracle", async () => {
+        const expected = {
+            "token": testToken.address,
+            "priceFeedOracle": ZERO_ADDRESS,
+            "enabled": true
+        }
+
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
+        await tokenSwap.updateSwap(testToken.address, ZERO_ADDRESS);
 
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
     });
@@ -64,7 +86,7 @@ contract("TokenSwap", (accounts) => {
             "enabled": false
         }
 
-        await tokenSwap.registerSwap(aggregator.address, testToken.address);
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
         await tokenSwap.deregisterSwap(testToken.address);
 
@@ -86,7 +108,7 @@ contract("TokenSwap", (accounts) => {
         const amount = new BN("1").mul(new BN("10").pow(decimals));
         const minerMin = new BN("0"); // TODO: make this a proper min.
 
-        await tokenSwap.registerSwap(aggregator.address, testToken.address);
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
         await testToken.transfer(ALICE, amount);
 
@@ -137,7 +159,7 @@ contract("TokenSwap", (accounts) => {
                 const minerMin = new BN("0"); // TODO: make this a proper min.
                 const ownerBalance = await testToken.balanceOf(OWNER);
 
-                await tokenSwap.registerSwap(aggregator.address, testToken.address);
+                await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
                 await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
 
@@ -158,7 +180,7 @@ contract("TokenSwap", (accounts) => {
                 const ownerBalance = await testToken.balanceOf(OWNER);
                 const expected = ownerBalance.add(amount);
 
-                await tokenSwap.registerSwap(aggregator.address, testToken.address);
+                await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
                 await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
 
@@ -178,7 +200,7 @@ contract("TokenSwap", (accounts) => {
                 const ownerBalance = await testToken.balanceOf(OWNER);
                 const expected = ownerBalance.add(amount);
 
-                await tokenSwap.registerSwap(aggregator.address, testToken.address);
+                await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
                 await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
 

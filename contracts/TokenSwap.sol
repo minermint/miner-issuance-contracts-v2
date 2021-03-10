@@ -30,10 +30,25 @@ contract TokenSwap is MinerSwap {
     MinerSwap(minerOracleAddress, issuanceAddress) public {
     }
 
-    function registerSwap(AggregatorV3Interface priceFeedOracle, IERC20 token) external onlyAdmin {
-        Swap memory swap = Swap(token, priceFeedOracle, true, 0);
+    function registerSwap(IERC20 token, AggregatorV3Interface priceFeedOracle) external onlyAdmin {
+        require(
+            swaps[address(token)].token != token,
+            "TokenSwap/token-already-registered"
+        );
+
         tokens.push(address(token));
+
+        Swap memory swap = Swap(token, priceFeedOracle, true, 0);
         swaps[address(token)] = swap;
+    }
+
+    function updateSwap(IERC20 token, AggregatorV3Interface priceFeedOracle) external onlyAdmin {
+        require(
+            swaps[address(token)].token == token,
+            "TokenSwap/token-not-registered");
+
+        Swap storage swap = swaps[address(token)];
+        swap.priceFeedOracle = priceFeedOracle;
     }
 
     function deregisterSwap(IERC20 token) external onlyAdmin {
@@ -68,7 +83,7 @@ contract TokenSwap is MinerSwap {
     }
 
     function convert(IERC20 token, uint256 amount, uint256 minerMin) external {
-        require(amount > 0, "Issuance/deposit-invalid");
+        require(amount > 0, "TokenSwap/deposit-invalid");
 
         uint256 miner = getConversionAmount(token, amount);
 
