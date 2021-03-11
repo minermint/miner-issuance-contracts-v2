@@ -23,7 +23,7 @@ module.exports = {
     // Configure your compilers
     compilers: {
         solc: {
-            version: "0.6.8"
+            version: "0.6.12"
         }
     },
     mocha: {
