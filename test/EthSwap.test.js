@@ -100,9 +100,20 @@ contract("EthSwap", (accounts) => {
             ethSwap.setPriceFeedOracle(aggregator.address);
         });
 
+        it("should get the conversion rate", async () => {
+            const converted = await ethSwap.getConversionRate();
+
+            const roundData = await aggregator.latestRoundData();
+            const answer = new web3.utils.BN(roundData[1]);
+            const xRate = await oracle.getLatestExchangeRate();
+
+            const rate = web3.utils.toWei(xRate[0], "ether").div(answer);
+
+            expect(converted).to.be.bignumber.equal(rate);
+        });
 
         describe("converting eth for miner", () => {
-            it("should get conversion rate", async () => {
+            it("should get conversion amount", async () => {
                 const amount = web3.utils.toWei("1", "ether");
                 const converted = await ethSwap.getConversionAmount(amount);
 
