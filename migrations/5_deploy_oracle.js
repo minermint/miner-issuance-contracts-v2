@@ -26,7 +26,7 @@ module.exports = async function(deployer, network) {
         issuance.address);
 
     // if development, deploy the mock price feed.
-    if (network == "development" || network == "test") {
+    if (["development", "test", "soliditycoverage"].includes(network)) {
         await deployer.deploy(PriceFeedETH);
         const priceFeedEth = await PriceFeedETH.deployed();
         priceFeedETHAddress = priceFeedEth.address;
