@@ -20,6 +20,46 @@ contract("MinerUSDOracle", (accounts) => {
         oracle = await MinerUSDOracle.new();
     });
 
+    it("should set the exchange rate", async () => {
+        await oracle.setExchangeRate(EXCHANGE_RATE);
+
+        const block = await web3.eth.getBlock("latest");
+
+        const xRate = await oracle.getLatestExchangeRate();
+
+        const actual = [
+            xRate[0].toString(),
+            xRate[1].toNumber()
+        ]
+
+        const expected = [
+            EXCHANGE_RATE.toString(),
+            block.number
+        ]
+
+        expect(actual).to.have.same.members(expected);
+    });
+
+    it("should get an exchange rate at a particular index", async () => {
+        await oracle.setExchangeRate(EXCHANGE_RATE);
+
+        const block = await web3.eth.getBlock("latest");
+
+        const xRate = await oracle.getExchangeRate(0);
+
+        const actual = [
+            xRate[0].toString(),
+            xRate[1].toNumber()
+        ]
+
+        const expected = [
+            EXCHANGE_RATE.toString(),
+            block.number
+        ]
+
+        expect(actual).to.have.same.members(expected);
+    });
+
     it("should set up role access", async () => {
         const adminRole = await oracle.getRoleAdmin(ADMIN);
         expect(adminRole).to.be.equal(ADMIN);
@@ -106,7 +146,7 @@ contract("MinerUSDOracle", (accounts) => {
         expect(isAdmin).to.be.true;
     });
 
-    it('should emit OwnershipTransferred event', async () => {
+    it("should emit OwnershipTransferred event", async () => {
         const { logs } = await oracle.transferOwnership(ALICE);
 
         const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
