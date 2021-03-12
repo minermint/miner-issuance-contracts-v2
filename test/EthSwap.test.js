@@ -195,6 +195,24 @@ contract("EthSwap", (accounts) => {
                     "SafeMath: division by zero -- Reason given: SafeMath: division by zero."
                 );
             });
+
+            it("should NOT convert if price falls below slippage", async () => {
+                const amount = web3.utils.toWei("1", "ether");
+
+                // increase the min miner beyond what will be converted.
+                const minerMin = (await ethSwap.getConversionAmount(amount)).add(new web3.utils.BN(1));
+
+                await expectRevert(
+                    ethSwap.convert(
+                        minerMin,
+                        {
+                            from: ALICE,
+                            value: amount
+                        }
+                    ),
+                    "EthSwap/slippage"
+                );
+            });
         });
 
         describe("escrow", () => {
