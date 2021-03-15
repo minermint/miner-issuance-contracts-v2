@@ -15,7 +15,7 @@ struct ExchangeRate {
 abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
     using SafeMath for uint256;
 
-    string currencyCode;
+    string public currencyCode;
 
     ExchangeRate[] public exchangeRates;
 
@@ -26,50 +26,66 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
         _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
     }
 
-    function setExchangeRate(uint rate) override external adminOnly {
+    function setExchangeRate(uint256 rate) external override adminOnly {
         ExchangeRate memory xRate = ExchangeRate(rate, block.number);
 
         exchangeRates.push(xRate);
     }
 
-    function getExchangeRate(uint index) override external view returns (uint, uint) {
+    function getExchangeRate(uint256 index)
+        external
+        override
+        view
+        returns (uint256, uint256)
+    {
         ExchangeRate memory xRate = _getExchangeRate(index);
 
         return (xRate.rate, xRate.blockNumber);
     }
 
-    function _getExchangeRate(uint index) private view returns (ExchangeRate memory) {
+    function _getExchangeRate(uint256 index)
+        private
+        view
+        returns (ExchangeRate memory)
+    {
         ExchangeRate memory xRate = exchangeRates[index];
 
         return xRate;
     }
 
-    function getLatestExchangeRate() override external view returns (uint, uint) {
+    function getLatestExchangeRate()
+        external
+        override
+        view
+        returns (uint256, uint256)
+    {
         ExchangeRate memory latestExchangeRate = _getLatestExchangeRate();
 
-        return
-        (
-            latestExchangeRate.rate,
-            latestExchangeRate.blockNumber
-        );
+        return (latestExchangeRate.rate, latestExchangeRate.blockNumber);
     }
 
-    function _getLatestExchangeRate() private view returns (ExchangeRate memory) {
-        uint index = exchangeRates.length.sub(1);
+    function _getLatestExchangeRate()
+        private
+        view
+        returns (ExchangeRate memory)
+    {
+        uint256 index = exchangeRates.length.sub(1);
 
         return _getExchangeRate(index);
     }
 
-    function transferOwnership(address newOwner) public virtual override onlyOwner {
+    function transferOwnership(address newOwner)
+        public
+        virtual
+        override
+        onlyOwner
+    {
         grantRole(ADMIN, newOwner);
         super.transferOwnership(newOwner);
     }
 
-    modifier adminOnly()
-    {
-        require(
-            hasRole(ADMIN, msg.sender),
-            "MinerOracle/no-admin-privileges");
+    modifier adminOnly() {
+        require(hasRole(ADMIN, msg.sender), "MinerOracle/no-admin-privileges");
         _;
     }
 }

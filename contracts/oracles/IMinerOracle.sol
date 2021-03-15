@@ -3,9 +3,12 @@
 pragma solidity >=0.6.2 <0.8.0;
 
 interface IMinerOracle {
-    function setExchangeRate(uint rate) external;
+    function setExchangeRate(uint256 rate) external;
 
-    function getExchangeRate(uint blockNumber) external view returns (uint, uint);
+    function getExchangeRate(uint256 blockNumber)
+        external
+        view
+        returns (uint256, uint256);
 
-    function getLatestExchangeRate() external view returns (uint, uint);
+    function getLatestExchangeRate() external view returns (uint256, uint256);
 }
