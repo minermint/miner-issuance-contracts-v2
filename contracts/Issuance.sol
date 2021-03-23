@@ -42,7 +42,6 @@ contract Issuance is AccessControl, Ownable {
         address recipient,
         uint256 amount
     ) public onlyIssuer {
-        require(recipient != address(0), "Issuance/address-invalid");
         require(amount > 0, "Issuance/amount-invalid");
         require(
             _token.balanceOf(address(this)) >= amount,
