@@ -57,7 +57,7 @@ contract("TokenSwap", (accounts) => {
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
     });
 
-    it.only('should emit SwapRegistered event', async () => {
+    it('should emit SwapRegistered event', async () => {
         const { logs } = await tokenSwap.registerSwap(
             testToken.address,
             aggregator.address
@@ -67,6 +67,17 @@ contract("TokenSwap", (accounts) => {
             token: testToken.address,
             priceFeedOracle: aggregator.address,
         });
+    });
+
+    it("should NOT register a token without permission", async() => {
+        await expectRevert(
+            tokenSwap.registerSwap(
+                aggregator.address,
+                testToken.address,
+                { from: BOB }
+            ),
+            "Issuance/no-admin-privileges"
+        );
     });
 
     it("should NOT register a token twice", async () => {
@@ -91,6 +102,21 @@ contract("TokenSwap", (accounts) => {
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
     });
 
+    it.only("should NOT update a swap with an invalid oracle", async () => {
+        const expected = {
+            "token": testToken.address,
+            "priceFeedOracle": BOB,
+            "enabled": true
+        }
+
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
+
+        await expectRevert(
+            tokenSwap.updateSwapOracle(testToken.address, BOB),
+            "TokenSwap/oracle-invalid"
+        );
+    });
+
     it("should deregister a token", async () => {
         const expected = {
             "token": testToken.address,
@@ -103,17 +129,6 @@ contract("TokenSwap", (accounts) => {
         await tokenSwap.deregisterSwap(testToken.address);
 
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
-    });
-
-    it("should NOT register a token without permission", async() => {
-        await expectRevert(
-            tokenSwap.registerSwap(
-                aggregator.address,
-                testToken.address,
-                { from: BOB }
-            ),
-            "Issuance/no-admin-privileges"
-        );
     });
 
     it("should exchange TestToken for Miner", async() => {

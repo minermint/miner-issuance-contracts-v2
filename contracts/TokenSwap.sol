@@ -5,6 +5,7 @@ pragma solidity >=0.6.2 <0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
 import "./MinerSwap.sol";
@@ -19,6 +20,7 @@ struct Swap {
 contract TokenSwap is MinerSwap {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using Address for address;
 
     address[] public tokens;
     mapping (address => Swap) public swaps;
@@ -47,7 +49,13 @@ contract TokenSwap is MinerSwap {
     function updateSwapOracle(IERC20 token, AggregatorV3Interface priceFeedOracle) external onlyAdmin {
         require(
             swaps[address(token)].token == token,
-            "TokenSwap/token-not-registered");
+            "TokenSwap/token-not-registered"
+        );
+
+        require(
+            address(priceFeedOracle).isContract(),
+            "TokenSwap/oracle-invalid"
+        );
 
         Swap storage swap = swaps[address(token)];
         swap.priceFeedOracle = priceFeedOracle;
