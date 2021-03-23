@@ -153,6 +153,19 @@ contract("TokenSwap", (accounts) => {
             expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
         });
 
+        it('should emit SwapOracleUpdated event', async () => {
+            const { logs } = await tokenSwap.updateSwapOracle(
+                testToken.address,
+                aggregator.address
+            );
+
+            const event = expectEvent.inLogs(logs, 'SwapOracleUpdated', {
+                token: testToken.address,
+                oldPriceFeedOracle: aggregator.address,
+                newPriceFeedOracle: aggregator.address
+            });
+        });
+
         it("should NOT update a swap with an invalid oracle", async () => {
             await expectRevert(
                 tokenSwap.updateSwapOracle(testToken.address, BOB),

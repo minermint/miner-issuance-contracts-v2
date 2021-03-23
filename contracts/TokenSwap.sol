@@ -65,7 +65,16 @@ contract TokenSwap is MinerSwap {
         );
 
         Swap storage swap = swaps[address(token)];
+
+        AggregatorV3Interface oldPriceFeedOracle = swap.priceFeedOracle;
+
         swap.priceFeedOracle = priceFeedOracle;
+
+        emit SwapOracleUpdated(
+            address(token),
+            address(oldPriceFeedOracle),
+            address(priceFeedOracle)
+        );
     }
 
     function deregisterSwap(IERC20 token) external onlyAdmin {
@@ -147,5 +156,11 @@ contract TokenSwap is MinerSwap {
     event SwapRegistered(
         address indexed token,
         address indexed priceFeedOracle
+    );
+
+    event SwapOracleUpdated(
+        address indexed token,
+        address indexed oldPriceFeedOracle,
+        address indexed newPriceFeedOracle
     );
 }
