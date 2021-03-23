@@ -89,6 +89,13 @@ contract("TokenSwap", (accounts) => {
         );
     });
 
+    it("should get a total count of token swaps", async () => {
+        const expected = new BN(1);
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
+
+        expect(await tokenSwap.getSwapAddressCount()).to.be.bignumber.equal(expected);
+    });
+
     it("should deregister a token", async () => {
         const expected = {
             "token": testToken.address,
