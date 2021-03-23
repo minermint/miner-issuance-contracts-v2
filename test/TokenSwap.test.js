@@ -69,6 +69,16 @@ contract("TokenSwap", (accounts) => {
         });
     });
 
+    it.only("should NOT register an invalid token address", async() => {
+        await expectRevert(
+            tokenSwap.registerSwap(
+                BOB,
+                aggregator.address
+            ),
+            "TokenSwap/token-invalid"
+        );
+    });
+
     it("should NOT register a token without permission", async() => {
         await expectRevert(
             tokenSwap.registerSwap(
