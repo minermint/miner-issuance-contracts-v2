@@ -79,6 +79,8 @@ contract TokenSwap is MinerSwap {
 
     function deregisterSwap(IERC20 token) external onlyAdmin {
         swaps[address(token)].enabled = false;
+
+        emit SwapDeregistered(address(token));
     }
 
     function getSwapAddressCount() external view returns (uint256) {
@@ -162,5 +164,9 @@ contract TokenSwap is MinerSwap {
         address indexed token,
         address indexed oldPriceFeedOracle,
         address indexed newPriceFeedOracle
+    );
+
+    event SwapDeregistered(
+        address indexed token
     );
 }

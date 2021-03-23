@@ -103,6 +103,14 @@ contract("TokenSwap", (accounts) => {
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
     });
 
+    it('should emit SwapDeregistered event', async () => {
+        const { logs } = await tokenSwap.deregisterSwap(testToken.address);
+
+        const event = expectEvent.inLogs(logs, 'SwapDeregistered', {
+            token: testToken.address
+        });
+    });
+
     it("should exchange TestToken for Miner", async() => {
         const amount = new BN("1").mul(new BN("10").pow(decimals));
         const minerMin = new BN("0"); // TODO: make this a proper min.
