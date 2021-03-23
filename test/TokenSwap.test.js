@@ -69,13 +69,23 @@ contract("TokenSwap", (accounts) => {
         });
     });
 
-    it.only("should NOT register an invalid token address", async() => {
+    it("should NOT register an invalid token address", async() => {
         await expectRevert(
             tokenSwap.registerSwap(
                 BOB,
                 aggregator.address
             ),
             "TokenSwap/token-invalid"
+        );
+    });
+
+    it("should NOT register an invalid oracle address", async() => {
+        await expectRevert(
+            tokenSwap.registerSwap(
+                testToken.address,
+                BOB
+            ),
+            "TokenSwap/oracle-invalid"
         );
     });
 
@@ -122,6 +132,13 @@ contract("TokenSwap", (accounts) => {
         const actual = await tokenSwap.getConversionRate(testToken.address);
 
         expect(actual).to.be.bignumber.equal(expected);
+    });
+
+    it("should NOT update a swap if not registered", async () => {
+        await expectRevert(
+            tokenSwap.updateSwapOracle(testToken.address, aggregator.address),
+            "TokenSwap/token-not-registered"
+        );
     });
 
     it("should deregister a token", async () => {
