@@ -163,25 +163,6 @@ contract("TokenSwap", (accounts) => {
         });
     });
 
-    it("should exchange TestToken for Miner", async() => {
-        const amount = new BN("1").mul(new BN("10").pow(decimals));
-        const minerMin = new BN("0"); // TODO: make this a proper min.
-
-        await tokenSwap.registerSwap(testToken.address, aggregator.address);
-
-        await testToken.transfer(ALICE, amount);
-
-        await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
-
-        await tokenSwap.convert(testToken.address, amount, minerMin, { from: ALICE });
-
-        const balance = await testToken.balanceOf(tokenSwap.address);
-
-        const escrowed = (await tokenSwap.swaps(testToken.address)).escrowed;
-
-        expect(balance).to.be.bignumber.equal(escrowed);
-    });
-
     describe("update", async () => {
         beforeEach(async () => {
             await tokenSwap.registerSwap(testToken.address, aggregator.address);
@@ -234,6 +215,61 @@ contract("TokenSwap", (accounts) => {
         });
     });
 
+    describe("converting", async () => {
+        let amount, minerMin;
+
+        beforeEach(async () => {
+            const power = (new BN("10")).pow(await aggregator.decimals());
+            amount = (new BN("1")).mul(power);
+
+            await tokenSwap.registerSwap(testToken.address, aggregator.address);
+
+            // increase the min miner beyond what will be converted.
+            minerMin = await tokenSwap.getConversionAmount(
+                testToken.address,
+                amount
+            );
+
+            await testToken.transfer(ALICE, amount);
+
+            await testToken.approve(tokenSwap.address, MAX_UINT256, { from: ALICE });
+        });
+
+        it("should exchange TestToken for Miner", async() => {
+            await tokenSwap.convert(testToken.address, amount, minerMin, { from: ALICE });
+
+            const balance = await testToken.balanceOf(tokenSwap.address);
+
+            const escrowed = (await tokenSwap.swaps(testToken.address)).escrowed;
+
+            expect(balance).to.be.bignumber.equal(escrowed);
+        });
+
+        it("should NOT exchange TestToken for Miner when amount is zero",
+            async() => {
+            const ZERO_AMOUNT = new BN("0");
+
+            await expectRevert(
+                tokenSwap.convert(testToken.address, ZERO_AMOUNT, minerMin, { from: ALICE }),
+                "TokenSwap/deposit-invalid"
+            );
+        });
+
+        it("should NOT convert if price falls below slippage", async () => {
+            await expectRevert(
+                tokenSwap.convert(
+                    testToken.address,
+                    amount,
+                    minerMin.add(new web3.utils.BN(1)),
+                    {
+                        from: ALICE
+                    }
+                ),
+                "EthSwap/slippage"
+            );
+        });
+    });
+
     describe("admin", async () => {
         describe("access control", async () => {
             const ADMIN = web3.utils.soliditySha3("ADMIN");
@@ -265,7 +301,7 @@ contract("TokenSwap", (accounts) => {
                 await testToken.transfer(ALICE, amount);
             });
 
-            it("should withdraw TestToken and sets contract escrow to zero",
+            it("should withdraw TestToken and set contract escrow to zero",
             async () => {
                 const minerMin = new BN("0"); // TODO: make this a proper min.
                 const ownerBalance = await testToken.balanceOf(OWNER);
@@ -285,7 +321,7 @@ contract("TokenSwap", (accounts) => {
                 expect(balance).to.be.bignumber.equal(new BN(0));
             });
 
-            it("should withdraw TestToken and credits owner's account", async () => {
+            it("should withdraw TestToken and credit owner's account", async () => {
                 const amount = new BN("1").mul(new BN("10").pow(decimals));
                 const minerMin = new BN("0"); // TODO: make this a proper min.
                 const ownerBalance = await testToken.balanceOf(OWNER);
