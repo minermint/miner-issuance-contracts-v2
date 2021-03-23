@@ -93,7 +93,25 @@ contract("TokenSwap", (accounts) => {
         const expected = new BN(1);
         await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
-        expect(await tokenSwap.getSwapAddressCount()).to.be.bignumber.equal(expected);
+        const actual = await tokenSwap.getSwapAddressCount();
+
+        expect(actual).to.be.bignumber.equal(expected);
+    });
+
+    it("should get a token's conversion rate", async () => {
+        await tokenSwap.registerSwap(testToken.address, aggregator.address);
+
+        const exchangeRate = await oracle.getLatestExchangeRate();
+        const by10e18 = (new BN("10")).pow(decimals);
+        const rate = exchangeRate[0].mul(by10e18);
+
+        const roundData = await aggregator.latestRoundData();
+        const tokenUSDPrice = roundData[1];
+
+        const expected = rate.div(tokenUSDPrice);
+        const actual = await tokenSwap.getConversionRate(testToken.address);
+
+        expect(actual).to.be.bignumber.equal(expected);
     });
 
     it("should deregister a token", async () => {
