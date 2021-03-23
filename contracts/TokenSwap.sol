@@ -40,9 +40,11 @@ contract TokenSwap is MinerSwap {
 
         Swap memory swap = Swap(token, priceFeedOracle, true, 0);
         swaps[address(token)] = swap;
+
+        emit SwapRegistered(address(token), address(priceFeedOracle));
     }
 
-    function updateSwap(IERC20 token, AggregatorV3Interface priceFeedOracle) external onlyAdmin {
+    function updateSwapOracle(IERC20 token, AggregatorV3Interface priceFeedOracle) external onlyAdmin {
         require(
             swaps[address(token)].token == token,
             "TokenSwap/token-not-registered");
@@ -125,5 +127,10 @@ contract TokenSwap is MinerSwap {
         address indexed recipient,
         address indexed token,
         uint256 amount
+    );
+
+    event SwapRegistered(
+        address indexed token,
+        address indexed priceFeedOracle
     );
 }

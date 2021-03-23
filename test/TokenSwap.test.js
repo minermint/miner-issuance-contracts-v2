@@ -57,6 +57,18 @@ contract("TokenSwap", (accounts) => {
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
     });
 
+    it.only('should emit SwapRegistered event', async () => {
+        const { logs } = await tokenSwap.registerSwap(
+            testToken.address,
+            aggregator.address
+        );
+
+        const event = expectEvent.inLogs(logs, 'SwapRegistered', {
+            token: testToken.address,
+            priceFeedOracle: aggregator.address,
+        });
+    });
+
     it("should NOT register a token twice", async () => {
         await tokenSwap.registerSwap(testToken.address, aggregator.address);
 
@@ -74,7 +86,7 @@ contract("TokenSwap", (accounts) => {
         }
 
         await tokenSwap.registerSwap(testToken.address, aggregator.address);
-        await tokenSwap.updateSwap(testToken.address, ZERO_ADDRESS);
+        await tokenSwap.updateSwapOracle(testToken.address, ZERO_ADDRESS);
 
         expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
     });
