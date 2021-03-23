@@ -20,7 +20,7 @@ contract("TokenSwap", (accounts) => {
 
     const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
 
-    let miner, issuance, tokenSwap, testToken;
+    let miner, issuance, tokenSwap, testToken, aggregator;
 
     const decimals = new BN("18");
     const supply = new BN("1000").mul(new BN("10").pow(decimals));
@@ -89,34 +89,6 @@ contract("TokenSwap", (accounts) => {
         );
     });
 
-    it("should update a token's oracle", async () => {
-        const expected = {
-            "token": testToken.address,
-            "priceFeedOracle": ZERO_ADDRESS,
-            "enabled": true
-        }
-
-        await tokenSwap.registerSwap(testToken.address, aggregator.address);
-        await tokenSwap.updateSwapOracle(testToken.address, ZERO_ADDRESS);
-
-        expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
-    });
-
-    it.only("should NOT update a swap with an invalid oracle", async () => {
-        const expected = {
-            "token": testToken.address,
-            "priceFeedOracle": BOB,
-            "enabled": true
-        }
-
-        await tokenSwap.registerSwap(testToken.address, aggregator.address);
-
-        await expectRevert(
-            tokenSwap.updateSwapOracle(testToken.address, BOB),
-            "TokenSwap/oracle-invalid"
-        );
-    });
-
     it("should deregister a token", async () => {
         const expected = {
             "token": testToken.address,
@@ -148,6 +120,45 @@ contract("TokenSwap", (accounts) => {
         const escrowed = (await tokenSwap.swaps(testToken.address)).escrowed;
 
         expect(balance).to.be.bignumber.equal(escrowed);
+    });
+
+    describe("update", async () => {
+        beforeEach(async () => {
+            await tokenSwap.registerSwap(testToken.address, aggregator.address);
+        });
+
+        it("should NOT update a swap with an invalid token", async () => {
+            await expectRevert(
+                tokenSwap.updateSwapOracle(testToken.address, BOB),
+                "TokenSwap/oracle-invalid"
+            );
+        });
+
+        it("should NOT update a swap with an invalid oracle", async () => {
+            await expectRevert(
+                tokenSwap.updateSwapOracle(testToken.address, BOB),
+                "TokenSwap/oracle-invalid"
+            );
+        });
+
+        it("should update a token's oracle", async () => {
+            const expected = {
+                "token": testToken.address,
+                "priceFeedOracle": aggregator.address,
+                "enabled": true
+            };
+
+            await tokenSwap.updateSwapOracle(testToken.address, aggregator.address);
+
+            expect(await tokenSwap.swaps(testToken.address)).to.include(expected);
+        });
+
+        it("should NOT update a swap with an invalid oracle", async () => {
+            await expectRevert(
+                tokenSwap.updateSwapOracle(testToken.address, BOB),
+                "TokenSwap/oracle-invalid"
+            );
+        });
     });
 
     describe("admin", async () => {

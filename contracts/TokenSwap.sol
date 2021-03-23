@@ -38,6 +38,13 @@ contract TokenSwap is MinerSwap {
             "TokenSwap/token-already-registered"
         );
 
+        require(address(token).isContract(), "TokenSwap/token-invalid");
+
+        require(
+            address(priceFeedOracle).isContract(),
+            "TokenSwap/oracle-invalid"
+        );
+
         tokens.push(address(token));
 
         Swap memory swap = Swap(token, priceFeedOracle, true, 0);
