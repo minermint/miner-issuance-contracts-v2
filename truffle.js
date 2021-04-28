@@ -14,7 +14,9 @@ module.exports = {
             port: 8545,
             network_id: "*", // Match any network id
             gas: 6721975,
-            networkCheckTimeout: 60000
+            networkCheckTimeout: 60000,
+            fork: "https://eth-kovan.alchemyapi.io/v2/DjLaJSg4gNXdWfDmSufgzuFeRBs-2eRw",
+            mnemonic: process.env.MNEMONIC
         },
         teams: {
             url: "https://sandbox.truffleteams.com/2671a237-02b5-4db2-88da-0225e774e2a8",

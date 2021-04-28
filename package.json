@@ -18,6 +18,8 @@
     "dependencies": {
         "@chainlink/contracts": "0.0.10",
         "@openzeppelin/contracts": "^3.2.0",
+        "@uniswap/v2-core": "^1.0.1",
+        "@uniswap/v2-periphery": "*",
         "bip39": "^3.0.2",
         "eth-json-rpc-filters": "^4.2.1",
         "ethereum-qr-code": "^0.3.0",
