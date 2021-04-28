@@ -1,7 +1,7 @@
 const { saveNetworkArtifact, getMiner } = require("../lib/deployer");
 
-const Miner = artifacts.require("./Miner.sol");
-const Issuance = artifacts.require("./Issuance.sol");
+const Miner = artifacts.require("./Miner");
+const Issuance = artifacts.require("./Issuance");
 
 module.exports = async function(deployer, network) {
     const miner = await getMiner(network);

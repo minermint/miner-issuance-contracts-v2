@@ -41,7 +41,11 @@ contract EthSwap is MinerSwap, PullPayment {
         return rate.mul(1e18).div(uint(answer));
     }
 
-    function getConversionAmount(uint256 amount) public view returns (uint256) {
+    function getConversionAmount(uint256 amount) external view returns (uint256) {
+        return _getConversionAmount(amount);
+    }
+
+    function _getConversionAmount(uint256 amount) internal view returns (uint256) {
         uint256 conversionRate = _getConversionRate();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
@@ -55,7 +59,7 @@ contract EthSwap is MinerSwap, PullPayment {
 
         require(eth > 0, "EthSwap/deposit-invalid");
 
-        uint256 miner = getConversionAmount(eth);
+        uint256 miner = _getConversionAmount(eth);
 
         require(miner >= minerMin, 'EthSwap/slippage');
 

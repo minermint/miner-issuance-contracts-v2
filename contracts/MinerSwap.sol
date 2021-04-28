@@ -22,15 +22,23 @@ abstract contract MinerSwap is AccessControl, Ownable {
         _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
         _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
 
-        setMinerOracle(minerOracleAddress);
-        setIssuance(issuanceAddress);
+        _setMinerOracle(minerOracleAddress);
+        _setIssuance(issuanceAddress);
     }
 
     function setMinerOracle(IMinerOracle minerOracleAddress) public onlyAdmin {
-         minerOracle = minerOracleAddress;
+         _setMinerOracle(minerOracleAddress);
     }
 
     function setIssuance(Issuance issuanceAddress) public onlyAdmin {
+        _setIssuance(issuanceAddress);
+    }
+
+    function _setMinerOracle(IMinerOracle minerOracleAddress) private {
+         minerOracle = minerOracleAddress;
+    }
+
+    function _setIssuance(Issuance issuanceAddress) private {
         issuance = issuanceAddress;
     }
 
@@ -41,7 +49,7 @@ abstract contract MinerSwap is AccessControl, Ownable {
 
     modifier onlyAdmin()
     {
-        require(hasRole(ADMIN, _msgSender()), "Issuance/no-admin-privileges");
+        require(hasRole(ADMIN, _msgSender()), "MinerSwap/no-admin-privileges");
         _;
     }
 }

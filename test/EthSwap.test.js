@@ -60,7 +60,7 @@ contract("EthSwap", (accounts) => {
         async () => {
             await expectRevert(
                 ethSwap.setPriceFeedOracle(oracleAddress, { from: ALICE }),
-                "Issuance/no-admin-privileges"
+                "MinerSwap/no-admin-privileges"
             );
         });
 
@@ -78,7 +78,7 @@ contract("EthSwap", (accounts) => {
         async () => {
             await expectRevert(
                 ethSwap.setMinerOracle(oracleAddress, { from: ALICE }),
-                "Issuance/no-admin-privileges"
+                "MinerSwap/no-admin-privileges"
             );
         });
 

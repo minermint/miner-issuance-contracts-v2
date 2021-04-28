@@ -13,11 +13,23 @@ module.exports = {
             host: "localhost",
             port: 8545,
             network_id: "*", // Match any network id
-            gas: 6721975
+            gas: 6721975,
+            networkCheckTimeout: 60000
         },
         teams: {
-          url: "https://sandbox.truffleteams.com/2671a237-02b5-4db2-88da-0225e774e2a8",
-          network_id: 1609904286339
+            url: "https://sandbox.truffleteams.com/2671a237-02b5-4db2-88da-0225e774e2a8",
+            network_id: 1609904286339
+        },
+        kovan: {
+            provider: new HDWalletProvider(
+                process.env.PRIVATE_KEY,
+                process.env.KOVAN_URL
+            ),
+            network_id: "42",
+            confirmations: 4,
+            timeoutBlocks: 200,
+            skipDryRun: true,
+            gasPrice: 10000000000
         }
     },
     // Configure your compilers
