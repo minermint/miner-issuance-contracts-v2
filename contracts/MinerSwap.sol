@@ -25,21 +25,19 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
 
     bytes32 public constant ADMIN = keccak256("ADMIN");
 
-    address public uniswapFactoryAddress;
-
-    IUniswapV2ERC20 public miner;
+    address public uniswapFactory;
 
     constructor(
         IMinerOracle minerOracleAddress,
         Issuance issuanceAddress,
-        address minerAddress) public
+        address uniswapFactoryAddress) public
     {
         _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
         _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
 
         _setMinerOracle(minerOracleAddress);
         _setIssuance(issuanceAddress);
-        _setMiner(minerAddress);
+        _setUniswapFactoryAddress(uniswapFactoryAddress);
     }
 
     function setMinerOracle(IMinerOracle minerOracleAddress) public onlyAdmin {
@@ -62,8 +60,8 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         issuance = issuanceAddress;
     }
 
-    function _setMiner(address minerAddress) private {
-        miner = IUniswapV2ERC20(minerAddress);
+    function _setUniswapFactoryAddress(address uniswapFactoryAddress) private {
+        uniswapFactory = uniswapFactoryAddress;
     }
 
     function transferOwnership(address newOwner) public virtual override onlyOwner {
@@ -101,7 +99,7 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         view
         returns (uint256)
     {
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactoryAddress);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactory);
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
         address[] memory path = new address[](2);
@@ -116,7 +114,7 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         view
         returns (uint256)
     {
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactoryAddress);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactory);
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
         address[] memory path = new address[](2);
@@ -169,9 +167,9 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
 
         erc20.transferFrom(msg.sender, address(this), amount);
 
-        erc20.approve(uniswapFactoryAddress, amount);
+        erc20.approve(uniswapFactory, amount);
 
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactoryAddress);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactory);
 
         address[] memory path = new address[](2);
         path[0] = address(erc20);

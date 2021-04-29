@@ -1,6 +1,5 @@
-const { getMiner, getIssuance, saveNetworkArtifact } = require("../lib/deployer");
+const { getIssuance, saveNetworkArtifact } = require("../lib/deployer");
 
-const Miner = artifacts.require("./Miner");
 const MinerUSDOracle = artifacts.require("./oracles/MinerUSDOracle");
 const PriceFeedETH = artifacts.require("./PriceFeedETH");
 const MinerSwap = artifacts.require("./MinerSwap");
@@ -11,14 +10,13 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(MinerUSDOracle);
     const oracle = await MinerUSDOracle.deployed();
     const issuance = await getIssuance(network);
-    const miner = await getMiner(network);
 
 
     const minerSwap = await deployer.deploy(
         MinerSwap,
         oracle.address,
         issuance.address,
-        miner.address);
+        process.env.UNISWAP_FACTORY);
 
     // if development, deploy the mock price feed.
     if (["development", "test", "soliditycoverage"].includes(network)) {
