@@ -137,13 +137,15 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
     }
 
     function convertEthToMiner(uint256 minerMin, uint256 deadline) external payable {
+        require(deadline >= block.timestamp, 'MinerSwap/deadline-expired');
+
         uint256 eth = msg.value;
 
-        require(eth > 0, "EthSwap/deposit-invalid");
+        require(eth > 0, "MinerSwap/deposit-invalid");
 
         uint256 minerOut = _getEthToMiner(eth);
 
-        require(minerOut >= minerMin, 'EthSwap/slippage');
+        require(minerOut >= minerMin, 'MinerSwap/slippage');
 
         _asyncTransfer(owner(), eth);
 
@@ -208,7 +210,10 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
     }
 
     modifier priceFeedSet() {
-        require(address(priceFeedOracle) != address(0), "EthSwap/no-oracle-set");
+        require(
+            address(priceFeedOracle) != address(0),
+            "MinerSwap/no-oracle-set"
+        );
         _;
     }
 
