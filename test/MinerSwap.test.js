@@ -14,15 +14,18 @@ const truffleContract = require("@truffle/contract");
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
 const MinerUSDOracle = artifacts.require("MinerUSDOracle");
-const PriceFeed = artifacts.require("PriceFeedETH");
 const MinerSwap = artifacts.require("MinerSwap");
 const ERC20Contract = require("@uniswap/v2-core/build/ERC20.json");
+const AggregatorInterface = require("@chainlink/contracts/abi/v0.6/AggregatorV3Interface.json");
 const UniSwapV2RouterMetadata = require("@uniswap/v2-periphery/build/UniswapV2Router02.json");
 const Web3 = require("web3");
 
 contract("MinerSwap", (accounts) => {
     const daiAddress = process.env.DAI;
     const uniswapRouterAddress = process.env.UNISWAP_ROUTER;
+    const aggregatorAddress = process.env.CHAINLINK_ETHUSD;
+
+    const provider = new Web3.providers.HttpProvider("http://localhost:8545");
 
     const OWNER = accounts[0];
     const MINTER = accounts[1];
@@ -33,14 +36,12 @@ contract("MinerSwap", (accounts) => {
 
     const ZERO_BALANCE = new BN(0);
 
-    const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
+    const EXCHANGE_RATE = new BN("124000000"); // $1.24 to 8 dp.
 
-    let miner, minerSwap, issuance;
+    let miner, minerSwap, issuance, aggregator;
 
     const decimals = new BN("18");
-    const supply = new BN("1000").mul(new BN("10").pow(decimals));
-
-    const oracleAddress = "0x9326BFA02ADD2366b30bacB125260Af641031331";
+    const supply = new BN("1000000").mul(new BN("10").pow(decimals));
 
     let deadline;
 
@@ -48,7 +49,6 @@ contract("MinerSwap", (accounts) => {
         miner = await Miner.new();
         await miner.setMinter(MINTER);
 
-        aggregator = await PriceFeed.deployed();
         oracle = await MinerUSDOracle.deployed();
 
         oracle.setExchangeRate(EXCHANGE_RATE);
@@ -69,41 +69,49 @@ contract("MinerSwap", (accounts) => {
         const timestamp = (await web3.eth.getBlock("latest")).timestamp;
         const twentyMinutes = 20 * 60;
         deadline = timestamp + twentyMinutes;
+
+        Aggregator = truffleContract({
+            abi: AggregatorInterface.compilerOutput.abi
+        });
+
+        Aggregator.setProvider(provider);
+
+        aggregator = await Aggregator.at(aggregatorAddress);
     });
 
     describe("instantiation", () => {
         it("should be able to change price feed oracle", async () => {
-            await minerSwap.setPriceFeedOracle(oracleAddress);
+            await minerSwap.setPriceFeedOracle(aggregator.address);
 
             expect(await minerSwap.priceFeedOracle())
                 .to
                 .be
                 .bignumber
-                .equal(oracleAddress);
+                .equal(aggregator.address);
         });
 
         it("should NOT be able to change price feed oracle without permission",
         async () => {
             await expectRevert(
-                minerSwap.setPriceFeedOracle(oracleAddress, { from: ALICE }),
+                minerSwap.setPriceFeedOracle(aggregator.address, { from: ALICE }),
                 "Ownable: caller is not the owner"
             );
         });
 
         it("should be able to change miner oracle", async () => {
-            await minerSwap.setMinerOracle(oracleAddress);
+            await minerSwap.setMinerOracle(aggregator.address);
 
             expect(await minerSwap.minerOracle())
                 .to
                 .be
                 .bignumber
-                .equal(oracleAddress);
+                .equal(aggregator.address);
         });
 
         it("should NOT be able to change miner oracle without permission",
         async () => {
             await expectRevert(
-                minerSwap.setMinerOracle(oracleAddress, { from: ALICE }),
+                minerSwap.setMinerOracle(aggregator.address, { from: ALICE }),
                 "Ownable: caller is not the owner"
             );
         });
@@ -139,35 +147,38 @@ contract("MinerSwap", (accounts) => {
     });
 
     describe("swaps", () => {
-        const expected = new BN("235320000000000048297");
-
         beforeEach(async () => {
             minerSwap.setPriceFeedOracle(aggregator.address);
         });
 
         describe("converting eth for miner", () => {
-            it("should get the conversion rate", async () => {
-                const converted = await minerSwap.getEthToMinerUnitPrice();
+            const amount = web3.utils.toWei("1", "ether");
+            let expectedRate, expected;
 
+            beforeEach(async () => {
                 const roundData = await aggregator.latestRoundData();
                 const answer = new web3.utils.BN(roundData[1]);
                 const xRate = await oracle.getLatestExchangeRate();
+                expectedRate = new BN(web3.utils.toWei(xRate[0], "ether")).div(answer);
 
-                const rate = web3.utils.toWei(xRate[0], "ether").div(answer);
+                // buffer the amount with 18 zeros so we get back an expected
+                // amount in wei.
+                expected = new BN(web3.utils.toWei(amount)).div(expectedRate);
+            });
 
-                expect(converted).to.be.bignumber.equal(rate);
+            it("should get the conversion rate", async () => {
+                const converted = await minerSwap.getEthToMinerUnitPrice();
+
+                expect(converted).to.be.bignumber.equal(expectedRate);
             });
 
             it("should get conversion amount", async () => {
-                const amount = web3.utils.toWei("1", "ether");
                 const converted = await minerSwap.getEthToMiner(amount);
 
                 expect(converted).to.be.bignumber.equal(expected);
             });
 
             it("should swap eth for miner", async () => {
-                const amount = web3.utils.toWei("1", "ether");
-
                 await minerSwap.convertEthToMiner(
                     0,
                     deadline,
@@ -188,14 +199,14 @@ contract("MinerSwap", (accounts) => {
                     deadline,
                     {
                         from: ALICE,
-                        value: web3.utils.toWei("1", "ether")
+                        value: amount
                     }
                 );
 
                 expectEvent.inLogs(logs, 'ConvertedEthToMiner', {
                     recipient: ALICE,
                     sender: issuance.address,
-                    amountIn: web3.utils.toWei("1", "ether"),
+                    amountIn: amount,
                     amountOut: expected.toString()
                 });
             });
@@ -222,7 +233,7 @@ contract("MinerSwap", (accounts) => {
                         deadline,
                         {
                             from: ALICE,
-                            value: web3.utils.toWei("50", "ether")
+                            value: web3.utils.toWei(supply + 1, "ether")
                         }
                     ),
                     "Issuance/balance-exceeded"
@@ -247,8 +258,6 @@ contract("MinerSwap", (accounts) => {
             });
 
             it("should NOT convert if price falls below slippage", async () => {
-                const amount = web3.utils.toWei("1", "ether");
-
                 // increase the min miner beyond what will be converted.
                 const minerMin = (await minerSwap.getEthToMiner(amount)).add(new web3.utils.BN(1));
 
@@ -276,9 +285,6 @@ contract("MinerSwap", (accounts) => {
             let minerMin;
 
             beforeEach(async () => {
-                const provider = new Web3.providers.HttpProvider(
-                    "http://localhost:8545"
-                );
                 ERC20 = truffleContract({ abi: ERC20Contract.abi });
 
                 ERC20.setProvider(provider);
@@ -347,15 +353,11 @@ contract("MinerSwap", (accounts) => {
                 let uniswapV2Router, path;
 
                 beforeEach(async () => {
-                    const provider = new Web3.providers.HttpProvider(
-                        "http://localhost:8545"
-                    );
-
                     const UniSwapV2Router = truffleContract({
                         abi: UniSwapV2RouterMetadata.abi,
                     });
                     UniSwapV2Router.setProvider(provider);
-                    uniswapV2Router = await UniSwapV2Router.at(uniswapVRouterAddress);
+                    uniswapV2Router = await UniSwapV2Router.at(uniswapRouterAddress);
 
                     path = [];
                     path[0] = dai.address;

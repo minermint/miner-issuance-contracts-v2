@@ -68,6 +68,7 @@ contract MinerSwap is PullPayment, Ownable {
         ( , int256 answer, , , ) = priceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
+        // the result will be the miner price in wei.
         return rate.mul(1e18).div(uint(answer));
     }
 
