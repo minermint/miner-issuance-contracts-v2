@@ -3,7 +3,6 @@
 pragma solidity >=0.6.2 <0.8.0;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/payment/PullPayment.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -14,7 +13,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
 
-contract MinerSwap is PullPayment, AccessControl, Ownable {
+contract MinerSwap is PullPayment, Ownable {
     using SafeMath for uint256;
 
     AggregatorV3Interface public priceFeedOracle;
@@ -23,32 +22,27 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
 
     Issuance public issuance;
 
-    bytes32 public constant ADMIN = keccak256("ADMIN");
-
-    address public uniswapFactory;
+    address public uniswapRouter;
 
     constructor(
         IMinerOracle minerOracleAddress,
         Issuance issuanceAddress,
-        address uniswapFactoryAddress) public
+        address uniswapRouterAddress) public
     {
-        _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
-        _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
-
         _setMinerOracle(minerOracleAddress);
         _setIssuance(issuanceAddress);
-        _setUniswapFactoryAddress(uniswapFactoryAddress);
+        _setUniswapRouterAddress(uniswapRouterAddress);
     }
 
-    function setMinerOracle(IMinerOracle minerOracleAddress) public onlyAdmin {
+    function setMinerOracle(IMinerOracle minerOracleAddress) public onlyOwner {
          _setMinerOracle(minerOracleAddress);
     }
 
-    function setIssuance(Issuance issuanceAddress) public onlyAdmin {
+    function setIssuance(Issuance issuanceAddress) public onlyOwner {
         _setIssuance(issuanceAddress);
     }
 
-    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyAdmin {
+    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyOwner {
         priceFeedOracle = priceFeedOracleAddress;
     }
 
@@ -60,13 +54,8 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         issuance = issuanceAddress;
     }
 
-    function _setUniswapFactoryAddress(address uniswapFactoryAddress) private {
-        uniswapFactory = uniswapFactoryAddress;
-    }
-
-    function transferOwnership(address newOwner) public virtual override onlyOwner {
-        grantRole(ADMIN, newOwner);
-        super.transferOwnership(newOwner);
+    function _setUniswapRouterAddress(address uniswapRouterAddress) private {
+        uniswapRouter = uniswapRouterAddress;
     }
 
     function getEthToMinerUnitPrice() external view returns (uint256) {
@@ -99,7 +88,7 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         view
         returns (uint256)
     {
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactory);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
         address[] memory path = new address[](2);
@@ -114,7 +103,7 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         view
         returns (uint256)
     {
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactory);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
         address[] memory path = new address[](2);
@@ -167,9 +156,9 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
 
         erc20.transferFrom(msg.sender, address(this), amount);
 
-        erc20.approve(uniswapFactory, amount);
+        erc20.approve(uniswapRouter, amount);
 
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapFactory);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         address[] memory path = new address[](2);
         path[0] = address(erc20);
@@ -230,10 +219,4 @@ contract MinerSwap is PullPayment, AccessControl, Ownable {
         uint256 amountOut,
         uint256 ethAmount
     );
-
-    modifier onlyAdmin()
-    {
-        require(hasRole(ADMIN, _msgSender()), "MinerSwap/no-admin-privileges");
-        _;
-    }
 }

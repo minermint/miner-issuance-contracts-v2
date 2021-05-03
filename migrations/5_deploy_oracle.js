@@ -16,7 +16,7 @@ module.exports = async function(deployer, network) {
         MinerSwap,
         oracle.address,
         issuance.address,
-        process.env.UNISWAP_FACTORY);
+        process.env.UNISWAP_ROUTER);
 
     // if development, deploy the mock price feed.
     if (["development", "test", "soliditycoverage"].includes(network)) {

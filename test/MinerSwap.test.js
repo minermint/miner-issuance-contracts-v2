@@ -21,9 +21,8 @@ const UniSwapV2RouterMetadata = require("@uniswap/v2-periphery/build/UniswapV2Ro
 const Web3 = require("web3");
 
 contract("MinerSwap", (accounts) => {
-    const uniswapFactoryAddress = process.env.UNISWAP_FACTORY;
     const daiAddress = process.env.DAI;
-    const uniswapVRouterAddress = process.env.UNISWAP_ROUTER;
+    const uniswapRouterAddress = process.env.UNISWAP_ROUTER;
 
     const OWNER = accounts[0];
     const MINTER = accounts[1];
@@ -62,7 +61,7 @@ contract("MinerSwap", (accounts) => {
         minerSwap = await MinerSwap.new(
             oracle.address,
             issuance.address,
-            uniswapFactoryAddress
+            uniswapRouterAddress
         );
 
         issuance.addIssuer(minerSwap.address);
@@ -87,7 +86,7 @@ contract("MinerSwap", (accounts) => {
         async () => {
             await expectRevert(
                 minerSwap.setPriceFeedOracle(oracleAddress, { from: ALICE }),
-                "MinerSwap/no-admin-privileges"
+                "Ownable: caller is not the owner"
             );
         });
 
@@ -105,7 +104,7 @@ contract("MinerSwap", (accounts) => {
         async () => {
             await expectRevert(
                 minerSwap.setMinerOracle(oracleAddress, { from: ALICE }),
-                "MinerSwap/no-admin-privileges"
+                "Ownable: caller is not the owner"
             );
         });
 
@@ -120,17 +119,13 @@ contract("MinerSwap", (accounts) => {
         });
     });
 
-    describe("access control", async () => {
-        const ADMIN = web3.utils.soliditySha3("ADMIN");
-
-        it("should transfer ownership and set the new owner as an admin",
+    describe("ownership", async () => {
+        it("should transfer ownership",
         async () => {
             await minerSwap.transferOwnership(ALICE);
             const newOwner = await minerSwap.owner();
-            const isAdmin = await minerSwap.hasRole(ADMIN, ALICE);
 
             expect(newOwner).to.be.equal(ALICE);
-            expect(isAdmin).to.be.true;
         });
 
         it('should emit OwnershipTransferred event', async () => {
