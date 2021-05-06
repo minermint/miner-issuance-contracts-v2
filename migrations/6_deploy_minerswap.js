@@ -2,6 +2,7 @@ const { getIssuance, saveNetworkArtifact } = require("../lib/deployer");
 
 const MinerSwap = artifacts.require("./MinerSwap");
 const MinerUSDOracle = artifacts.require("./oracles/MinerUSDOracle");
+const PriceFeedETH = artifacts.require("./mocks/PriceFeedETH.sol");
 
 module.exports = async function(deployer, network) {
     const issuance = await getIssuance(network);
@@ -10,7 +11,8 @@ module.exports = async function(deployer, network) {
     let uniswapRouter = process.env.UNISWAP_ROUTER;
 
     if (network === "soliditycoverage") {
-        //uniswapRouter = "";
+        process.env.NETWORK = network;
+        await deployer.deploy(PriceFeedETH);
     }
 
     const minerSwap = await deployer.deploy(

@@ -171,12 +171,21 @@ contract MinerSwap is PullPayment, Ownable {
             "MinerSwap/slippage"
         );
 
+        uint256 balanceBefore = payments(owner());
+
         uint256[] memory amounts = router.swapExactTokensForETH(
             amount,
             etherMin,
             path,
             address(this),
             deadline
+        );
+
+        uint256 balanceAfter = payments(owner());
+
+        require(
+            balanceAfter == balanceBefore.add(amounts[amounts.length - 1]),
+            "MinerSwap/invalid-eth-amount-transferred"
         );
 
         uint256 minerOut = _getEthToMiner(amounts[amounts.length - 1]);

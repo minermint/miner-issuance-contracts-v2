@@ -77,6 +77,12 @@ contract("MinerSwap", (accounts) => {
         Aggregator.setProvider(provider);
 
         aggregator = await Aggregator.at(aggregatorAddress);
+
+        // solidity coverage bug workaround.
+        if (process.env.NETWORK === "soliditycoverage") {
+            const PriceFeedETH = artifacts.require("PriceFeedETH");
+            aggregator = await PriceFeedETH.deployed();
+        }
     });
 
     describe("instantiation", () => {
@@ -148,7 +154,7 @@ contract("MinerSwap", (accounts) => {
 
     describe("swaps", () => {
         beforeEach(async () => {
-            minerSwap.setPriceFeedOracle(aggregator.address);
+            await minerSwap.setPriceFeedOracle(aggregator.address);
         });
 
         describe("converting eth for miner", () => {
@@ -294,7 +300,7 @@ contract("MinerSwap", (accounts) => {
                 minerMin = await minerSwap.getTokenToMiner(dai.address, amount);
             });
 
-            it("should convert a token for miner", async () => {
+            it.only("should convert a token for miner", async () => {
                 const balance = await miner.balanceOf(OWNER);
 
                 const expected = minerMin.add(balance);
