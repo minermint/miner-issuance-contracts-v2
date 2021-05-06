@@ -300,7 +300,7 @@ contract("MinerSwap", (accounts) => {
                 minerMin = await minerSwap.getTokenToMiner(dai.address, amount);
             });
 
-            it.only("should convert a token for miner", async () => {
+            it("should convert a token for miner", async () => {
                 const balance = await miner.balanceOf(OWNER);
 
                 const expected = minerMin.add(balance);
