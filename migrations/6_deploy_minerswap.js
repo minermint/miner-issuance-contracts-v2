@@ -2,24 +2,36 @@ const { getIssuance, saveNetworkArtifact } = require("../lib/deployer");
 
 const MinerSwap = artifacts.require("./MinerSwap");
 const MinerUSDOracle = artifacts.require("./oracles/MinerUSDOracle");
-const PriceFeedETH = artifacts.require("./mocks/PriceFeedETH.sol");
 
 module.exports = async function(deployer, network) {
     const issuance = await getIssuance(network);
     const oracle = await MinerUSDOracle.deployed();
 
     let uniswapRouter = process.env.UNISWAP_ROUTER;
+    let priceFeedETH = null;
 
-    if (network === "soliditycoverage") {
-        process.env.NETWORK = network;
-        await deployer.deploy(PriceFeedETH);
+    if (network === "soliditycoverage" || network === "development") {
+        const DaiMock = artifacts.require("./mocks/DaiMock.sol");
+        const WETHMock = artifacts.require("./mocks/WETHMock.sol");
+        const UniswapV2Router02Mock = artifacts.require("./mocks/UniswapV2Router02Mock.sol");
+        const PriceFeedETHMock = artifacts.require("./mocks/PriceFeedETHMock.sol");
+
+        await deployer.deploy(DaiMock);
+        const weth = await deployer.deploy(WETHMock);
+
+        uniswapRouter = await deployer.deploy(UniswapV2Router02Mock, weth.address);
+        priceFeedETH = await deployer.deploy(PriceFeedETHMock);
     }
 
     const minerSwap = await deployer.deploy(
         MinerSwap,
         oracle.address,
         issuance.address,
-        uniswapRouter);
+        uniswapRouter.address);
+
+    if (priceFeedETH) {
+        minerSwap.setPriceFeedOracle(priceFeedETH.address);
+    }
 
     await issuance.addIssuer(minerSwap.address);
 

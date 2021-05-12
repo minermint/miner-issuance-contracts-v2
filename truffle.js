@@ -15,7 +15,7 @@ module.exports = {
             network_id: "*", // Match any network id
             gas: 6721975,
             networkCheckTimeout: 60000,
-            fork: "https://eth-kovan.alchemyapi.io/v2/DjLaJSg4gNXdWfDmSufgzuFeRBs-2eRw",
+            //fork: "https://eth-kovan.alchemyapi.io/v2/DjLaJSg4gNXdWfDmSufgzuFeRBs-2eRw",
             mnemonic: process.env.MNEMONIC
         },
         teams: {

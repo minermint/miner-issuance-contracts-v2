@@ -68,8 +68,15 @@ contract MinerSwap is PullPayment, Ownable {
         ( , int256 answer, , , ) = priceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
-        // the result will be the miner price in wei.
+        // the result will be the price of 1 miner in wei.
         return rate.mul(1e18).div(uint(answer));
+    }
+
+    function getTokenToMinerUnitPrice(address token) external view returns (uint256) {
+        uint256 ethPerMiner = _getEthToMinerUnitPrice();
+        uint256 amount = getEthToToken(token, ethPerMiner);
+
+        return amount;
     }
 
     function getEthToMiner(uint256 amount) external view returns (uint256) {
@@ -100,7 +107,7 @@ contract MinerSwap is PullPayment, Ownable {
     }
 
     function getEthToToken(address token, uint256 amount)
-        external
+        public
         view
         returns (uint256)
     {
@@ -115,7 +122,7 @@ contract MinerSwap is PullPayment, Ownable {
     }
 
     function getTokenToMiner(address token, uint256 amount)
-        external
+        public
         view
         returns (uint256)
     {

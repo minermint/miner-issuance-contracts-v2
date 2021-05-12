@@ -8,8 +8,4 @@ contract MinerUSDOracle is MinerOracle {
     constructor() public {
         currencyCode = "USD";
     }
-
-    function getRates() external pure returns (uint256) {
-        return 100;
-    }
 }

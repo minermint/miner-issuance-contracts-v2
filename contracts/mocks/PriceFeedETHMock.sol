@@ -3,10 +3,13 @@
 pragma solidity >=0.6.2 <0.8.0;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract PriceFeedETH is AggregatorV3Interface {
+contract PriceFeedETHMock is AggregatorV3Interface {
+    using SafeMath for uint256;
+
     function decimals() external override view returns (uint8) {
-        return 5;
+        return 8;
     }
 
     function description() external override view returns (string memory) {
@@ -28,7 +31,7 @@ contract PriceFeedETH is AggregatorV3Interface {
         require(_roundId > 0, "no-round-id");
         return (
             18446744073709563481,
-            35298000000,
+            _getRate(),
             1601911848,
             1601911848,
             18446744073709563481
@@ -49,7 +52,7 @@ contract PriceFeedETH is AggregatorV3Interface {
     {
         return (
             18446744073709563481,
-            35298000000,
+            _getRate(),
             1601911848,
             1601911848,
             18446744073709563481
@@ -58,5 +61,12 @@ contract PriceFeedETH is AggregatorV3Interface {
 
     function version() external override view returns (uint256) {
         return 1;
+    }
+
+    // 1 USD = 0.001 ETH
+    function _getRate() internal pure returns (int256) {
+        uint256 rate = 100000000000;
+
+        return int256(rate);
     }
 }
