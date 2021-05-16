@@ -5,32 +5,32 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract UniswapV2Router02Mock {
     using SafeMath for uint256;
 
-    address weth;
+    address private weth;
 
     constructor(address factory) public {
         weth = factory;
     }
 
     function swapExactTokensForETH(
-        uint amountIn,
-        uint amountOutMin,
+        uint256 amountIn,
+        uint256 amountOutMin,
         address[] calldata path,
         address payable to,
-        uint deadline)
-        external
-        payable
-        returns (uint[] memory amounts)
-    {
+        uint256 deadline
+    ) external payable returns (uint256[] memory amounts) {
         require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
-        require(path[1] == _WETH());
+        require(path[1] == _WETH(), "Path must contain WETH.");
 
         amounts = getAmountsOut(amountIn, path);
 
         uint256 amountOut = amounts[amounts.length - 1];
 
-        require(amountOut >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(
+            amountOut >= amountOutMin,
+            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
+        );
 
-        (bool success, ) = to.call{value: amountOut}("");
+        (bool success, ) = to.call{ value: amountOut }("");
         require(success, "Transfer failed.");
 
         return amounts;
@@ -48,11 +48,13 @@ contract UniswapV2Router02Mock {
      * Gets the amount out. This will default to 1 dai = 0.001 eth.
      */
     function getAmountsOut(uint256 amountIn, address[] memory path)
-        public view returns (uint256[] memory amounts)
+        public
+        view
+        returns (uint256[] memory amounts)
     {
         uint256 amountOut = 0;
 
-        amounts = new uint[](path.length);
+        amounts = new uint256[](path.length);
 
         if (path[0] == _WETH()) {
             amountOut = amountIn.mul(1e18).div(1e15);
@@ -64,7 +66,5 @@ contract UniswapV2Router02Mock {
         amounts[1] = amountOut;
     }
 
-    receive() external payable {
-
-    }
+    receive() external payable {}
 }

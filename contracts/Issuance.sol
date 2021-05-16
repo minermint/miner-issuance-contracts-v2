@@ -38,10 +38,7 @@ contract Issuance is AccessControl, Ownable {
      * @param recipient address The address of the token recipient.
      * @param amount uint256 The amount of Miner tokens to purchase.
      */
-    function issue(
-        address recipient,
-        uint256 amount
-    ) public onlyIssuer {
+    function issue(address recipient, uint256 amount) public onlyIssuer {
         require(amount > 0, "Issuance/amount-invalid");
         require(
             _token.balanceOf(address(this)) >= amount,
@@ -53,14 +50,10 @@ contract Issuance is AccessControl, Ownable {
         emit Issued(recipient, amount);
     }
 
-    modifier onlyIssuer()
-    {
+    modifier onlyIssuer() {
         require(hasRole(ISSUER, _msgSender()), "Issuance/no-issuer-privileges");
         _;
     }
 
-    event Issued(
-        address indexed recipient,
-        uint256 amount
-    );
+    event Issued(address indexed recipient, uint256 amount);
 }

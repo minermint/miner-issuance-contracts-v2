@@ -161,7 +161,7 @@ contract("MinerSwap", (accounts) => {
             });
 
             it("should get the conversion rate", async () => {
-                const swapped = await minerSwap.calculateMinerPriceInEth();
+                const swapped = await minerSwap.calculateEthPerMiner();
                 expect(swapped).to.be.bignumber.equal(expectedRate);
             });
 
@@ -252,7 +252,7 @@ contract("MinerSwap", (accounts) => {
 
             it("should NOT convert if price falls below slippage", async () => {
                 // increase the min miner beyond what will be swapped.
-                const minerMin = (await minerSwap.getEthToMiner(amount)).add(new web3.utils.BN(1));
+                const minerMin = (await minerSwap.calculateEthToMinerSwap(amount)).add(new web3.utils.BN(1));
 
                 await expectRevert(
                     minerSwap.swapEthToMiner(
@@ -322,7 +322,7 @@ contract("MinerSwap", (accounts) => {
                 const amountsOut = await router.getAmountsOut(ethPerMiner, path);
                 const expected = amountsOut[1];
 
-                const converted = await minerSwap.calculateMinerPriceInToken(dai.address);
+                const swapped = await minerSwap.calculateTokensPerMiner(dai.address);
 
                 expect(swapped).to.be.bignumber.equal(expected);
             });

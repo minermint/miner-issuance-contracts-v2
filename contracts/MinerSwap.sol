@@ -35,8 +35,8 @@ contract MinerSwap is PullPayment, Ownable {
     constructor(
         IMinerOracle minerOracleAddress,
         Issuance issuanceAddress,
-        address uniswapRouterAddress) public
-    {
+        address uniswapRouterAddress
+    ) public {
         _setMinerOracle(minerOracleAddress);
         _setIssuance(issuanceAddress);
         _setUniswapRouterAddress(uniswapRouterAddress);
@@ -47,7 +47,7 @@ contract MinerSwap is PullPayment, Ownable {
      * @param minerOracleAddress IMinerOracle The Miner oracle contract.
      */
     function setMinerOracle(IMinerOracle minerOracleAddress) public onlyOwner {
-         _setMinerOracle(minerOracleAddress);
+        _setMinerOracle(minerOracleAddress);
     }
 
     /**
@@ -58,17 +58,19 @@ contract MinerSwap is PullPayment, Ownable {
         _setIssuance(issuanceAddress);
     }
 
-
     /**
      * Sets the Price Feed contract. This will be a valid Chainlink contract. An example of available contracts are available at https://docs.chain.link/docs/ethereum-addresses/.
      * @param priceFeedOracleAddress AggregatorV3Interface The Price Feed contract.
      */
-    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyOwner {
+    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress)
+        public
+        onlyOwner
+    {
         priceFeedOracle = priceFeedOracleAddress;
     }
 
     function _setMinerOracle(IMinerOracle minerOracleAddress) private {
-         minerOracle = minerOracleAddress;
+        minerOracle = minerOracleAddress;
     }
 
     function _setIssuance(Issuance issuanceAddress) private {
@@ -87,14 +89,19 @@ contract MinerSwap is PullPayment, Ownable {
         return _calculateEthPerMiner();
     }
 
-    function _calculateEthPerMiner() internal view priceFeedSet returns (uint256) {
-        ( uint256 rate, ) = minerOracle.getLatestExchangeRate();
+    function _calculateEthPerMiner()
+        internal
+        view
+        priceFeedSet
+        returns (uint256)
+    {
+        (uint256 rate, ) = minerOracle.getLatestExchangeRate();
 
-        ( , int256 answer, , , ) = priceFeedOracle.latestRoundData();
+        (, int256 answer, , , ) = priceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         // the result will be the price of 1 miner in wei.
-        return rate.mul(1e18).div(uint(answer));
+        return rate.mul(1e18).div(uint256(answer));
     }
 
     /**
@@ -102,7 +109,19 @@ contract MinerSwap is PullPayment, Ownable {
      * @param token address The address of the token being swapped for Miner. Must be a valid ERC20 compatible token.
      * @return uint256 The price of a single Miner token in the token specified by address.
      */
-    function calculateMinerPriceInToken(address token) external view returns (uint256) {
+    function calculateTokensPerMiner(address token)
+        external
+        view
+        returns (uint256)
+    {
+        return _calculateTokensPerMiner(token);
+    }
+
+    function _calculateTokensPerMiner(address token)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 ethPerMiner = _calculateEthPerMiner();
         uint256 amount = calculateEthToTokenSwap(token, ethPerMiner);
 
@@ -114,11 +133,19 @@ contract MinerSwap is PullPayment, Ownable {
      * @param amount uint256 The amount of Ether to swap.
      * @return uint256 The amount of Miner tokens received for the specified Ether amount.
      */
-    function calculateEthToMinerSwap(uint256 amount) external view returns (uint256) {
+    function calculateEthToMinerSwap(uint256 amount)
+        external
+        view
+        returns (uint256)
+    {
         return _calculateEthToMinerSwap(amount);
     }
 
-    function _calculateEthToMinerSwap(uint256 amount) internal view returns (uint256) {
+    function _calculateEthToMinerSwap(uint256 amount)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 xRate = _calculateEthPerMiner();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
@@ -132,7 +159,7 @@ contract MinerSwap is PullPayment, Ownable {
      * @param amount uint256 The amount of token to swap.
      * @return uint256 The amount of Ether received for the specified token amount.
      */
-    function calculateTokenToEth(address token, uint256 amount)
+    function calculateTokenToEthSwap(address token, uint256 amount)
         public
         view
         returns (uint256)
@@ -174,12 +201,12 @@ contract MinerSwap is PullPayment, Ownable {
      * @param amount uint256 The amount of token to swap.
      * @return uint256 The amount of Miner token received for the specified token amount.
      */
-    function calculateTokenToMiner(address token, uint256 amount)
+    function calculateTokenToMinerSwap(address token, uint256 amount)
         public
         view
         returns (uint256)
     {
-        uint256 tokenToEth = calculateTokenToEth(token, amount);
+        uint256 tokenToEth = calculateTokenToEthSwap(token, amount);
 
         return _calculateEthToMinerSwap(tokenToEth);
     }
@@ -190,8 +217,12 @@ contract MinerSwap is PullPayment, Ownable {
      * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
      * @return uint256 The amount of Miner token swapped.
      */
-    function swapEthToMiner(uint256 minerMin, uint256 deadline) external payable returns (uint256) {
-        require(deadline >= block.timestamp, 'MinerSwap/deadline-expired');
+    function swapEthToMiner(uint256 minerMin, uint256 deadline)
+        external
+        payable
+        returns (uint256)
+    {
+        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
 
         uint256 eth = msg.value;
 
@@ -199,18 +230,13 @@ contract MinerSwap is PullPayment, Ownable {
 
         uint256 minerOut = _calculateEthToMinerSwap(eth);
 
-        require(minerOut >= minerMin, 'MinerSwap/slippage');
+        require(minerOut >= minerMin, "MinerSwap/slippage");
 
         _asyncTransfer(owner(), eth);
 
         issuance.issue(_msgSender(), minerOut);
 
-        emit SwappedEthToMiner(
-            _msgSender(),
-            address(issuance),
-            eth,
-            minerOut
-        );
+        emit SwappedEthToMiner(_msgSender(), address(issuance), eth, minerOut);
 
         return minerOut;
     }
@@ -240,7 +266,7 @@ contract MinerSwap is PullPayment, Ownable {
         address[] memory path = new address[](2);
         path[0] = address(erc20);
         path[1] = router.WETH();
-        uint256 etherMin = calculateTokenToEth(token, amount);
+        uint256 etherMin = calculateTokenToEthSwap(token, amount);
 
         require(
             _calculateEthToMinerSwap(etherMin) >= minerMin,
@@ -264,7 +290,9 @@ contract MinerSwap is PullPayment, Ownable {
             "MinerSwap/invalid-eth-amount-transferred"
         );
 
-        uint256 minerOut = _calculateEthToMinerSwap(amounts[amounts.length - 1]);
+        uint256 minerOut = _calculateEthToMinerSwap(
+            amounts[amounts.length - 1]
+        );
 
         issuance.issue(_msgSender(), minerOut);
 

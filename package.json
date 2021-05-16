@@ -9,7 +9,7 @@
     "private": true,
     "scripts": {
         "coverage": "truffle run coverage",
-        "lint:solidity": "./node_modules/.bin/solhint -f table contracts/**/*.sol",
+        "lint:solidity": "./node_modules/.bin/solhint -f table 'contracts/**/*.sol'",
         "lint:tests": "./node_modules/.bin/eslint ./test/",
         "deploy:development": "truffle deploy --network development",
         "deploy:staging": "truffle deploy --network kovan",
