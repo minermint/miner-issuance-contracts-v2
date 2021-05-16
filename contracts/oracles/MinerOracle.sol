@@ -26,12 +26,20 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
         _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
     }
 
+    /**
+     * Sets the exchange rate.
+     * @param rate uint256 The new exchange rate.
+     */
     function setExchangeRate(uint256 rate) external override adminOnly {
         ExchangeRate memory xRate = ExchangeRate(rate, block.number);
 
         exchangeRates.push(xRate);
     }
 
+    /**
+     * Gets the exchange rate.
+     * @return uint256 The exchange rate.
+     */
     function getExchangeRate(uint256 index)
         external
         override
@@ -53,6 +61,10 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
         return xRate;
     }
 
+    /**
+     * Gets the latest exchange rate.
+     * @return uint256 The latest exchange rate. Includes the rate and latest exchange rate block number.
+     */
     function getLatestExchangeRate()
         external
         override

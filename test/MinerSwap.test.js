@@ -16,7 +16,6 @@ const Issuance = artifacts.require("Issuance");
 const MinerUSDOracle = artifacts.require("MinerUSDOracle");
 const MinerSwap = artifacts.require("MinerSwap");
 const Dai = artifacts.require("DaiMock");
-const WEth = artifacts.require("WETHMock");
 const UniswapV2Router02 = artifacts.require("UniswapV2Router02Mock");
 const PriceFeedETH = artifacts.require("PriceFeedETHMock");
 const Web3 = require("web3");
@@ -115,7 +114,7 @@ contract("MinerSwap", (accounts) => {
             const amount = web3.utils.toWei("1", "ether");
 
             await expectRevert(
-                minerSwap.convertEthToMiner(0, deadline, { value: amount }),
+                minerSwap.swapEthToMiner(0, deadline, { value: amount }),
                 "MinerSwap/no-oracle-set"
             );
         });
@@ -162,18 +161,18 @@ contract("MinerSwap", (accounts) => {
             });
 
             it("should get the conversion rate", async () => {
-                const converted = await minerSwap.getEthToMinerUnitPrice();
-                expect(converted).to.be.bignumber.equal(expectedRate);
+                const swapped = await minerSwap.calculateMinerPriceInEth();
+                expect(swapped).to.be.bignumber.equal(expectedRate);
             });
 
             it("should get conversion amount", async () => {
-                const converted = await minerSwap.getEthToMiner(amount);
+                const swapped = await minerSwap.calculateEthToMinerSwap(amount);
 
-                expect(converted).to.be.bignumber.equal(expected);
+                expect(swapped).to.be.bignumber.equal(expected);
             });
 
             it("should swap eth for miner", async () => {
-                await minerSwap.convertEthToMiner(
+                await minerSwap.swapEthToMiner(
                     0,
                     deadline,
                     {
@@ -187,8 +186,8 @@ contract("MinerSwap", (accounts) => {
                 expect(balance).to.be.bignumber.equal(expected);
             });
 
-            it("should emit a Converted event", async () => {
-                const { logs } = await minerSwap.convertEthToMiner(
+            it("should emit a Swapped Eth to Miner event", async () => {
+                const { logs } = await minerSwap.swapEthToMiner(
                     0,
                     deadline,
                     {
@@ -197,7 +196,7 @@ contract("MinerSwap", (accounts) => {
                     }
                 );
 
-                expectEvent.inLogs(logs, 'ConvertedEthToMiner', {
+                expectEvent.inLogs(logs, 'SwappedEthToMiner', {
                     recipient: ALICE,
                     sender: issuance.address,
                     amountIn: amount,
@@ -207,7 +206,7 @@ contract("MinerSwap", (accounts) => {
 
             it("should NOT convert zero tokens", async () => {
                 await expectRevert(
-                    minerSwap.convertEthToMiner(
+                    minerSwap.swapEthToMiner(
                         0,
                         deadline,
                         {
@@ -222,7 +221,7 @@ contract("MinerSwap", (accounts) => {
             it("should NOT exceed converting more tokens than are available",
             async () => {
                 await expectRevert(
-                    minerSwap.convertEthToMiner(
+                    minerSwap.swapEthToMiner(
                         0,
                         deadline,
                         {
@@ -239,7 +238,7 @@ contract("MinerSwap", (accounts) => {
                 oracle.setExchangeRate(ZERO_BALANCE);
 
                 await expectRevert(
-                    minerSwap.convertEthToMiner(
+                    minerSwap.swapEthToMiner(
                         0,
                         deadline,
                         {
@@ -252,11 +251,11 @@ contract("MinerSwap", (accounts) => {
             });
 
             it("should NOT convert if price falls below slippage", async () => {
-                // increase the min miner beyond what will be converted.
+                // increase the min miner beyond what will be swapped.
                 const minerMin = (await minerSwap.getEthToMiner(amount)).add(new web3.utils.BN(1));
 
                 await expectRevert(
-                    minerSwap.convertEthToMiner(
+                    minerSwap.swapEthToMiner(
                         minerMin,
                         deadline,
                         {
@@ -278,7 +277,7 @@ contract("MinerSwap", (accounts) => {
 
             beforeEach(async () => {
                 dai = await Dai.deployed();
-                minerMin = await minerSwap.getTokenToMiner(dai.address, amount);
+                minerMin = await minerSwap.calculateTokenToMinerSwap(dai.address, amount);
             });
 
             describe("checking mock setup", async() => {
@@ -295,7 +294,7 @@ contract("MinerSwap", (accounts) => {
                     const expected = new BN("1").mul(new BN("10").pow(new BN("15")));
 
                     const amountIn = new BN("1").mul(new BN("10").pow(new BN("18")));
-                    const actual = await minerSwap.getTokenToEth(dai.address, amountIn);
+                    const actual = await minerSwap.calculateTokenToEthSwap(dai.address, amountIn);
 
                     expect(actual).to.be.bignumber.equal(expected);
                 });
@@ -306,7 +305,7 @@ contract("MinerSwap", (accounts) => {
                 path[0] = await router.WETH();
                 path[1] = dai.address;
 
-                const ethPerToken = await minerSwap.getEthToToken(dai.address, amount);
+                const ethPerToken = await minerSwap.calculateEthToTokenSwap(dai.address, amount);
                 // 1/1000 USD * 10^18 wei or 0.001 ETH
 
                 const minerUSDRate = await oracle.getLatestExchangeRate();
@@ -323,9 +322,9 @@ contract("MinerSwap", (accounts) => {
                 const amountsOut = await router.getAmountsOut(ethPerMiner, path);
                 const expected = amountsOut[1];
 
-                const converted = await minerSwap.getTokenToMinerUnitPrice(dai.address);
+                const converted = await minerSwap.calculateMinerPriceInToken(dai.address);
 
-                expect(converted).to.be.bignumber.equal(expected);
+                expect(swapped).to.be.bignumber.equal(expected);
             });
 
             it("should convert a token for miner", async () => {
@@ -335,21 +334,21 @@ contract("MinerSwap", (accounts) => {
 
                 await dai.approve(minerSwap.address, amount, { from: OWNER });
 
-                await minerSwap.convertTokenToMiner(dai.address, amount, minerMin, deadline, {
+                await minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline, {
                     from: OWNER
                 });
 
                 expect(await miner.balanceOf(OWNER)).to.be.bignumber.equal(expected);
             });
 
-            it("should emit a Converted Token for Miner event", async () => {
+            it("should emit a Swapped Token for Miner event", async () => {
                 const balance = await miner.balanceOf(OWNER);
 
                 const expected = minerMin.add(balance);
 
                 await dai.approve(minerSwap.address, amount, { from: OWNER });
 
-                const { logs } = await minerSwap.convertTokenToMiner(
+                const { logs } = await minerSwap.swapTokenToMiner(
                     dai.address,
                     amount,
                     minerMin,
@@ -357,7 +356,7 @@ contract("MinerSwap", (accounts) => {
                     { from: OWNER }
                 );
 
-                expectEvent.inLogs(logs, "ConvertedTokenToMiner", {
+                expectEvent.inLogs(logs, "SwappedTokenToMiner", {
                     amountIn: amount,
                     amountOut: expected,
                     token: dai.address,
@@ -365,13 +364,13 @@ contract("MinerSwap", (accounts) => {
             });
 
             it("should have an Ether balance in MinerSwap", async() => {
-                const expected = await minerSwap.getTokenToEth(dai.address, amount);
+                const expected = await minerSwap.calculateTokenToEthSwap(dai.address, amount);
 
                 const initialBalance = await minerSwap.payments(OWNER);
 
                 await dai.approve(minerSwap.address, amount, { from: OWNER });
 
-                await minerSwap.convertTokenToMiner(dai.address, amount, minerMin, deadline, {
+                await minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline, {
                     from: OWNER
                 });
 
@@ -393,7 +392,7 @@ contract("MinerSwap", (accounts) => {
                 });
 
                 it("should get the amount of token required to convert to eth", async () => {
-                    const actual = await minerSwap.getTokenToEth(dai.address, amount, {
+                    const actual = await minerSwap.calculateTokenToEthSwap(dai.address, amount, {
                         from: OWNER,
                     });
 
@@ -404,18 +403,18 @@ contract("MinerSwap", (accounts) => {
                 });
 
                 it("should get the amount of token require to convert to miner", async () => {
-                    const actual = await minerSwap.getTokenToMiner(dai.address, amount, {
+                    const actual = await minerSwap.calculateTokenToMinerSwap(dai.address, amount, {
                         from: OWNER,
                     });
 
                     const amounts = await router.getAmountsOut(amount, path);
 
-                    const ethToMinerUnitPrice = await minerSwap.getEthToMinerUnitPrice();
+                    const ethPerMiner = await minerSwap.calculateEthPerMiner();
                     const decimals = new BN("10").pow(new BN("18"));
 
                     const expected = amounts[path.length - 1]
                         .mul(decimals)
-                        .div(ethToMinerUnitPrice);
+                        .div(ethPerMiner);
 
                     expect(actual).to.be.bignumber.equal(expected);
                 });
@@ -427,7 +426,7 @@ contract("MinerSwap", (accounts) => {
                 time.increase(time.duration.minutes(30));
 
                 await expectRevert(
-                    minerSwap.convertTokenToMiner(dai.address, amount, minerMin, deadline, {
+                    minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline, {
                         from: OWNER,
                     }),
                     "UniswapV2Router: EXPIRED"
@@ -438,7 +437,7 @@ contract("MinerSwap", (accounts) => {
                 await dai.approve(minerSwap.address, amount, { from: OWNER });
 
                 await expectRevert.unspecified(
-                    minerSwap.convertTokenToMiner(
+                    minerSwap.swapTokenToMiner(
                         ZERO_ADDRESS,
                         amount,
                         amount,
@@ -456,7 +455,7 @@ contract("MinerSwap", (accounts) => {
                 time.increase(time.duration.minutes(30));
 
                 await expectRevert(
-                    minerSwap.convertTokenToMiner(dai.address, amount, minerMin, deadline, {
+                    minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline, {
                         from: OWNER,
                     }),
                     "UniswapV2Router: EXPIRED"
@@ -476,7 +475,7 @@ contract("MinerSwap", (accounts) => {
                 const balanceBeforeWithdrawal = new web3.utils
                     .BN(await web3.eth.getBalance(OWNER_2));
 
-                await minerSwap.convertEthToMiner(
+                await minerSwap.swapEthToMiner(
                     0,
                     deadline,
                     { from: ALICE, value: wei }
@@ -502,7 +501,7 @@ contract("MinerSwap", (accounts) => {
                     await web3.eth.getBalance(BOB)
                 );
 
-                await minerSwap.convertEthToMiner(
+                await minerSwap.swapEthToMiner(
                     0,
                     deadline,
                     {

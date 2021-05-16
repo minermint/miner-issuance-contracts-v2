@@ -16,7 +16,6 @@ module.exports = async function(deployer, network) {
 
     if (network === "soliditycoverage" || network === "development") {
         const DaiMock = artifacts.require("./mocks/DaiMock.sol");
-        const WETHMock = artifacts.require("./mocks/WETHMock.sol");
         const UniswapV2Router02Mock = artifacts.require("./mocks/UniswapV2Router02Mock.sol");
         const PriceFeedETHMock = artifacts.require("./mocks/PriceFeedETHMock.sol");
 

@@ -13,6 +13,8 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
 
+/// @title Swap Ether and other ERC20 tokens for Miner.
+/// @author hayden.y@minertoken.io
 contract MinerSwap is PullPayment, Ownable {
     using SafeMath for uint256;
 
@@ -24,6 +26,12 @@ contract MinerSwap is PullPayment, Ownable {
 
     address public uniswapRouter;
 
+    /**
+     * Initializes the MinerSwap contract.
+     * @param minerOracleAddress IMinerOracle The Miner oracle contract.
+     * @param issuanceAddress Issuance The Issuance contract.
+     * @param uniswapRouterAddress address The Uniswap Router contract.
+     */
     constructor(
         IMinerOracle minerOracleAddress,
         Issuance issuanceAddress,
@@ -34,14 +42,27 @@ contract MinerSwap is PullPayment, Ownable {
         _setUniswapRouterAddress(uniswapRouterAddress);
     }
 
+    /**
+     * Sets the Miner oraacle contract.
+     * @param minerOracleAddress IMinerOracle The Miner oracle contract.
+     */
     function setMinerOracle(IMinerOracle minerOracleAddress) public onlyOwner {
          _setMinerOracle(minerOracleAddress);
     }
 
+    /**
+     * Sets the Issuance contract.
+     * @param issuanceAddress Issuance The Issuance contract.
+     */
     function setIssuance(Issuance issuanceAddress) public onlyOwner {
         _setIssuance(issuanceAddress);
     }
 
+
+    /**
+     * Sets the Price Feed contract. This will be a valid Chainlink contract. An example of available contracts are available at https://docs.chain.link/docs/ethereum-addresses/.
+     * @param priceFeedOracleAddress AggregatorV3Interface The Price Feed contract.
+     */
     function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress) public onlyOwner {
         priceFeedOracle = priceFeedOracleAddress;
     }
@@ -58,11 +79,15 @@ contract MinerSwap is PullPayment, Ownable {
         uniswapRouter = uniswapRouterAddress;
     }
 
-    function getEthToMinerUnitPrice() external view returns (uint256) {
-        return _getEthToMinerUnitPrice();
+    /**
+     * Calculates the price of a single Miner token in Ether. The amount will be returned in Wei, x ether * 10^18 (18 dp).
+     * @return uint256 The price off a single Miner token in Ether.
+     */
+    function calculateEthPerMiner() external view returns (uint256) {
+        return _calculateEthPerMiner();
     }
 
-    function _getEthToMinerUnitPrice() internal view priceFeedSet returns (uint256) {
+    function _calculateEthPerMiner() internal view priceFeedSet returns (uint256) {
         ( uint256 rate, ) = minerOracle.getLatestExchangeRate();
 
         ( , int256 answer, , , ) = priceFeedOracle.latestRoundData();
@@ -72,26 +97,42 @@ contract MinerSwap is PullPayment, Ownable {
         return rate.mul(1e18).div(uint(answer));
     }
 
-    function getTokenToMinerUnitPrice(address token) external view returns (uint256) {
-        uint256 ethPerMiner = _getEthToMinerUnitPrice();
-        uint256 amount = getEthToToken(token, ethPerMiner);
+    /**
+     * Calculates the price of a single Miner token in the token specified by address. The token must be ERC20 compatible.
+     * @param token address The address of the token being swapped for Miner. Must be a valid ERC20 compatible token.
+     * @return uint256 The price of a single Miner token in the token specified by address.
+     */
+    function calculateMinerPriceInToken(address token) external view returns (uint256) {
+        uint256 ethPerMiner = _calculateEthPerMiner();
+        uint256 amount = calculateEthToTokenSwap(token, ethPerMiner);
 
         return amount;
     }
 
-    function getEthToMiner(uint256 amount) external view returns (uint256) {
-        return _getEthToMiner(amount);
+    /**
+     * Calculates how much miner will be received for the amount in Ether. The amount of Ether must be in Wei, x ether * 10^18 (18 dp).
+     * @param amount uint256 The amount of Ether to swap.
+     * @return uint256 The amount of Miner tokens received for the specified Ether amount.
+     */
+    function calculateEthToMinerSwap(uint256 amount) external view returns (uint256) {
+        return _calculateEthToMinerSwap(amount);
     }
 
-    function _getEthToMiner(uint256 amount) internal view returns (uint256) {
-        uint256 xRate = _getEthToMinerUnitPrice();
+    function _calculateEthToMinerSwap(uint256 amount) internal view returns (uint256) {
+        uint256 xRate = _calculateEthPerMiner();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
         // miner.
         return amount.mul(1e18).div(xRate);
     }
 
-    function getTokenToEth(address token, uint256 amount)
+    /**
+     * Calculates how much Ether will be received for the amount of token. The token must be ERC20 compatible.
+     * @param token address The address of the token being swapped for. Must be a valid ERC20 compatible token.
+     * @param amount uint256 The amount of token to swap.
+     * @return uint256 The amount of Ether received for the specified token amount.
+     */
+    function calculateTokenToEth(address token, uint256 amount)
         public
         view
         returns (uint256)
@@ -106,7 +147,13 @@ contract MinerSwap is PullPayment, Ownable {
         return router.getAmountsOut(amount, path)[path.length - 1];
     }
 
-    function getEthToToken(address token, uint256 amount)
+    /**
+     * Calculates how many tokens will be received for the amount of Ether. The token must be ERC20 compatible.
+     * @param token address The address of the token being swapped to. Must be a valid ERC20 compatible token.
+     * @param amount uint256 The amount of token to swap.
+     * @return uint256 The amount of Ether received for the specified token amount.
+     */
+    function calculateEthToTokenSwap(address token, uint256 amount)
         public
         view
         returns (uint256)
@@ -121,24 +168,36 @@ contract MinerSwap is PullPayment, Ownable {
         return router.getAmountsOut(amount, path)[path.length - 1];
     }
 
-    function getTokenToMiner(address token, uint256 amount)
+    /**
+     * Calculates how many Miner tokens will be received for the amount of token specified. The token must be ERC20 compatible.
+     * @param token address The address of the token being swapped for. Must be a valid ERC20 compatible token.
+     * @param amount uint256 The amount of token to swap.
+     * @return uint256 The amount of Miner token received for the specified token amount.
+     */
+    function calculateTokenToMiner(address token, uint256 amount)
         public
         view
         returns (uint256)
     {
-        uint256 tokenToEth = getTokenToEth(token, amount);
+        uint256 tokenToEth = calculateTokenToEth(token, amount);
 
-        return _getEthToMiner(tokenToEth);
+        return _calculateEthToMinerSwap(tokenToEth);
     }
 
-    function convertEthToMiner(uint256 minerMin, uint256 deadline) external payable {
+    /**
+     * Swaps Ether for Miner. Emits a SwappedEthToMiner event if successful.
+     * @param minerMin uint256 The minimum amount of Miner token to receive. Reverts if the minimum is not met.
+     * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
+     * @return uint256 The amount of Miner token swapped.
+     */
+    function swapEthToMiner(uint256 minerMin, uint256 deadline) external payable returns (uint256) {
         require(deadline >= block.timestamp, 'MinerSwap/deadline-expired');
 
         uint256 eth = msg.value;
 
         require(eth > 0, "MinerSwap/deposit-invalid");
 
-        uint256 minerOut = _getEthToMiner(eth);
+        uint256 minerOut = _calculateEthToMinerSwap(eth);
 
         require(minerOut >= minerMin, 'MinerSwap/slippage');
 
@@ -146,20 +205,30 @@ contract MinerSwap is PullPayment, Ownable {
 
         issuance.issue(_msgSender(), minerOut);
 
-        emit ConvertedEthToMiner(
+        emit SwappedEthToMiner(
             _msgSender(),
             address(issuance),
             eth,
             minerOut
         );
+
+        return minerOut;
     }
 
-    function convertTokenToMiner(
+    /**
+     * Swaps a valid ERC20 token for Miner. Emits a SwappedTokenToMiner event if successful.
+     * @param token address The address of the token being swapped. Must be a valid ERC20-compatible token with an existing liquidity pool on Uniswap.
+     * @param amount uint256 The amount of token to swap for Miner.
+     * @param minerMin uint256 The minimum amount of Miner token to receive. Reverts if the minimum is not met.
+     * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
+     * @return uint256 The amount of Miner token swapped.
+     */
+    function swapTokenToMiner(
         address token,
         uint256 amount,
         uint256 minerMin,
         uint256 deadline
-    ) external {
+    ) external returns (uint256) {
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
         erc20.transferFrom(msg.sender, address(this), amount);
@@ -171,10 +240,10 @@ contract MinerSwap is PullPayment, Ownable {
         address[] memory path = new address[](2);
         path[0] = address(erc20);
         path[1] = router.WETH();
-        uint256 etherMin = getTokenToEth(token, amount);
+        uint256 etherMin = calculateTokenToEth(token, amount);
 
         require(
-            _getEthToMiner(etherMin) >= minerMin,
+            _calculateEthToMinerSwap(etherMin) >= minerMin,
             "MinerSwap/slippage"
         );
 
@@ -195,11 +264,11 @@ contract MinerSwap is PullPayment, Ownable {
             "MinerSwap/invalid-eth-amount-transferred"
         );
 
-        uint256 minerOut = _getEthToMiner(amounts[amounts.length - 1]);
+        uint256 minerOut = _calculateEthToMinerSwap(amounts[amounts.length - 1]);
 
         issuance.issue(_msgSender(), minerOut);
 
-        emit ConvertedTokenToMiner(
+        emit SwappedTokenToMiner(
             _msgSender(),
             address(issuance),
             token,
@@ -207,6 +276,8 @@ contract MinerSwap is PullPayment, Ownable {
             minerOut,
             amounts[amounts.length - 1]
         );
+
+        return minerOut;
     }
 
     receive() external payable {
@@ -221,14 +292,14 @@ contract MinerSwap is PullPayment, Ownable {
         _;
     }
 
-    event ConvertedEthToMiner(
+    event SwappedEthToMiner(
         address indexed recipient,
         address indexed sender,
         uint256 amountIn,
         uint256 amountOut
     );
 
-    event ConvertedTokenToMiner(
+    event SwappedTokenToMiner(
         address indexed recipient,
         address indexed sender,
         address indexed token,
