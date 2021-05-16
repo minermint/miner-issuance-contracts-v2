@@ -9,8 +9,6 @@ const {
 const { expect } = require("chai");
 const { ZERO_ADDRESS } = constants;
 
-const BigNumber = require('bignumber.js');
-
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
 const MinerUSDOracle = artifacts.require("MinerUSDOracle");
@@ -18,7 +16,6 @@ const MinerSwap = artifacts.require("MinerSwap");
 const Dai = artifacts.require("DaiMock");
 const UniswapV2Router02 = artifacts.require("UniswapV2Router02Mock");
 const PriceFeedETH = artifacts.require("PriceFeedETHMock");
-const Web3 = require("web3");
 
 contract("MinerSwap", (accounts) => {
     const OWNER = accounts[0];
@@ -30,9 +27,10 @@ contract("MinerSwap", (accounts) => {
 
     const ZERO_BALANCE = new BN(0);
 
-    const EXCHANGE_RATE = new BN("124000000"); // $1.24 to 8 dp.
+    // $1.24 to 8 dp.
+    const EXCHANGE_RATE = new BN("124000000");
 
-    let miner, minerSwap, issuance, aggregator, router;
+    let miner, minerSwap, issuance, aggregator, router, oracle;
 
     const decimals = new BN("18");
     const supply = new BN("1000000").mul(new BN("10").pow(decimals));
@@ -132,9 +130,9 @@ contract("MinerSwap", (accounts) => {
         it('should emit OwnershipTransferred event', async () => {
             const { logs } = await minerSwap.transferOwnership(ALICE);
 
-            const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
-                previousOwner: OWNER,
+            expectEvent.inLogs(logs, 'OwnershipTransferred', {
                 newOwner: ALICE,
+                previousOwner: OWNER
             });
         });
     });
@@ -155,8 +153,10 @@ contract("MinerSwap", (accounts) => {
 
                 expectedRate = new BN(web3.utils.toWei(xRate[0], "ether")).div(answer);
 
-                // buffer the amount with 18 zeros so we get back an expected
-                // amount in wei.
+                /*
+                 * buffer the amount with 18 zeros so we get back an expected
+                 * amount in wei.
+                 */
                 expected = new BN(web3.utils.toWei(amount)).div(expectedRate);
             });
 
@@ -197,10 +197,10 @@ contract("MinerSwap", (accounts) => {
                 );
 
                 expectEvent.inLogs(logs, 'SwappedEthToMiner', {
-                    recipient: ALICE,
-                    sender: issuance.address,
                     amountIn: amount,
-                    amountOut: expected.toString()
+                    amountOut: expected.toString(),
+                    recipient: ALICE,
+                    sender: issuance.address
                 });
             });
 
@@ -301,12 +301,9 @@ contract("MinerSwap", (accounts) => {
             });
 
             it("should get the conversion rate", async () => {
-                path = [];
+                const path = [];
                 path[0] = await router.WETH();
                 path[1] = dai.address;
-
-                const ethPerToken = await minerSwap.calculateEthToTokenSwap(dai.address, amount);
-                // 1/1000 USD * 10^18 wei or 0.001 ETH
 
                 const minerUSDRate = await oracle.getLatestExchangeRate();
                 const usdPerMiner = minerUSDRate[0];
@@ -383,7 +380,7 @@ contract("MinerSwap", (accounts) => {
             });
 
             describe("calculating swaps", async () => {
-                let uniswapV2Router, path;
+                let path;
 
                 beforeEach(async () => {
                     path = [];
@@ -478,7 +475,10 @@ contract("MinerSwap", (accounts) => {
                 await minerSwap.swapEthToMiner(
                     0,
                     deadline,
-                    { from: ALICE, value: wei }
+                    {
+                        from: ALICE,
+                        value: wei
+                    }
                 );
 
                 await minerSwap.withdrawPayments(OWNER_2);

@@ -1,6 +1,5 @@
-const { BN, constants, expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
+const { BN, expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
 const { expect } = require("chai");
-const { ZERO_ADDRESS } = constants;
 
 const MinerUSDOracle = artifacts.require("MinerUSDOracle");
 
@@ -10,11 +9,12 @@ contract("MinerUSDOracle", (accounts) => {
     const ALICE = accounts[3];
     const BOB = accounts[4];
 
-    const EXCHANGE_RATE = new BN("150000000"); // $1.50 to 8 dp.
+    // $1.50 to 8 dp.
+    const EXCHANGE_RATE = new BN("150000000");
 
     const ADMIN = web3.utils.soliditySha3("ADMIN");
 
-    let aggregator, oracle;
+    let oracle;
 
     beforeEach(async () => {
         oracle = await MinerUSDOracle.new();
@@ -149,9 +149,9 @@ contract("MinerUSDOracle", (accounts) => {
     it("should emit OwnershipTransferred event", async () => {
         const { logs } = await oracle.transferOwnership(ALICE);
 
-        const event = expectEvent.inLogs(logs, 'OwnershipTransferred', {
-            previousOwner: OWNER,
+        expectEvent.inLogs(logs, 'OwnershipTransferred', {
             newOwner: ALICE,
+            previousOwner: OWNER
         });
     });
 });

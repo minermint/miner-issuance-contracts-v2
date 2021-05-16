@@ -1,6 +1,5 @@
-const { BN, constants, expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
+const { BN, expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
 const { expect } = require("chai");
-const { ZERO_ADDRESS } = constants;
 
 const Miner = artifacts.require("Miner");
 const Issuance = artifacts.require("Issuance");
@@ -15,7 +14,7 @@ contract("Issuance", (accounts) => {
 
     const ZERO_BALANCE = new BN(0);
 
-    let miner, issuance, swapEth;
+    let miner, issuance;
 
     const decimals = new BN("18");
     const supply = new BN("1000").mul(new BN("10").pow(decimals));
@@ -69,8 +68,8 @@ contract("Issuance", (accounts) => {
             const { logs } = await issuance.addIssuer(ISSUER);
 
             expectEvent.inLogs(logs, 'RoleGranted', {
-                role: ISSUER_ROLE,
                 account: ISSUER,
+                role: ISSUER_ROLE,
                 sender: OWNER
             });
         });
@@ -94,8 +93,8 @@ contract("Issuance", (accounts) => {
             const { logs } = await issuance.removeIssuer(ISSUER);
 
             expectEvent.inLogs(logs, 'RoleRevoked', {
-                role: ISSUER_ROLE,
                 account: ISSUER,
+                role: ISSUER_ROLE,
                 sender: OWNER
             });
         });
@@ -114,8 +113,6 @@ contract("Issuance", (accounts) => {
         });
 
         it("should issue miner tokens", async () => {
-            const amount = web3.utils.toWei("1", "ether");
-
             await issuance.issue(ALICE, supply, { from: ISSUER });
 
             const balance = await miner.balanceOf(ALICE);
@@ -131,8 +128,8 @@ contract("Issuance", (accounts) => {
             );
 
             expectEvent.inLogs(logs, 'Issued', {
-                recipient: ALICE,
-                amount: supply.toString()
+                amount: supply.toString(),
+                recipient: ALICE
             });
         });
 
