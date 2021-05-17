@@ -5,10 +5,13 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract UniswapV2Router02Mock {
     using SafeMath for uint256;
 
-    address private weth;
+    address public factory;
 
-    constructor(address factory) public {
-        weth = factory;
+    bool public underfund;
+
+    constructor(address factory_) public {
+        factory = factory_;
+        underfund = false;
     }
 
     function swapExactTokensForETH(
@@ -30,18 +33,22 @@ contract UniswapV2Router02Mock {
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
 
+        if (underfund == true) {
+            amountOut = amountOut.sub(1);
+        }
+
         (bool success, ) = to.call{ value: amountOut }("");
         require(success, "Transfer failed.");
 
         return amounts;
     }
 
-    function WETH() external view returns (address) {
+    function WETH() external pure returns (address) {
         return _WETH();
     }
 
-    function _WETH() internal view returns (address) {
-        return weth;
+    function _WETH() internal pure returns (address) {
+        return address(0x0);
     }
 
     /*
@@ -49,7 +56,7 @@ contract UniswapV2Router02Mock {
      */
     function getAmountsOut(uint256 amountIn, address[] memory path)
         public
-        view
+        pure
         returns (uint256[] memory amounts)
     {
         uint256 amountOut = 0;
@@ -64,6 +71,10 @@ contract UniswapV2Router02Mock {
 
         amounts[0] = amountIn;
         amounts[1] = amountOut;
+    }
+
+    function underfundEthTransfer(bool underfund_) public {
+        underfund = underfund_;
     }
 
     receive() external payable {}

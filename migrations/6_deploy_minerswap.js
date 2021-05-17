@@ -13,13 +13,14 @@ module.exports = async function(deployer, network) {
     if (network === "soliditycoverage" || network === "development") {
         const DaiMock = artifacts.require("./mocks/DaiMock.sol");
         const UniswapV2Router02Mock = artifacts.require("./mocks/UniswapV2Router02Mock.sol");
+        const UniswapFactoryMock = artifacts.require("./mocks/UniswapFactoryMock.sol");
         const PriceFeedETHMock = artifacts.require("./mocks/PriceFeedETHMock.sol");
 
-        const uniswapFactory = "0x0000000000000000000000000000000000000000";
+        const uniswapFactory = await deployer.deploy(UniswapFactoryMock);
 
         await deployer.deploy(DaiMock);
 
-        uniswapRouter = await deployer.deploy(UniswapV2Router02Mock, uniswapFactory);
+        uniswapRouter = await deployer.deploy(UniswapV2Router02Mock, uniswapFactory.address);
         priceFeedETH = await deployer.deploy(PriceFeedETHMock);
     }
 
