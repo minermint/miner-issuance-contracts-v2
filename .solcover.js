@@ -3,10 +3,8 @@ module.exports = {
         "IERC20.sol",
         "Ownable.sol",
         "SafeMath.sol",
-        "DaiMock.sol",
-        "PriceFeedETHMock.sol",
-        "UniswapV2Router02Mock.sol",
-        "WETHMock.sol"
-    ],
-    client: require('ganache-cli')
+        "mocks/DaiMock.sol",
+        "mocks/PriceFeedETHMock.sol",
+        "mocks/UniswapV2Router02Mock.sol"
+    ]
 };
