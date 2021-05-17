@@ -1,7 +1,3 @@
-const { constants } = require("@openzeppelin/test-helpers");
-
-const { ZERO_ADDRESS } = constants;
-
 const { getIssuance, saveNetworkArtifact } = require("../lib/deployer");
 
 const MinerSwap = artifacts.require("./MinerSwap");
@@ -19,9 +15,11 @@ module.exports = async function(deployer, network) {
         const UniswapV2Router02Mock = artifacts.require("./mocks/UniswapV2Router02Mock.sol");
         const PriceFeedETHMock = artifacts.require("./mocks/PriceFeedETHMock.sol");
 
+        const uniswapFactory = "0x0000000000000000000000000000000000000000";
+
         await deployer.deploy(DaiMock);
 
-        uniswapRouter = await deployer.deploy(UniswapV2Router02Mock, ZERO_ADDRESS);
+        uniswapRouter = await deployer.deploy(UniswapV2Router02Mock, uniswapFactory);
         priceFeedETH = await deployer.deploy(PriceFeedETHMock);
     }
 
