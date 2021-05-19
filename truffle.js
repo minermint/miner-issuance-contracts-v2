@@ -31,7 +31,6 @@ module.exports = {
             network_id: "42",
             confirmations: 4,
             timeoutBlocks: 200,
-            skipDryRun: true,
             gasPrice: 10000000000
         },
         mainnet: {
