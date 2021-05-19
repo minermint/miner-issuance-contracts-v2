@@ -33,6 +33,15 @@ module.exports = {
             timeoutBlocks: 200,
             skipDryRun: true,
             gasPrice: 10000000000
+        },
+        mainnet: {
+            provider: new HDWalletProvider(
+                process.env.PRIVATE_KEY,
+                "wss://mainnet.infura.io/ws/v3/"+config.infura_id
+            network_id: "1",
+            confirmations: 6,
+            timeoutBlocks: 200,
+            gasPrice: 82000000000
         }
     },
     // Configure your compilers

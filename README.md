@@ -6,28 +6,71 @@
 
 Contracts can be deployed to the various networks configured in truffle.js.
 
-To set up your environment for deploying contracts, you will need to create a
-.env file. .env defines the various Ethereum blockchain environment variable.
+You will need a mnenomic or private key to deploy contracts to various networks.
+
+To deploy a contract to a network, run one of the deployment targets. There are
+convenience npm targets you can run to deploy to development or staging.
+
+NOTE: MinerToken uses Truffle to deploy contracts but the Truffle Migrations
+process has been disabled and addresses and ABI information is stored under
+build/contracts. Truffle configuration is stored under build/truffle.
+
+### Deploying to Development
+
+To deploy to development, start a local chain:
 
 ```
-cp env.example .env
+npx ganache-cli -d -m "12 or 24 word seed phrase" -v
 ```
 
-Once created, change the mnemonic and network settings to match your environment.
-
-To deploy a contract to a network, run:
+Compile and deploy contracts to the chain:
 
 ```
-truffle deploy --network NETWORK_NAME
+MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" npm run deploy:development
 ```
 
-where NETWORK_NAME is the network you wish to deploy to. The names of the various networks are listed in truffle.js.
+### Deploying to Staging
 
-For example, to deploy to Ropsten:
+Staging refers to Ethereum testnet, in particular the Kovan test chain.
+
+To deploy to staging, compile and deploy contract to testnet:
 
 ```
-truffle deploy --network ropsten
+MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" npm run deploy:staging
 ```
+
+### Deploying to Production
+
+When it is time to deploy contracts to mainnet, use the truffle deployment
+directly.
+
+To deploy to mainnet:
+
+```
+MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" truffle deploy --network mainnet
+```
+
+NOTE that the deployment process to mainnet differs to other deployment
+processes because the Miner and Treasury contracts are already deployed.
+Therefore, these two contracts are ignored during deployment.
+
+### Deploying to other chains
+
+Other chains can be used for deployment. For example, the MinerToken contracts
+can be deployed to another testnet such as Ropsten or even to a different chain
+such as Polygon (formerly Matic).
+
+To deploy to a different chain:
+
+```
+MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" truffle deploy --network chain-configured-in-truffle-config
+```
+
+The chain's details will need to be configured in truffle.js.
+
+### .env
+
+You can also place the MNEMONIC and/or INFURA_ID variables into an .env file.
 
 ## Registering a contract on Etherscan
 
