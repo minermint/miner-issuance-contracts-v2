@@ -16,7 +16,7 @@
         "test": "truffle run ganache-test"
     },
     "dependencies": {
-        "@chainlink/contracts": "0.0.10",
+        "@chainlink/contracts": "^0.1.7",
         "@openzeppelin/contracts": "^3.3.0",
         "@uniswap/v2-core": "^1.0.1",
         "@uniswap/v2-periphery": "*",

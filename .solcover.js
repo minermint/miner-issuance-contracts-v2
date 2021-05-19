@@ -5,6 +5,7 @@ module.exports = {
         "SafeMath.sol",
         "mocks/DaiMock.sol",
         "mocks/PriceFeedETHMock.sol",
-        "mocks/UniswapV2Router02Mock.sol"
+        "mocks/UniswapV2Router02Mock.sol",
+        "mocks/UniswapFactoryMock.sol"
     ]
 };

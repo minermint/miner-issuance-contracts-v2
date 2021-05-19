@@ -36,7 +36,7 @@ contract MinerSwap is PullPayment, Ownable {
         IMinerOracle minerOracleAddress,
         Issuance issuanceAddress,
         address uniswapRouterAddress
-    ) public {
+    ) {
         _setMinerOracle(minerOracleAddress);
         _setIssuance(issuanceAddress);
         _setUniswapRouterAddress(uniswapRouterAddress);

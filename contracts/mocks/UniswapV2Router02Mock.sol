@@ -1,4 +1,4 @@
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.6.2 <=0.8.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -9,7 +9,7 @@ contract UniswapV2Router02Mock {
 
     bool public underfund;
 
-    constructor(address factory_) public {
+    constructor(address factory_) {
         factory = factory_;
         underfund = false;
     }

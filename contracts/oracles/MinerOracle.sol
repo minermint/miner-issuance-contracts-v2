@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.6.2 <=0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -21,7 +21,7 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
 
     bytes32 public constant ADMIN = keccak256("ADMIN");
 
-    constructor() public {
+    constructor() {
         _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
         _setupRole(ADMIN, _msgSender()); // add contract creator to admin.
     }
