@@ -85,7 +85,7 @@ contract Treasury is Ownable {
     }
 
     function _inSigningPeriod(uint256 i) private view returns (bool) {
-        return proposals[i].expires > now;
+        return proposals[i].expires > block.timestamp;
     }
 
     /**
@@ -239,7 +239,7 @@ contract Treasury is Ownable {
     function _propose(ProposalType proposalType) private returns (uint256) {
         Proposal memory proposal = Proposal(
             msg.sender,
-            now + 48 hours,
+            block.timestamp + 48 hours,
             0,
             true,
             proposalType

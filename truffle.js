@@ -36,8 +36,9 @@ module.exports = {
         },
         mainnet: {
             provider: new HDWalletProvider(
-                process.env.PRIVATE_KEY,
+                config.mnemonic_or_private_key,
                 "wss://mainnet.infura.io/ws/v3/"+config.infura_id
+            ),
             network_id: "1",
             confirmations: 6,
             timeoutBlocks: 200,

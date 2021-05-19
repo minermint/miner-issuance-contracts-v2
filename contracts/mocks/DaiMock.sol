@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract DaiMock is ERC20, Ownable {
     using SafeMath for uint256;
 
-    constructor() public ERC20("Dai", "DAI") {
+    constructor() ERC20("Dai", "DAI") {
         _mint(owner(), uint256(1000000).mul(1e18));
     }
 }

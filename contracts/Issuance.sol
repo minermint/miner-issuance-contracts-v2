@@ -17,7 +17,7 @@ contract Issuance is AccessControl, Ownable {
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant ISSUER = keccak256("ISSUER");
 
-    constructor(IERC20 token) public {
+    constructor(IERC20 token) {
         _token = token;
 
         _setRoleAdmin(ADMIN, ADMIN); // admins can manage their own accounts.
