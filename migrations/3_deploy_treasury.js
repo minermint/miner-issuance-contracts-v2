@@ -4,7 +4,8 @@ const Miner = artifacts.require("./Miner.sol");
 const Treasury = artifacts.require("./Treasury.sol");
 
 module.exports = async function(deployer, network, accounts) {
-    if (network === "mainnet") {
+    if (network === "mainnet" || network === "kovan-fork" || network === "kovan") {
+        console.log("skipping Treasury deployment...");
         return;
     } else {
         const miner = await Miner.deployed();

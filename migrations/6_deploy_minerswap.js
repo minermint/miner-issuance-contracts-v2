@@ -10,10 +10,12 @@ module.exports = async function(deployer, network) {
     const issuance = await Issuance.deployed();
     const oracle = await MinerUSDOracle.deployed();
 
+    const contracts = config[network.replace("-fork", "")].contracts;
+
     let uniswapRouterAddress;
     let priceFeedETH = null;
 
-    if (network === "soliditycoverage" || network === "development" || "development-fork") {
+    if (network === "soliditycoverage" || network === "development" || network === "development-fork") {
         console.log("deploying mock uniswap router, chainlink price feed and dai token...");
 
         const DaiMock = artifacts.require("./mocks/DaiMock.sol");
@@ -30,8 +32,7 @@ module.exports = async function(deployer, network) {
 
         priceFeedETH = await deployer.deploy(PriceFeedETHMock);
     } else {
-        uniswapRouterAddress = config[network].uniswap_v2_router_02;
-
+        uniswapRouterAddress = contracts.uniswap_v2_router_02;
         console.log("using uniswap router at " + uniswapRouterAddress);
     }
 
