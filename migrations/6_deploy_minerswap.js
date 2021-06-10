@@ -10,8 +10,6 @@ module.exports = async function(deployer, network) {
     const issuance = await Issuance.deployed();
     const oracle = await MinerUSDOracle.deployed();
 
-    const contracts = config[network.replace("-fork", "")].contracts;
-
     let uniswapRouterAddress;
     let priceFeedETH = null;
 
@@ -32,6 +30,7 @@ module.exports = async function(deployer, network) {
 
         priceFeedETH = await deployer.deploy(PriceFeedETHMock);
     } else {
+        const contracts = config[network.replace("-fork", "")].contracts;
         uniswapRouterAddress = contracts.uniswap_v2_router_02;
         console.log("using uniswap router at " + uniswapRouterAddress);
     }
