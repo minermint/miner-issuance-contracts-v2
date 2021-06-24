@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
 
 import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
@@ -257,9 +258,9 @@ contract MinerSwap is PullPayment, Ownable {
     ) external returns (uint256) {
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
-        erc20.transferFrom(msg.sender, address(this), amount);
+        TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
 
-        erc20.approve(uniswapRouter, amount);
+        TransferHelper.safeApprove(token, uniswapRouter, amount);
 
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
