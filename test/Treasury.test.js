@@ -457,7 +457,7 @@ contract("Treasury", (accounts) => {
                     "Treasury/zero-amount");
             });
 
-            it.only("should not withdraw more than available", async () => {
+            it("should not withdraw more than available", async () => {
                 await treasury.proposeMint(supply);
                 await treasury.sign({ from: OWNER_2 });
 
