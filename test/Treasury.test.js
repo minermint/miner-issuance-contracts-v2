@@ -457,6 +457,19 @@ contract("Treasury", (accounts) => {
                     "Treasury/zero-amount");
             });
 
+            it.only("should not withdraw more than available", async () => {
+                await treasury.proposeMint(supply);
+                await treasury.sign({ from: OWNER_2 });
+
+                const add = new web3.utils.BN("1");
+
+                await treasury.proposeWithdrawal(ALICE, supply.add(add));
+
+                await expectRevert(
+                    treasury.sign({ from: OWNER_2 }),
+                    "ERC20: transfer amount exceeds balance");
+            });
+
             it("should fund issuance for distributing miner", async () => {
                 await treasury.proposeMint(supply);
                 await treasury.sign({ from: OWNER_2 });
