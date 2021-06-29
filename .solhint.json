@@ -3,8 +3,9 @@
     "rules": {
         "prettier/prettier": "error",
         "not-rely-on-time": "off",
-        "compiler-version": ["error","^0.6.0"],
-        "reason-string": ["warn",{"maxLength":64}]
+        "compiler-version": ["error","^0.8.0"],
+        "reason-string": ["warn",{"maxLength":64}],
+        "func-visibility": ["warn",{"ignoreConstructors":true}]
     },
     "plugins": [
         "prettier"

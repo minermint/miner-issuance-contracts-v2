@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.8.0 <0.9.0;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract PriceFeedETHMock is AggregatorV3Interface {
     using SafeMath for uint256;
 
-    function decimals() external override view returns (uint8) {
+    function decimals() external pure override returns (uint8) {
         return 8;
     }
 
-    function description() external override view returns (string memory) {
+    function description() external pure override returns (string memory) {
         return "Price Feed";
     }
 
     function getRoundData(uint80 _roundId)
         external
+        pure
         override
-        view
         returns (
             uint80,
             int256,
@@ -40,8 +40,8 @@ contract PriceFeedETHMock is AggregatorV3Interface {
 
     function latestRoundData()
         external
+        pure
         override
-        view
         returns (
             uint80,
             int256,
@@ -59,7 +59,7 @@ contract PriceFeedETHMock is AggregatorV3Interface {
         );
     }
 
-    function version() external override view returns (uint256) {
+    function version() external pure override returns (uint256) {
         return 1;
     }
 

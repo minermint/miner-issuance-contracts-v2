@@ -15,6 +15,27 @@ NOTE: MinerToken uses Truffle to deploy contracts but the Truffle Migrations
 process has been disabled and addresses and ABI information is stored under
 build/contracts. Truffle configuration is stored under build/truffle.
 
+### Miner Token and Treasury Contracts
+
+The Miner (MINER) and Treasury contracts have already been deployed and there
+are currently no plans to upgrade them. The Miner and Treasury contracts
+have been updated to compile with the newer versions of Solidity for testing
+purposes but should not be deployed to any testnets or mainnet. Instead, use
+[v1.1.0](https://github.com/minermint/miner-contracts/releases/tag/1.1.0) 
+contracts if deploying to a new testnet.
+
+Current Deployments:
+
+**Mainnet**
+
+Miner: 0xC9CC2cF97A3a21Fcd337658F6898A7860521A819
+Treasury: 0x864eef879b926fddc5615b67301f775d716ab1ca
+
+**Kovan**
+
+Miner: 0x9Ae895b0C267A4d7fd049c95C522Be99FbaEa6De
+Treasury: 0x687025F0E4121a16d4Da737F8625acC0c63ef8Ea
+
 ### Deploying to Development
 
 To deploy to development, start a local chain:

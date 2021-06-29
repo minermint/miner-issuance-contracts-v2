@@ -81,9 +81,14 @@ contract("MinerUSDOracle", (accounts) => {
     });
 
     it("should NOT add a new admin without admin access", async () => {
+        const adminRole = await oracle.getRoleAdmin(ADMIN);
+        const address = ALICE.toLowerCase();
+
         await expectRevert(
             oracle.grantRole(ADMIN, BOB, { from: ALICE }),
-            "AccessControl: sender must be an admin to grant."
+            "AccessControl: account " + address + " is missing role " +
+            adminRole + " -- Reason given: AccessControl: account " + address +
+            " is missing role " + adminRole + "."
         );
     });
 

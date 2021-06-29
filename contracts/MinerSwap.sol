@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.8.0 <0.9.0;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/payment/PullPayment.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/PullPayment.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
+import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
@@ -258,7 +258,12 @@ contract MinerSwap is PullPayment, Ownable {
     ) external returns (uint256) {
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
 
-        TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
+        TransferHelper.safeTransferFrom(
+            token,
+            msg.sender,
+            address(this),
+            amount
+        );
 
         TransferHelper.safeApprove(token, uniswapRouter, amount);
 

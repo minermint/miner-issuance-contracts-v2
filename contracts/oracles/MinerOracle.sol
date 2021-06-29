@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.6.2 <=0.8.4;
+pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IMinerOracle.sol";
 
@@ -42,8 +42,8 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
      */
     function getExchangeRate(uint256 index)
         external
-        override
         view
+        override
         returns (uint256, uint256)
     {
         ExchangeRate memory xRate = _getExchangeRate(index);
@@ -67,8 +67,8 @@ abstract contract MinerOracle is AccessControl, Ownable, IMinerOracle {
      */
     function getLatestExchangeRate()
         external
-        override
         view
+        override
         returns (uint256, uint256)
     {
         ExchangeRate memory latestExchangeRate = _getLatestExchangeRate();

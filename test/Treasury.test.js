@@ -23,7 +23,11 @@ contract("Treasury", (accounts) => {
     const FAST_FORWARD = 60*60*48;
     const ZERO_BALANCE = new BN(0);
 
-    const Access = {"None": "0", "Grant": "1", "Revoke": "2"};
+    const Access = {
+        "None": "0",
+        "Grant": "1",
+        "Revoke": "2"
+    };
 
     const decimals = new BN("18");
     const supply = new BN("1000000").mul(new BN("10").pow(decimals));
@@ -174,7 +178,7 @@ contract("Treasury", (accounts) => {
             });
 
             it("should NOT be able to propose grant access to a zero address",
-            async ()=> {
+            async () => {
                 await expectRevert(
                     treasury.proposeGrant(ZERO_ADDRESS),
                     "Treasury/invalid-address");
@@ -232,7 +236,7 @@ contract("Treasury", (accounts) => {
             })
 
             it("should NOT be able to propose revoke access to a zero address",
-            async ()=> {
+            async () => {
                 await treasury.proposeGrant(ALICE);
                 await treasury.sign({ from: OWNER_2 });
 
@@ -390,7 +394,7 @@ contract("Treasury", (accounts) => {
                 expect(new BN(balance)).to.be.bignumber.equal(supply);
             });
 
-            it("should NOT be able to mint zero (0) tokens", async ()=> {
+            it("should NOT be able to mint zero (0) tokens", async () => {
                 await expectRevert(
                     treasury.proposeMint(ZERO_BALANCE),
                     "Treasury/zero-amount");

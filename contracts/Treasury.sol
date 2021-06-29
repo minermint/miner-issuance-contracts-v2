@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.8.0 <0.9.0;
 
 import "./Miner.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-enum ProposalType { Mint, Access, Withdrawal }
+enum ProposalType {
+    Mint,
+    Access,
+    Withdrawal
+}
 
-enum AccessAction { None, Grant, Revoke }
+enum AccessAction {
+    None,
+    Grant,
+    Revoke
+}
 
 struct Proposal {
     address proposer;
@@ -203,11 +211,7 @@ contract Treasury is Ownable {
     /**
      * Endorse a veto.
      */
-    function endorseVeto()
-        public
-        latestProposalPending()
-        onlySignatory()
-    {
+    function endorseVeto() public latestProposalPending() onlySignatory() {
         uint256 totalVetoes = getVetoCount();
 
         require(totalVetoes > 0, "Treasury/no-vetoes");
@@ -379,7 +383,7 @@ contract Treasury is Ownable {
     function _printerGoesBrr(uint256 amount) private {
         _token.mint(amount);
 
-        Minted(amount);
+        emit Minted(amount);
     }
 
     function _withdraw(address recipient, uint256 amount) private {

@@ -202,6 +202,7 @@ module.exports = {
         "no-trailing-spaces": "error",
         "no-undef-init": "error",
         "no-undefined": "error",
+        "no-undef": "off",
         "no-underscore-dangle": "error",
         "no-unmodified-loop-condition": "error",
         "no-unneeded-ternary": "error",
@@ -261,7 +262,7 @@ module.exports = {
         ],
         "sort-imports": "error",
         "sort-keys": [
-            "error",
+            "warn",
             "asc"
         ],
         "sort-vars": "off",

@@ -16,11 +16,11 @@
         "test": "truffle run ganache-test"
     },
     "dependencies": {
-        "@chainlink/contracts": "^0.1.7",
-        "@openzeppelin/contracts": "^3.3.0",
-        "@uniswap/lib": "^1.1.1",
+        "@chainlink/contracts": "^0.1.9",
+        "@openzeppelin/contracts": "^4.1.0",
+        "@uniswap/lib": "^4.0.1-alpha",
         "@uniswap/v2-core": "^1.0.1",
-        "@uniswap/v2-periphery": "*",
+        "@uniswap/v2-periphery": "^1.1.0-beta.0",
         "bip39": "^3.0.3",
         "eth-json-rpc-filters": "^4.2.1",
         "ethereum-qr-code": "^0.3.0",

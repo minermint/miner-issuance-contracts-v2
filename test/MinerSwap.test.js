@@ -250,7 +250,7 @@ contract("MinerSwap", (accounts) => {
             async () => {
                 oracle.setExchangeRate(ZERO_BALANCE);
 
-                await expectRevert(
+                await expectRevert.unspecified(
                     minerSwap.swapEthToMiner(
                         minerMin,
                         deadline,
@@ -258,8 +258,7 @@ contract("MinerSwap", (accounts) => {
                             from: ALICE,
                             value: web3.utils.toWei("10", "ether")
                         }
-                    ),
-                    "SafeMath: division by zero -- Reason given: SafeMath: division by zero."
+                    )
                 );
             });
 
@@ -423,7 +422,6 @@ contract("MinerSwap", (accounts) => {
                 });
             });
 
-            // TODO: Should this be moved to escrow?
             it("should have an Ether balance in MinerSwap", async() => {
                 const expected = await minerSwap.calculateTokenToEthSwap(dai.address, amount);
 

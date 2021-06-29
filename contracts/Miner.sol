@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Miner is ERC20, Ownable {
-    uint8 private constant DECIMALS = 18;
-
     address private _minter;
 
     constructor() public ERC20("Miner", "MINER") Ownable() {
         // explicitly require a minter to be created.
         _minter = address(0);
-        _setupDecimals(DECIMALS);
     }
 
     /**
