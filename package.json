@@ -12,7 +12,8 @@
         "lint:solidity": "./node_modules/.bin/solhint -f table 'contracts/**/*.sol'",
         "lint:tests": "./node_modules/.bin/eslint ./test/",
         "deploy:development": "truffle deploy --network development",
-        "deploy:staging": "truffle deploy --network kovan",
+        "deploy:kovan": "truffle deploy --network kovan",
+        "deploy:goerli": "truffle deploy --network goerli",
         "test": "truffle run ganache-test"
     },
     "dependencies": {

@@ -80,15 +80,25 @@ contract("MinerUSDOracle", (accounts) => {
         expect(hasRole).to.be.true;
     });
 
+    it("should get a count of all the admin members", async () => {
+        const adminRole = await oracle.getRoleAdmin(ADMIN);
+        await oracle.grantRole(ADMIN, ALICE);
+        await oracle.grantRole(ADMIN, BOB, { from: ALICE })
+
+        expect(await oracle.getRoleMemberCount(adminRole))
+            .to
+            .be
+            .bignumber
+            .equal("3");
+    });
+
     it("should NOT add a new admin without admin access", async () => {
         const adminRole = await oracle.getRoleAdmin(ADMIN);
         const address = ALICE.toLowerCase();
 
         await expectRevert(
             oracle.grantRole(ADMIN, BOB, { from: ALICE }),
-            "AccessControl: account " + address + " is missing role " +
-            adminRole + " -- Reason given: AccessControl: account " + address +
-            " is missing role " + adminRole + "."
+            `AccessControl: account ${address} is missing role ${adminRole} -- Reason given: AccessControl: account $(address) is missing role ${admin}.`
         );
     });
 
