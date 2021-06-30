@@ -19,40 +19,41 @@ enum AccessAction {
     Revoke
 }
 
-struct Proposal {
-    address proposer;
-    uint256 expires;
-    uint256 signatures;
-    bool open;
-    ProposalType proposalType;
-}
-
-struct Veto {
-    address proposer;
-    uint256 endorsements;
-    bool enforced;
-    uint256 proposal;
-}
-
-struct MintProposal {
-    uint256 amount;
-}
-
-struct WithdrawalProposal {
-    address recipient;
-    uint256 amount;
-}
-
-struct AccessProposal {
-    address signatory;
-    AccessAction action;
-}
-
-struct Signatory {
-    AccessAction action;
-}
-
 contract Treasury is Ownable {
+
+    struct Proposal {
+        address proposer;
+        uint256 expires;
+        uint256 signatures;
+        bool open;
+        ProposalType proposalType;
+    }
+
+    struct Veto {
+        address proposer;
+        uint256 endorsements;
+        bool enforced;
+        uint256 proposal;
+    }
+
+    struct MintProposal {
+        uint256 amount;
+    }
+
+    struct WithdrawalProposal {
+        address recipient;
+        uint256 amount;
+    }
+
+    struct AccessProposal {
+        address signatory;
+        AccessAction action;
+    }
+
+    struct Signatory {
+        AccessAction action;
+    }
+
     using SafeMath for uint256;
     using SafeERC20 for Miner;
 
@@ -78,7 +79,7 @@ contract Treasury is Ownable {
     mapping(uint256 => MintProposal) public mintProposals;
     mapping(uint256 => WithdrawalProposal) public withdrawalProposals;
 
-    constructor(Miner token) public {
+    constructor(Miner token) {
         _token = token;
         _grantSignatory(_msgSender());
     }
@@ -177,6 +178,11 @@ contract Treasury is Ownable {
     {
         require(amount > 0, "Treasury/zero-amount");
 
+        require(
+            amount <= _token.balanceOf(address(this)),
+            "Treasury/amount-exceeds-balance"
+        );
+
         withdrawalProposals[proposals.length] = WithdrawalProposal(
             recipient,
             amount
@@ -240,7 +246,7 @@ contract Treasury is Ownable {
         }
     }
 
-    function _propose(ProposalType proposalType) private returns (uint256) {
+    function _propose(ProposalType proposalType) private {
         Proposal memory proposal = Proposal(
             msg.sender,
             block.timestamp + 48 hours,

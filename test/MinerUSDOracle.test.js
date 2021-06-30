@@ -98,7 +98,7 @@ contract("MinerUSDOracle", (accounts) => {
 
         await expectRevert(
             oracle.grantRole(ADMIN, BOB, { from: ALICE }),
-            `AccessControl: account ${address} is missing role ${adminRole} -- Reason given: AccessControl: account $(address) is missing role ${admin}.`
+            `AccessControl: account ${address} is missing role ${adminRole} -- Reason given: AccessControl: account ${address} is missing role ${adminRole}.`
         );
     });
 
