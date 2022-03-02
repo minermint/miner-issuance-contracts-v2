@@ -184,7 +184,7 @@ contract("MinerSwap", (accounts) => {
                 });
             });
 
-            it("should swap eth for miner", async () => {
+            it.only("should swap eth for miner", async () => {
                 await minerSwap.swapEthToMiner(
                     minerMin,
                     deadline,
