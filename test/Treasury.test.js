@@ -309,6 +309,7 @@ contract("Treasury", (accounts) => {
                 await treasury.proposeMint(supply);
 
                 time.increase(FAST_FORWARD);
+                time.advanceBlock();
 
                 const isActive = await treasury.inSigningPeriod();
 

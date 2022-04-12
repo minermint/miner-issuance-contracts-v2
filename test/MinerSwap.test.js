@@ -33,7 +33,7 @@ contract("MinerSwap", (accounts) => {
     let miner, minerSwap, issuance, aggregator, router, oracle;
 
     const decimals = new BN("18");
-    const supply = new BN("1000000").mul(new BN("10").pow(decimals));
+    const supply = new BN("1000").mul(new BN("10").pow(decimals));
 
     let deadline;
 
@@ -184,7 +184,7 @@ contract("MinerSwap", (accounts) => {
                 });
             });
 
-            it.only("should swap eth for miner", async () => {
+            it("should swap eth for miner", async () => {
                 await minerSwap.swapEthToMiner(
                     minerMin,
                     deadline,
@@ -239,7 +239,7 @@ contract("MinerSwap", (accounts) => {
                         deadline,
                         {
                             from: ALICE,
-                            value: web3.utils.toWei(supply + 1, "ether")
+                            value: supply.add(new BN(1))
                         }
                     ),
                     "Issuance/balance-exceeded"
@@ -422,6 +422,7 @@ contract("MinerSwap", (accounts) => {
                 });
             });
 
+            // TODO: Should this be moved to escrow?
             it("should have an Ether balance in MinerSwap", async() => {
                 const expected = await minerSwap.calculateTokenToEthSwap(dai.address, amount);
 

@@ -208,7 +208,7 @@ contract("Miner", accounts => {
                 const spender = ZERO_ADDRESS;
 
                 it("should revert", async () => {
-                    await expectRevert(token.approve(spender, amount), "ERC20: approve to the zero address.");
+                    await expectRevert(token.approve(spender, amount), "ERC20: approve to the zero address");
                 });
             });
         });
@@ -328,7 +328,7 @@ contract("Miner", accounts => {
                         it("should revert when more than the full allowance is removed", async () => {
                             await expectRevert(
                                 token.decreaseAllowance(spender, approvedAmount.addn(1), { from: initialHolder })
-                            , "Reason given: ERC20: decreased allowance below zero");
+                            , "ERC20: decreased allowance below zero");
                         });
                     });
                 }
