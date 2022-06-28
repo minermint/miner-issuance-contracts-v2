@@ -2,6 +2,8 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "hardhat/console.sol";
+
 contract UniswapV2Router02Mock {
     using SafeMath for uint256;
 
@@ -56,7 +58,7 @@ contract UniswapV2Router02Mock {
      */
     function getAmountsOut(uint256 amountIn, address[] memory path)
         public
-        pure
+        view
         returns (uint256[] memory amounts)
     {
         uint256 amountOut = 0;

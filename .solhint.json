@@ -1,13 +1,7 @@
 {
     "extends": "solhint:recommended",
     "rules": {
-        "prettier/prettier": "error",
-        "not-rely-on-time": "off",
-        "compiler-version": ["error","^0.8.0"],
-        "reason-string": ["warn",{"maxLength":64}],
-        "func-visibility": ["warn",{"ignoreConstructors":true}]
-    },
-    "plugins": [
-        "prettier"
-    ]
+        "compiler-version": ["error", "^0.8.0"],
+        "func-visibility": ["warn", { "ignoreConstructors": true }]
+    }
 }

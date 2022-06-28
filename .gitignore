@@ -14,13 +14,12 @@ coverage.json
 build/
 networks/soliditycoverage
 
-# Certain build definitions
-build/contracts/abis
-build/contracts/development.json
-
-# ignore the truffle definitions. they have been creating issues and sometimes
-# need to be deleted.
-build/truffle
+# Hardhat files
+artifacts
+deployments/localhost
+deployments/hardhat
+cache
+typechain-types
 
 # Dependency directories
 node_modules/
