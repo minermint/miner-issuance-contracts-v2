@@ -15,7 +15,6 @@ import "./oracles/IMinerOracle.sol";
 import "./Issuance.sol";
 
 /// @title Swap Ether and other ERC20 tokens for Miner.
-/// @author hayden.y@minertoken.io
 contract MinerSwap is PullPayment, Ownable {
     using SafeMath for uint256;
 

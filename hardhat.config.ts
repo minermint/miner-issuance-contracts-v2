@@ -9,34 +9,58 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-docgen";
+import {
+    networkConfig,
+    privateKey,
+    mnemonic,
+    reportGas,
+    etherscanAPIKey,
+} from "./config";
 
 dotenv.config();
 
+task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners();
+
+    for (const account of accounts) {
+        console.log(account.address);
+    }
+});
+
 const config: HardhatUserConfig = {
-    solidity: "0.8.9",
+    solidity: {
+        compilers: [
+            {
+                version: "0.8.9",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                },
+            },
+        ],
+    },
     networks: {
-        ropsten: {
-            url: process.env.ROPSTEN_URL || "",
-            accounts:
-                process.env.PRIVATE_KEY !== undefined
-                    ? [process.env.PRIVATE_KEY]
-                    : [],
+        kovan: {
+            url: networkConfig["kovan"].url,
+            accounts: privateKey !== undefined ? [privateKey] : [],
         },
         hardhat: {
             accounts: {
-                mnemonic: process.env.MNEMONIC,
+                mnemonic: mnemonic,
             },
             forking: {
-                url: "https://eth-kovan.alchemyapi.io/v2/lnEmnlnoMNq0mlWnbHhyakSPY4Zuskej",
+                url: networkConfig["hardhat"].url,
             },
         },
     },
     gasReporter: {
-        enabled: process.env.REPORT_GAS !== undefined,
+        enabled: reportGas !== undefined,
         currency: "USD",
     },
     etherscan: {
-        apiKey: process.env.ETHERSCAN_API_KEY,
+        apiKey: etherscanAPIKey,
     },
     namedAccounts: {
         deployer: 0,

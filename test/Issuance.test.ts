@@ -36,8 +36,7 @@ describe("Issuance", () => {
     });
 
     it("should fund the token issuance", async () => {
-        let actual = await miner.balanceOf(issuance.address);
-        expect(actual).to.be.equal(supply);
+        expect(await miner.balanceOf(issuance.address)).to.be.equal(supply);
     });
 
     it("should be able to change contract ownership", async () => {

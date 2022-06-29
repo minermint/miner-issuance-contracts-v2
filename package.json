@@ -12,7 +12,7 @@
         "deploy:development": "npx hardhat deploy --network development",
         "deploy:kovan": "npx hardhat deploy --network kovan",
         "deploy:goerli": "npx hardhat deploy --network goerli",
-        "test": "npx hardhat test",
+        "test": "npx hardhat accounts && npx hardhat test",
         "lint": "npm run lint:sol && npm run lint:ts && npm run prettier:check",
         "lint:sol": "solhint --max-warnings 5 \"contracts/**/*.sol\"",
         "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
