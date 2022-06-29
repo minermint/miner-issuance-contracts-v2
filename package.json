@@ -9,7 +9,7 @@
     "scripts": {
         "compile": "npx hardhat compile",
         "coverage": "npx hardhat coverage",
-        "deploy:development": "npx hardhat deploy --network development",
+        "deploy:development": "npx hardhat deploy --network localhost",
         "deploy:kovan": "npx hardhat deploy --network kovan",
         "deploy:goerli": "npx hardhat deploy --network goerli",
         "test": "npx hardhat accounts && npx hardhat test",
