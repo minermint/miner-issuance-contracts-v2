@@ -2,8 +2,6 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
 contract UniswapV2Router02Mock {
     using SafeMath for uint256;
 
