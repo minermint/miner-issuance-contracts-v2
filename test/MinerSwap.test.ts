@@ -4,6 +4,7 @@ import { Contract, BigNumber } from "ethers";
 import { testConfig } from "../config";
 import { getTwentyMinuteDeadline } from "./utils/deadline";
 import { advanceBlockTimestamp } from "./utils/mining";
+import { getUniswapV2Router02, getAggregatorV3ETHUSD, getDai } from "./utils/contracts/periphery";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
@@ -49,22 +50,15 @@ describe("MinerSwap", () => {
 
         await miner.transfer(issuance.address, supply);
 
-        router = await ethers.getContract("UniswapV2Router02Mock");
-
-        const tx = {
-            to: router.address,
-            value: ethers.utils.parseEther("2"),
-        };
-
-        await waffle.provider.getSigner().sendTransaction(tx);
+        router = getUniswapV2Router02();
 
         minerSwap = await ethers.getContract("MinerSwap");
 
-        issuance.addIssuer(minerSwap.address);
+        await issuance.addIssuer(minerSwap.address);
 
         deadline = await getTwentyMinuteDeadline();
 
-        aggregator = await ethers.getContract("PriceFeedETHMock");
+        aggregator = getAggregatorV3ETHUSD();
     });
 
     describe("instantiation", () => {
@@ -266,32 +260,12 @@ describe("MinerSwap", () => {
             let minerMin: BigNumber;
 
             beforeEach(async () => {
-                dai = await ethers.getContract("DaiMock");
+                dai = getDai();
+
                 minerMin = await minerSwap.calculateTokenToMinerSwap(
                     dai.address,
                     amount
                 );
-            });
-
-            describe("checking mock setup", async () => {
-                it("should have a Miner to USD price of 1.24 USD", async () => {
-                    const xRate = await oracle.getLatestExchangeRate();
-                    const usdPerMiner = xRate[0];
-
-                    expect(usdPerMiner).to.be.equal(EXCHANGE_RATE);
-                });
-
-                it("should have an exchange rate of 1 Dai for 0.001 eth", async () => {
-                    const expected = ethers.utils.parseEther("0.001");
-
-                    const amountIn = ethers.utils.parseEther("1");
-                    const actual = await minerSwap.calculateTokenToEthSwap(
-                        dai.address,
-                        amountIn
-                    );
-
-                    expect(actual).to.be.equal(expected);
-                });
             });
 
             describe("calculating swaps", async () => {
@@ -384,6 +358,11 @@ describe("MinerSwap", () => {
             it("should emit a Swapped Token for Miner event", async () => {
                 await dai.approve(minerSwap.address, amount);
 
+                const expected = await minerSwap.calculateTokenToEthSwap(
+                    dai.address,
+                    amount
+                )
+
                 await expect(
                     minerSwap.swapTokenToMiner(
                         dai.address,
@@ -399,10 +378,7 @@ describe("MinerSwap", () => {
                         dai.address,
                         amount,
                         minerMin,
-                        await minerSwap.calculateTokenToEthSwap(
-                            dai.address,
-                            amount
-                        )
+                        expected
                     );
             });
 
@@ -497,21 +473,6 @@ describe("MinerSwap", () => {
                         deadline
                     )
                 ).revertedWith("MinerSwap/slippage");
-            });
-
-            it("should NOT swap if Uniswap sends less ETH than trade worth", async () => {
-                await dai.approve(minerSwap.address, amount);
-
-                await router.underfundEthTransfer(true);
-
-                await expect(
-                    minerSwap.swapTokenToMiner(
-                        dai.address,
-                        amount,
-                        minerMin,
-                        deadline
-                    )
-                ).revertedWith("MinerSwap/invalid-eth-amount-transferred");
             });
         });
 
