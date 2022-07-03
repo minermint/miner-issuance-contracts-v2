@@ -11,7 +11,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
-import "./oracles/IMinerOracle.sol";
+import "./oracles/TruflationUSDMinerPairMock.sol";
 import "./Issuance.sol";
 
 /// @title Swap Ether and other ERC20 tokens for Miner.
@@ -20,7 +20,7 @@ contract MinerSwap is PullPayment, Ownable {
 
     AggregatorV3Interface public priceFeedOracle;
 
-    IMinerOracle public minerOracle;
+    TruflationUSDMinerPairMock public minerOracle;
 
     Issuance public issuance;
 
@@ -28,12 +28,12 @@ contract MinerSwap is PullPayment, Ownable {
 
     /**
      * Initializes the MinerSwap contract.
-     * @param minerOracleAddress IMinerOracle The Miner oracle contract.
+     * @param minerOracleAddress TruflationUSDMinerPairMock The Miner oracle contract.
      * @param issuanceAddress Issuance The Issuance contract.
      * @param uniswapRouterAddress address The Uniswap Router contract.
      */
     constructor(
-        IMinerOracle minerOracleAddress,
+        TruflationUSDMinerPairMock minerOracleAddress,
         Issuance issuanceAddress,
         address uniswapRouterAddress
     ) {
@@ -44,9 +44,12 @@ contract MinerSwap is PullPayment, Ownable {
 
     /**
      * Sets the Miner oraacle contract.
-     * @param minerOracleAddress IMinerOracle The Miner oracle contract.
+     * @param minerOracleAddress IMinerTruflationUSDMinerPairMockOracle The Miner oracle contract.
      */
-    function setMinerOracle(IMinerOracle minerOracleAddress) public onlyOwner {
+    function setMinerOracle(TruflationUSDMinerPairMock minerOracleAddress)
+        public
+        onlyOwner
+    {
         _setMinerOracle(minerOracleAddress);
     }
 
@@ -69,7 +72,9 @@ contract MinerSwap is PullPayment, Ownable {
         priceFeedOracle = priceFeedOracleAddress;
     }
 
-    function _setMinerOracle(IMinerOracle minerOracleAddress) private {
+    function _setMinerOracle(TruflationUSDMinerPairMock minerOracleAddress)
+        private
+    {
         minerOracle = minerOracleAddress;
     }
 
@@ -95,7 +100,7 @@ contract MinerSwap is PullPayment, Ownable {
         priceFeedSet
         returns (uint256)
     {
-        (uint256 rate, ) = minerOracle.getLatestExchangeRate();
+        uint256 rate = minerOracle.getTodaysExchangeRate();
 
         (, int256 answer, , , ) = priceFeedOracle.latestRoundData();
 

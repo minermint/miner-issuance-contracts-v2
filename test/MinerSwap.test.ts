@@ -4,7 +4,11 @@ import { Contract, BigNumber } from "ethers";
 import { testConfig } from "../config";
 import { getTwentyMinuteDeadline } from "./utils/deadline";
 import { advanceBlockTimestamp } from "./utils/mining";
-import { getUniswapV2Router02, getAggregatorV3ETHUSD, getDai } from "./utils/contracts/periphery";
+import {
+    getUniswapV2Router02,
+    getAggregatorV3ETHUSD,
+    getDai,
+} from "./utils/contracts/periphery";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
@@ -43,8 +47,7 @@ describe("MinerSwap", () => {
         );
 
         await deployments.fixture(["all"]);
-        oracle = await ethers.getContract("MinerUSDOracle");
-        oracle.setExchangeRate(EXCHANGE_RATE);
+        oracle = await ethers.getContract("TruflationUSDMinerPairMock");
 
         issuance = await ethers.getContract("Issuance");
 
@@ -141,8 +144,8 @@ describe("MinerSwap", () => {
 
                 const roundData = await aggregator.latestRoundData();
                 const answer = roundData[1];
-                const xRate = await oracle.getLatestExchangeRate();
-                expectedRate = xRate[0]
+                const xRate = await oracle.getTodaysExchangeRate();
+                expectedRate = xRate
                     .mul(ethers.utils.parseEther("1"))
                     .div(answer);
 
@@ -214,18 +217,6 @@ describe("MinerSwap", () => {
                 ).to.be.revertedWith("Issuance/balance-exceeded");
             });
 
-            it("should NOT convert if rate is zero", async () => {
-                await oracle.setExchangeRate(ZERO_BALANCE);
-
-                expect(
-                    minerSwap
-                        .connect(await ethers.getSigner(alice))
-                        .swapEthToMiner(minerMin, deadline, {
-                            value: ethers.utils.parseEther("10"),
-                        })
-                ).to.be.revertedWith("");
-            });
-
             it("should NOT swap when deadline expires", async () => {
                 advanceBlockTimestamp(30 * 60);
 
@@ -282,8 +273,8 @@ describe("MinerSwap", () => {
                     path[0] = await router.WETH();
                     path[1] = dai.address;
 
-                    const minerUSDRate = await oracle.getLatestExchangeRate();
-                    const usdPerMiner = minerUSDRate[0];
+                    const minerUSDRate = await oracle.getTodaysExchangeRate();
+                    const usdPerMiner = minerUSDRate;
                     // 124000000 cents to the 8 dp or 1.24 USD
 
                     const roundData = await aggregator.latestRoundData();
@@ -361,7 +352,7 @@ describe("MinerSwap", () => {
                 const expected = await minerSwap.calculateTokenToEthSwap(
                     dai.address,
                     amount
-                )
+                );
 
                 await expect(
                     minerSwap.swapTokenToMiner(
