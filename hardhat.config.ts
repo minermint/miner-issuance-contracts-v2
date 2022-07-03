@@ -10,65 +10,65 @@ import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-docgen";
 import {
-    networkConfig,
-    privateKey,
-    mnemonic,
-    reportGas,
-    etherscanAPIKey,
+  networkConfig,
+  privateKey,
+  mnemonic,
+  reportGas,
+  etherscanAPIKey,
 } from "./config";
 
 dotenv.config();
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-    const accounts = await hre.ethers.getSigners();
+  const accounts = await hre.ethers.getSigners();
 
-    for (const account of accounts) {
-        console.log(account.address);
-    }
+  for (const account of accounts) {
+    console.log(account.address);
+  }
 });
 
 const config: HardhatUserConfig = {
-    solidity: {
-        compilers: [
-            {
-                version: "0.8.9",
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 200,
-                    },
-                },
-            },
-        ],
-    },
-    networks: {
-        kovan: {
-            url: networkConfig["kovan"].url,
-            accounts: privateKey !== undefined ? [privateKey] : [],
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.9",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
         },
-        hardhat: {
-            accounts: {
-                mnemonic: mnemonic,
-            },
-            forking: {
-                url: networkConfig["hardhat"].url,
-            },
-        },
+      },
+    ],
+  },
+  networks: {
+    kovan: {
+      url: networkConfig["kovan"].url,
+      accounts: privateKey !== undefined ? [privateKey] : [],
     },
-    gasReporter: {
-        enabled: reportGas !== undefined,
-        currency: "USD",
+    hardhat: {
+      accounts: {
+        mnemonic: mnemonic,
+      },
+      forking: {
+        url: networkConfig["hardhat"].url,
+      },
     },
-    etherscan: {
-        apiKey: etherscanAPIKey,
-    },
-    namedAccounts: {
-        deployer: 0,
-        owner: 1,
-        issuer: 2,
-        alice: 3,
-        bob: 4,
-    },
+  },
+  gasReporter: {
+    enabled: reportGas !== undefined,
+    currency: "USD",
+  },
+  etherscan: {
+    apiKey: etherscanAPIKey,
+  },
+  namedAccounts: {
+    deployer: 0,
+    owner: 1,
+    issuer: 2,
+    alice: 3,
+    bob: 4,
+  },
 };
 
 export default config;
