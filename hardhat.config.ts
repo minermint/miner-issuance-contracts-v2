@@ -9,42 +9,66 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-docgen";
+import {
+  networkConfig,
+  privateKey,
+  mnemonic,
+  reportGas,
+  etherscanAPIKey,
+} from "./config";
 
 dotenv.config();
 
+task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners();
+
+  for (const account of accounts) {
+    console.log(account.address);
+  }
+});
+
 const config: HardhatUserConfig = {
-    solidity: "0.8.9",
-    networks: {
-        ropsten: {
-            url: process.env.ROPSTEN_URL || "",
-            accounts:
-                process.env.PRIVATE_KEY !== undefined
-                    ? [process.env.PRIVATE_KEY]
-                    : [],
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.9",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
         },
-        hardhat: {
-            accounts: {
-                mnemonic: process.env.MNEMONIC,
-            },
-            forking: {
-                url: "https://eth-kovan.alchemyapi.io/v2/lnEmnlnoMNq0mlWnbHhyakSPY4Zuskej",
-            },
-        },
+      },
+    ],
+  },
+  networks: {
+    kovan: {
+      url: networkConfig["kovan"].url,
+      accounts: privateKey !== undefined ? [privateKey] : [],
     },
-    gasReporter: {
-        enabled: process.env.REPORT_GAS !== undefined,
-        currency: "USD",
+    hardhat: {
+      accounts: {
+        mnemonic: mnemonic,
+      },
+      forking: {
+        url: networkConfig["hardhat"].url,
+      },
     },
-    etherscan: {
-        apiKey: process.env.ETHERSCAN_API_KEY,
-    },
-    namedAccounts: {
-        deployer: 0,
-        owner: 1,
-        issuer: 2,
-        alice: 3,
-        bob: 4,
-    },
+  },
+  gasReporter: {
+    enabled: reportGas !== undefined,
+    currency: "USD",
+  },
+  etherscan: {
+    apiKey: etherscanAPIKey,
+  },
+  namedAccounts: {
+    deployer: 0,
+    owner: 1,
+    issuer: 2,
+    alice: 3,
+    bob: 4,
+  },
 };
 
 export default config;

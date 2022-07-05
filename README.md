@@ -1,28 +1,23 @@
-# Miner Token Contracts
+# Miner Token Issuance Contracts
 
 # Building Contracts
 
+```
+npm run compile
+```
+
 ## Deploying a contract
 
-Contracts can be deployed to the various networks configured in truffle.js.
+Contracts can be deployed to the various networks configured in Hardhat config.
 
 You will need a mnenomic or private key to deploy contracts to various networks.
 
 To deploy a contract to a network, run one of the deployment targets. There are
 convenience npm targets you can run to deploy to development or staging.
 
-NOTE: MinerToken uses Truffle to deploy contracts but the Truffle Migrations
-process has been disabled and addresses and ABI information is stored under
-build/contracts. Truffle configuration is stored under build/truffle.
-
 ### Miner Token and Treasury Contracts
 
-The Miner (MINER) and Treasury contracts have already been deployed and there
-are currently no plans to upgrade them. The Miner and Treasury contracts
-have been updated to compile with the newer versions of Solidity for testing
-purposes but should not be deployed to any testnets or mainnet. Instead, use
-[v1.1.0](https://github.com/minermint/miner-contracts/releases/tag/1.1.0) 
-contracts if deploying to a new testnet.
+The Miner (MINER) token is already deployed. Any issuance tests against Miner should be executed against a version available on a live network (mainnet or testnet).
 
 Current Deployments:
 
@@ -41,13 +36,7 @@ Treasury: 0x687025F0E4121a16d4Da737F8625acC0c63ef8Ea
 To deploy to development, start a local chain:
 
 ```
-npx ganache-cli -d -m "12 or 24 word seed phrase" -v
-```
-
-Compile and deploy contracts to the chain:
-
-```
-MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" npm run deploy:development
+npm run deploy:development -- --fork remote_api_url
 ```
 
 ### Deploying to Staging
@@ -57,60 +46,33 @@ Staging refers to Ethereum testnet, in particular the Kovan test chain.
 To deploy to staging, compile and deploy contract to testnet:
 
 ```
-MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" npm run deploy:staging
+npm run deploy:staging
 ```
 
 ### Deploying to Production
 
-When it is time to deploy contracts to mainnet, use the truffle deployment
+When it is time to deploy contracts to mainnet, use the Hardhat cli
 directly.
 
 To deploy to mainnet:
 
 ```
-MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" truffle deploy --network mainnet
+npx hardhat deploy --network mainnet
 ```
-
-NOTE that the deployment process to mainnet differs to other deployment
-processes because the Miner and Treasury contracts are already deployed.
-Therefore, these two contracts are ignored during deployment.
-
-### Deploying to other chains
-
-Other chains can be used for deployment. For example, the MinerToken contracts
-can be deployed to another testnet such as Ropsten or even to a different chain
-such as Polygon (formerly Matic).
-
-To deploy to a different chain:
-
-```
-MNEMONIC="12 or 24 word seed phrase" INFURA_ID="your-infura-id" truffle deploy --network chain-configured-in-truffle-config
-```
-
-The chain's details will need to be configured in truffle.js.
 
 ### .env
 
 You can also place the MNEMONIC and/or INFURA_ID variables into an .env file.
 
-## Registering a contract on Etherscan
-
-The source code will need to be flattened to register a contract on Etherscan.
-
-To flatten the contract code:
+## Registering a contract on Etherscan and Sourcify
 
 ```
-cd /path/to/project/files/
-npx truffle-flattener contracts/Miner.sol > build/contracts/Miner.flattened.sol
+npx hardhat etherscan-verify
 ```
 
-Go to Etherscan (https://etherscan.io/) and load the contract. There will be a
-"verify" link. Click on this link and specify the following:
-
-Contract Type: single file
-Contract Compiler Version: 0.6.4
-
-(There are now two other Contract Types for registering source code; multi-file, and json; these are experimental and will require more investigation).
+```
+npx hardhat sourcify
+```
 
 # Auditing
 
@@ -147,7 +109,8 @@ where abc123 is your MYTHX API KEY.
 To launch an audit, run:
 
 ```
-truffle run verify
+mythx analyze ./contracts/ --remap-import "@openzeppelin/=$(pwd)/node_modules/@openzeppelin/" --remap-import "@un
+iswap/=$(pwd)/node_modules/@uniswap/" --remap-import "@chainlink/=$(pwd)/node_modules/@chainlink/" --solc-version 0.8.9
 ```
 
 Once completed, you can retrieve the report from your Mythx.io account.
@@ -156,22 +119,10 @@ Once completed, you can retrieve the report from your Mythx.io account.
 
 Solidity coverage checks that all tests cover all Solidity contract code.
 
-To install:
-
-```
-npm i -D solidity-coverage
-```
-
-or to install from package.json:
-
-```
-npm i
-```
-
 To launch a code coverage test, run:
 
 ```
-truffle run coverage
+npx hardhat coverage
 ```
 
-To see which files are covered by solidity coverage or to add and remove files files from the code coverage, see .solcover.js.
+To fully evaluate the test coverage of contracts, open ./coverage/index.html.
