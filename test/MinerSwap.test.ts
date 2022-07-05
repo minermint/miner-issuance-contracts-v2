@@ -82,7 +82,7 @@ describe("MinerSwap", () => {
     it("should be able to change miner oracle", async () => {
       await minerSwap.setMinerOracle(aggregator.address);
 
-      expect(await minerSwap.minerOracle()).to.be.equal(aggregator.address);
+      expect(await minerSwap.truflation()).to.be.equal(aggregator.address);
     });
 
     it("should be able to change issuance", async () => {
@@ -104,7 +104,7 @@ describe("MinerSwap", () => {
       const amount = ethers.utils.parseEther("0.001");
 
       await expect(
-        minerSwap.swapEthToMiner(0, deadline, { value: amount })
+        minerSwap.issueMinerForExactETH(0, deadline, { value: amount })
       ).to.be.revertedWith("MinerSwap/no-oracle-set");
     });
   });
@@ -129,44 +129,40 @@ describe("MinerSwap", () => {
       await minerSwap.setPriceFeedOracle(aggregator.address);
     });
 
-    describe("swapping eth for miner", () => {
+    describe("issuing miner for ETH", () => {
       const amount = ethers.utils.parseEther("0.001");
       let expectedRate: any, expected: any;
 
       let minerMin: BigNumber;
 
       beforeEach(async () => {
-        minerMin = await minerSwap.calculateEthToMinerSwap(amount);
+        minerMin = await minerSwap.calculateETHToMiner(amount);
 
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
         const xRate = await oracle.getTodaysExchangeRate();
         expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
 
-        /*
-         * buffer the amount with 18 zeros so we get back an expected
-         * amount in wei.
-         */
         expected = amount.mul(ethers.utils.parseEther("1")).div(expectedRate);
       });
 
-      describe("calculating swaps", async () => {
+      describe("calculating issuance", async () => {
         it("should get the conversion rate", async () => {
-          const swapped = await minerSwap.calculateEthPerMiner();
+          const swapped = await minerSwap.calculateETHPerMiner();
           expect(swapped).to.be.equal(expectedRate);
         });
 
         it("should get conversion amount", async () => {
-          const swapped = await minerSwap.calculateEthToMinerSwap(amount);
+          const swapped = await minerSwap.calculateETHToMiner(amount);
 
           expect(swapped).to.be.equal(expected);
         });
       });
 
-      it("should swap eth for miner", async () => {
+      it("should issue miner for exact ETH", async () => {
         await minerSwap
           .connect(await ethers.getSigner(alice))
-          .swapEthToMiner(minerMin, deadline, {
+          .issueMinerForExactETH(minerMin, deadline, {
             value: amount,
           });
 
@@ -175,43 +171,48 @@ describe("MinerSwap", () => {
         expect(balance).to.be.equal(expected);
       });
 
-      it("should emit a Swapped Eth to Miner event", async () => {
+      it("should emit a IssuedMinerForExactETH event", async () => {
         await expect(
           minerSwap
             .connect(await ethers.getSigner(alice))
-            .swapEthToMiner(minerMin, deadline, {
+            .issueMinerForExactETH(minerMin, deadline, {
               value: amount,
             })
         )
-          .to.emit(minerSwap, "SwappedEthToMiner")
+          .to.emit(minerSwap, "IssuedMinerForExactETH")
           .withArgs(alice, issuance.address, amount, expected);
       });
 
-      it("should NOT convert zero tokens", async () => {
+      it("should NOT convert zero ETH", async () => {
         await expect(
           minerSwap
             .connect(await ethers.getSigner(alice))
-            .swapEthToMiner(minerMin, deadline, {
+            .issueMinerForExactETH(minerMin, deadline, {
               value: ethers.constants.Zero,
             })
         ).to.be.revertedWith("MinerSwap/deposit-invalid");
       });
 
-      it("should NOT exceed converting more tokens than are available", async () => {
+      it("should NOT exceed issuing more miner than the issuance has available", async () => {
+        // eat up the entire supply of issuance.
         await expect(
           minerSwap
             .connect(await ethers.getSigner(alice))
-            .swapEthToMiner(minerMin, deadline, {
-              value: supply.add(1),
-            })
+            .issueMinerForExactETH(
+              await minerSwap.calculateETHToMiner(supply.add(1)),
+              deadline,
+              {
+                value: supply.add(1),
+              }
+            )
         ).to.be.revertedWith("Issuance/balance-exceeded");
       });
 
-      it("should NOT swap when deadline expires", async () => {
+      it("should NOT issue when deadline expires", async () => {
         advanceBlockTimestamp(30 * 60);
 
         await expect(
-          minerSwap.swapEthToMiner(minerMin, deadline, {
+          minerSwap.issueMinerForExactETH(minerMin, deadline, {
             value: ethers.utils.parseEther("10"),
           })
         ).to.be.revertedWith("MinerSwap/deadline-expired");
@@ -219,14 +220,12 @@ describe("MinerSwap", () => {
 
       it("should NOT convert if price falls below slippage", async () => {
         // increase the min miner beyond what will be swapped.
-        const minerMin = (await minerSwap.calculateEthToMinerSwap(amount)).add(
-          1
-        );
+        const minerMin = (await minerSwap.calculateETHToMiner(amount)).add(1);
 
         await expect(
           minerSwap
             .connect(await ethers.getSigner(alice))
-            .swapEthToMiner(minerMin, deadline, {
+            .issueMinerForExactETH(minerMin, deadline, {
               value: amount,
             })
         ).to.be.revertedWith("MinerSwap/slippage");
@@ -303,7 +302,7 @@ describe("MinerSwap", () => {
 
           const amounts = await router.getAmountsOut(amount, path);
 
-          const ethPerMiner = await minerSwap.calculateEthPerMiner();
+          const ethPerMiner = await minerSwap.calculateETHPerMiner();
           const decimals = ethers.utils.parseEther("1");
 
           const expected = amounts[path.length - 1]
@@ -442,7 +441,7 @@ describe("MinerSwap", () => {
 
         await minerSwap
           .connect(await ethers.getSigner(alice))
-          .swapEthToMiner(0, deadline, {
+          .issueMinerForExactETH(0, deadline, {
             value: wei,
           });
 
@@ -462,7 +461,7 @@ describe("MinerSwap", () => {
 
         await minerSwap
           .connect(await ethers.getSigner(alice))
-          .swapEthToMiner(0, deadline, {
+          .issueMinerForExactETH(0, deadline, {
             value: wei,
           });
 
