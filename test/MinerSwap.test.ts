@@ -242,10 +242,7 @@ describe("MinerSwap", () => {
       beforeEach(async () => {
         dai = getDai();
 
-        minerMin = await minerSwap.calculateTokenToMinerSwap(
-          dai.address,
-          amount
-        );
+        minerMin = await minerSwap.calculateTokensToMiner(dai.address, amount);
       });
 
       describe("calculating swaps", async () => {
@@ -284,7 +281,7 @@ describe("MinerSwap", () => {
         });
 
         it("should get the amount of token required to convert to eth", async () => {
-          const actual = await minerSwap.calculateTokenToEthSwap(
+          const actual = await minerSwap.calculateTokensToETH(
             dai.address,
             amount
           );
@@ -298,7 +295,7 @@ describe("MinerSwap", () => {
         it("should get the amount of token require to convert to miner", async () => {
           const actual = await minerSwap
             .connect(await ethers.getSigner(deployer))
-            .calculateTokenToMinerSwap(dai.address, amount);
+            .calculateTokensToMiner(dai.address, amount);
 
           const amounts = await router.getAmountsOut(amount, path);
 
@@ -320,7 +317,7 @@ describe("MinerSwap", () => {
 
         await dai.approve(minerSwap.address, amount);
 
-        await minerSwap.swapTokenToMiner(
+        await minerSwap.issueMinerForExactTokens(
           dai.address,
           amount,
           minerMin,
@@ -333,15 +330,20 @@ describe("MinerSwap", () => {
       it("should emit a Swapped Token for Miner event", async () => {
         await dai.approve(minerSwap.address, amount);
 
-        const expected = await minerSwap.calculateTokenToEthSwap(
+        const expected = await minerSwap.calculateTokensToETH(
           dai.address,
           amount
         );
 
         await expect(
-          minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline)
+          minerSwap.issueMinerForExactTokens(
+            dai.address,
+            amount,
+            minerMin,
+            deadline
+          )
         )
-          .to.emit(minerSwap, "SwappedTokenToMiner")
+          .to.emit(minerSwap, "IssuedMinerForExactTokens")
           .withArgs(
             deployer,
             issuance.address,
@@ -354,7 +356,7 @@ describe("MinerSwap", () => {
 
       // TODO: Should this be moved to escrow?
       it("should have an Ether balance in MinerSwap", async () => {
-        const expected = await minerSwap.calculateTokenToEthSwap(
+        const expected = await minerSwap.calculateTokensToETH(
           dai.address,
           amount
         );
@@ -363,7 +365,7 @@ describe("MinerSwap", () => {
 
         await dai.approve(minerSwap.address, amount);
 
-        await minerSwap.swapTokenToMiner(
+        await minerSwap.issueMinerForExactTokens(
           dai.address,
           amount,
           minerMin,
@@ -386,7 +388,12 @@ describe("MinerSwap", () => {
         advanceBlockTimestamp(30 * 60);
 
         await expect(
-          minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline)
+          minerSwap.issueMinerForExactTokens(
+            dai.address,
+            amount,
+            minerMin,
+            deadline
+          )
         ).to.be.revertedWith("UniswapV2Router: EXPIRED");
       });
 
@@ -394,7 +401,7 @@ describe("MinerSwap", () => {
         await dai.approve(minerSwap.address, amount);
 
         expect(
-          minerSwap.swapTokenToMiner(
+          minerSwap.issueMinerForExactTokens(
             ethers.constants.AddressZero,
             amount,
             amount,
@@ -413,7 +420,12 @@ describe("MinerSwap", () => {
         advanceBlockTimestamp(30 * 60);
 
         await expect(
-          minerSwap.swapTokenToMiner(dai.address, amount, minerMin, deadline)
+          minerSwap.issueMinerForExactTokens(
+            dai.address,
+            amount,
+            minerMin,
+            deadline
+          )
         ).to.be.revertedWith("UniswapV2Router: EXPIRED");
 
         expect(await dai.balanceOf(deployer)).to.be.equal(expected);
@@ -426,7 +438,12 @@ describe("MinerSwap", () => {
         const slippageMin = minerMin.add(ethers.utils.parseEther("1"));
 
         await expect(
-          minerSwap.swapTokenToMiner(dai.address, amount, slippageMin, deadline)
+          minerSwap.issueMinerForExactTokens(
+            dai.address,
+            amount,
+            slippageMin,
+            deadline
+          )
         ).revertedWith("MinerSwap/slippage");
       });
     });

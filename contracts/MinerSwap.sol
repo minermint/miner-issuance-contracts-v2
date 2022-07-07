@@ -165,7 +165,7 @@ contract MinerSwap is PullPayment, Ownable {
      * @param amount uint256 The amount of token to swap.
      * @return uint256 The amount of Ether received for the specified token amount.
      */
-    function calculateTokenToEthSwap(address token, uint256 amount)
+    function calculateTokensToETH(address token, uint256 amount)
         public
         view
         returns (uint256)
@@ -207,25 +207,25 @@ contract MinerSwap is PullPayment, Ownable {
      * @param amount uint256 The amount of token to swap.
      * @return uint256 The amount of Miner token received for the specified token amount.
      */
-    function calculateTokenToMinerSwap(address token, uint256 amount)
+    function calculateTokensToMiner(address token, uint256 amount)
         public
         view
         returns (uint256)
     {
-        uint256 tokenToEth = calculateTokenToEthSwap(token, amount);
+        uint256 tokenToEth = calculateTokensToETH(token, amount);
 
         return _calculateETHToMiner(tokenToEth);
     }
 
     /**
-     * Issue at least `minerMinOut` Miner for an exact amount of ETH.
-     * @param minerMinOut uint256 The minimum amount of Miner token to receive.
+     * Issue at least `minMinerOut` Miner for an exact amount of ETH.
+     * @param minMinerOut uint256 The minimum amount of Miner token to receive.
      * Reverts if the minimum is not met.
      * @param deadline uint256 A timestamp indicating how long the swap will
      * stay active. Reverts if expired.
      * @return uint256 The amount of Miner token swapped.
      */
-    function issueMinerForExactETH(uint256 minerMinOut, uint256 deadline)
+    function issueMinerForExactETH(uint256 minMinerOut, uint256 deadline)
         external
         payable
         returns (uint256)
@@ -238,7 +238,7 @@ contract MinerSwap is PullPayment, Ownable {
 
         uint256 minerOut = _calculateETHToMiner(ethIn);
 
-        require(minerOut >= minerMinOut, "MinerSwap/slippage");
+        require(minerOut >= minMinerOut, "MinerSwap/slippage");
 
         _asyncTransfer(owner(), ethIn);
 
@@ -255,17 +255,19 @@ contract MinerSwap is PullPayment, Ownable {
     }
 
     /**
-     * Swaps a valid ERC20 token for Miner. Emits a SwappedTokenToMiner event if successful.
+     * Issue at least `minMinerOut` Miner for exactly `amount` of `token`
+     * tokens.
+     * @ dev Emits a SwappedTokenToMiner event if successful.
      * @param token address The address of the token being swapped. Must be a valid ERC20-compatible token with an existing liquidity pool on Uniswap.
      * @param amount uint256 The amount of token to swap for Miner.
-     * @param minerMin uint256 The minimum amount of Miner token to receive. Reverts if the minimum is not met.
+     * @param minMinerOut uint256 The minimum amount of Miner token to receive. Reverts if the minimum is not met.
      * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
      * @return uint256 The amount of Miner token swapped.
      */
-    function swapTokenToMiner(
+    function issueMinerForExactTokens(
         address token,
         uint256 amount,
-        uint256 minerMin,
+        uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
         IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
@@ -284,10 +286,10 @@ contract MinerSwap is PullPayment, Ownable {
         address[] memory path = new address[](2);
         path[0] = address(erc20);
         path[1] = router.WETH();
-        uint256 etherMin = calculateTokenToEthSwap(token, amount);
+        uint256 etherMin = calculateTokensToETH(token, amount);
 
         require(
-            _calculateETHToMiner(etherMin) >= minerMin,
+            _calculateETHToMiner(etherMin) >= minMinerOut,
             "MinerSwap/slippage"
         );
 
@@ -312,7 +314,7 @@ contract MinerSwap is PullPayment, Ownable {
 
         issuance.issue(_msgSender(), minerOut);
 
-        emit SwappedTokenToMiner(
+        emit IssuedMinerForExactTokens(
             _msgSender(),
             address(issuance),
             token,
@@ -343,7 +345,7 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 amountOut
     );
 
-    event SwappedTokenToMiner(
+    event IssuedMinerForExactTokens(
         address indexed recipient,
         address indexed sender,
         address indexed token,
