@@ -128,7 +128,7 @@ contract MinerSwap is PullPayment, Ownable {
         returns (uint256)
     {
         uint256 ethPerMiner = _calculateETHPerMiner();
-        uint256 amount = calculateEthToTokenSwap(token, ethPerMiner);
+        uint256 amount = calculateEthToTokens(token, ethPerMiner);
 
         return amount;
     }
@@ -159,6 +159,25 @@ contract MinerSwap is PullPayment, Ownable {
         return amount.mul(1e18).div(xRate);
     }
 
+    function calculateMinerToETH(uint256 amount)
+        external
+        view
+        returns (uint256)
+    {
+        return _calculateMinerToETH(amount);
+    }
+
+    function _calculateMinerToETH(uint256 amount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 xRate = _calculateETHPerMiner();
+
+        // x Miner / 1 Miner To ETH Exchange Rate = y ETH
+        return (amount * xRate) / 1e18;
+    }
+
     /**
      * Calculates how much Ether will be received for the amount of token. The token must be ERC20 compatible.
      * @param token address The address of the token being swapped for. Must be a valid ERC20 compatible token.
@@ -186,7 +205,7 @@ contract MinerSwap is PullPayment, Ownable {
      * @param amount uint256 The amount of token to swap.
      * @return uint256 The amount of Ether received for the specified token amount.
      */
-    function calculateEthToTokenSwap(address token, uint256 amount)
+    function calculateEthToTokens(address token, uint256 amount)
         public
         view
         returns (uint256)
@@ -252,6 +271,52 @@ contract MinerSwap is PullPayment, Ownable {
         );
 
         return minerOut;
+    }
+
+    /**
+     * Issue at exactly `exactMinerOut` Miner for no more than `maxETHIn` ETH.
+     * @param exactMinerOut uint256 The exact amount of Miner token to receive.
+     * Reverts if the minimum is not met.
+     * @param deadline uint256 A timestamp indicating how long the swap will
+     * stay active. Reverts if expired.
+     * @return uint256 The amount of Miner token swapped.
+     */
+    function issueExactMinerForETH(uint256 exactMinerOut, uint256 deadline)
+        external
+        payable
+        returns (uint256)
+    {
+        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+
+        uint256 ethIn = msg.value;
+
+        require(ethIn > 0, "MinerSwap/deposit-invalid");
+
+        uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
+
+        require(ethIn >= requiredETHIn, "MinerSwap/slippage");
+
+        _asyncTransfer(owner(), requiredETHIn);
+
+        // refund excess ETH.
+        if (ethIn >= requiredETHIn) {
+            (bool success, ) = address(msg.sender).call{
+                value: ethIn - requiredETHIn
+            }("");
+
+            require(success, "Issuance/cannot-refund-ether");
+        }
+
+        issuance.issue(_msgSender(), exactMinerOut);
+
+        emit IssuedExactMinerForETH(
+            _msgSender(),
+            address(issuance),
+            requiredETHIn,
+            exactMinerOut
+        );
+
+        return exactMinerOut;
     }
 
     /**
@@ -352,5 +417,12 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 amountIn,
         uint256 amountOut,
         uint256 ethAmount
+    );
+
+    event IssuedExactMinerForETH(
+        address indexed recipient,
+        address indexed sender,
+        uint256 amountIn,
+        uint256 amountOut
     );
 }

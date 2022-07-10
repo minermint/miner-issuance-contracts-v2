@@ -129,7 +129,7 @@ describe("MinerSwap", () => {
       await minerSwap.setPriceFeedOracle(aggregator.address);
     });
 
-    describe("issuing miner for ETH", () => {
+    describe("issuing miner for exact ETH", () => {
       const amount = ethers.utils.parseEther("0.001");
       let expectedRate: any, expected: any;
 
@@ -144,19 +144,6 @@ describe("MinerSwap", () => {
         expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
 
         expected = amount.mul(ethers.utils.parseEther("1")).div(expectedRate);
-      });
-
-      describe("calculating issuance", async () => {
-        it("should get the conversion rate", async () => {
-          const swapped = await minerSwap.calculateETHPerMiner();
-          expect(swapped).to.be.equal(expectedRate);
-        });
-
-        it("should get conversion amount", async () => {
-          const swapped = await minerSwap.calculateETHToMiner(amount);
-
-          expect(swapped).to.be.equal(expected);
-        });
       });
 
       it("should issue miner for exact ETH", async () => {
@@ -229,6 +216,69 @@ describe("MinerSwap", () => {
               value: amount,
             })
         ).to.be.revertedWith("MinerSwap/slippage");
+      });
+    });
+
+    describe("issuing exact miner for ETH", () => {
+      const exactMiner = ethers.utils.parseEther("1");
+
+      let expectedRate: any, expected: any;
+
+      let maxEthIn: BigNumber;
+
+      beforeEach(async () => {
+        maxEthIn = await minerSwap.calculateMinerToETH(exactMiner);
+
+        const roundData = await aggregator.latestRoundData();
+        const answer = roundData[1];
+        const xRate = await oracle.getTodaysExchangeRate();
+        expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
+
+        expected = maxEthIn.mul(ethers.utils.parseEther("1")).div(expectedRate);
+      });
+
+      it("should issue exact miner for ETH", async () => {
+        await minerSwap
+          .connect(await ethers.getSigner(alice))
+          .issueExactMinerForETH(exactMiner, deadline, {
+            value: maxEthIn,
+          });
+
+        const balance = await miner.balanceOf(alice);
+
+        expect(balance).to.be.equal(expected);
+      });
+
+      it("should emit a IssuedExactMinerForETH event", async () => {
+        await expect(
+          minerSwap
+            .connect(await ethers.getSigner(alice))
+            .issueMinerForExactETH(exactMiner, deadline, {
+              value: maxEthIn,
+            })
+        )
+          .to.emit(minerSwap, "IssuedMinerForExactETH")
+          .withArgs(alice, issuance.address, maxEthIn, expected);
+      });
+
+      it("should refund excess ETH", async () => {
+        const ethBalance = await waffle.provider.getBalance(alice);
+
+        const tx = await minerSwap
+          .connect(await ethers.getSigner(alice))
+          .issueExactMinerForETH(exactMiner, deadline, {
+            value: maxEthIn.add(1),
+          });
+
+        const receipt = await tx.wait();
+
+        const expected = ethBalance
+          .sub(maxEthIn)
+          .sub(receipt.gasUsed.mul(receipt.effectiveGasPrice));
+
+        const balance = await waffle.provider.getBalance(alice);
+
+        expect(balance).to.be.equal(expected);
       });
     });
 
