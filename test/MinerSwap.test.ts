@@ -10,6 +10,9 @@ import {
   getDai,
 } from "./utils/contracts/periphery";
 
+import { getMinerToTokens, getMinerToETH } from "./utils/xrates";
+import { getBestPricePathExactIn, getBestPricePathExactOut } from "./utils/hops";
+
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
 describe("MinerSwap", () => {
@@ -304,27 +307,20 @@ describe("MinerSwap", () => {
           path[1] = await router.WETH();
         });
 
-        it("should get the conversion rate", async () => {
-          const path = [];
-          path[0] = await router.WETH();
-          path[1] = dai.address;
+        it("should get the conversion rate for 1 Miner to tokens", async () => {
+          const path = await getBestPricePathExactIn(
+            await getMinerToETH(ethers.utils.parseEther("1")),
+            await router.WETH(),
+            dai.address,
+          );
 
-          const minerUSDRate = await oracle.getTodaysExchangeRate();
-          const usdPerMiner = minerUSDRate;
-          // 124000000 cents to the 8 dp or 1.24 USD
+          // specify an amount of 1 MINER to get the exchange rate.
+          const expected = await getMinerToTokens(
+            path,
+            ethers.utils.parseEther("1")
+          );
 
-          const roundData = await aggregator.latestRoundData();
-          const usdPerEth = roundData[1];
-          // 1000 USD per ETH
-
-          const ethPerMiner = usdPerMiner
-            .mul(ethers.utils.parseEther("1"))
-            .div(usdPerEth);
-          // (124000000 / 1000^10*8 or 1.24 / 1000 ETH per MINER
-
-          const amountsOut = await router.getAmountsOut(ethPerMiner, path);
-          const expected = amountsOut[1];
-
+          // what is the contract returning?
           const swapped = await minerSwap.calculateTokensPerMiner(dai.address);
 
           expect(swapped).to.be.equal(expected);

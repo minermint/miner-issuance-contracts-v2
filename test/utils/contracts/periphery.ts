@@ -23,15 +23,6 @@ export const getUniswapV2Factory = async (): Promise<Contract> => {
   );
 };
 
-export const getMinerETHPair = async () => {
-  const deployer = waffle.provider.getSigner();
-  const router = getUniswapV2Router02();
-  const factory = await getUniswapV2Factory();
-  const pair = await factory.getPair(router.WETH(), testConfig.miner);
-
-  return new Contract(pair, ArtifactIERC20.abi, deployer);
-};
-
 export const getDai = (): Contract => {
   return new Contract(
     testConfig.dai,
