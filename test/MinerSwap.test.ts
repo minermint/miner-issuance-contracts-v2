@@ -10,6 +10,9 @@ import {
   getDai,
 } from "./utils/contracts/periphery";
 
+import { getMinerToTokens, getMinerToETH } from "./utils/xrates";
+import { getBestPricePathExactIn, getBestPricePathExactOut } from "./utils/hops";
+
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
 describe("MinerSwap", () => {
@@ -129,7 +132,7 @@ describe("MinerSwap", () => {
       await minerSwap.setPriceFeedOracle(aggregator.address);
     });
 
-    describe("issuing miner for ETH", () => {
+    describe("issuing miner for exact ETH", () => {
       const amount = ethers.utils.parseEther("0.001");
       let expectedRate: any, expected: any;
 
@@ -144,19 +147,6 @@ describe("MinerSwap", () => {
         expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
 
         expected = amount.mul(ethers.utils.parseEther("1")).div(expectedRate);
-      });
-
-      describe("calculating issuance", async () => {
-        it("should get the conversion rate", async () => {
-          const swapped = await minerSwap.calculateETHPerMiner();
-          expect(swapped).to.be.equal(expectedRate);
-        });
-
-        it("should get conversion amount", async () => {
-          const swapped = await minerSwap.calculateETHToMiner(amount);
-
-          expect(swapped).to.be.equal(expected);
-        });
       });
 
       it("should issue miner for exact ETH", async () => {
@@ -232,6 +222,69 @@ describe("MinerSwap", () => {
       });
     });
 
+    describe("issuing exact miner for ETH", () => {
+      const exactMiner = ethers.utils.parseEther("1");
+
+      let expectedRate: any, expected: any;
+
+      let maxEthIn: BigNumber;
+
+      beforeEach(async () => {
+        maxEthIn = await minerSwap.calculateMinerToETH(exactMiner);
+
+        const roundData = await aggregator.latestRoundData();
+        const answer = roundData[1];
+        const xRate = await oracle.getTodaysExchangeRate();
+        expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
+
+        expected = maxEthIn.mul(ethers.utils.parseEther("1")).div(expectedRate);
+      });
+
+      it("should issue exact miner for ETH", async () => {
+        await minerSwap
+          .connect(await ethers.getSigner(alice))
+          .issueExactMinerForETH(exactMiner, deadline, {
+            value: maxEthIn,
+          });
+
+        const balance = await miner.balanceOf(alice);
+
+        expect(balance).to.be.equal(expected);
+      });
+
+      it("should emit a IssuedExactMinerForETH event", async () => {
+        await expect(
+          minerSwap
+            .connect(await ethers.getSigner(alice))
+            .issueMinerForExactETH(exactMiner, deadline, {
+              value: maxEthIn,
+            })
+        )
+          .to.emit(minerSwap, "IssuedMinerForExactETH")
+          .withArgs(alice, issuance.address, maxEthIn, expected);
+      });
+
+      it("should refund excess ETH", async () => {
+        const ethBalance = await waffle.provider.getBalance(alice);
+
+        const tx = await minerSwap
+          .connect(await ethers.getSigner(alice))
+          .issueExactMinerForETH(exactMiner, deadline, {
+            value: maxEthIn.add(1),
+          });
+
+        const receipt = await tx.wait();
+
+        const expected = ethBalance
+          .sub(maxEthIn)
+          .sub(receipt.gasUsed.mul(receipt.effectiveGasPrice));
+
+        const balance = await waffle.provider.getBalance(alice);
+
+        expect(balance).to.be.equal(expected);
+      });
+    });
+
     describe("swapping tokens for miner", async () => {
       const amount = ethers.utils.parseEther("10");
 
@@ -254,27 +307,20 @@ describe("MinerSwap", () => {
           path[1] = await router.WETH();
         });
 
-        it("should get the conversion rate", async () => {
-          const path = [];
-          path[0] = await router.WETH();
-          path[1] = dai.address;
+        it("should get the conversion rate for 1 Miner to tokens", async () => {
+          const path = await getBestPricePathExactIn(
+            await getMinerToETH(ethers.utils.parseEther("1")),
+            await router.WETH(),
+            dai.address,
+          );
 
-          const minerUSDRate = await oracle.getTodaysExchangeRate();
-          const usdPerMiner = minerUSDRate;
-          // 124000000 cents to the 8 dp or 1.24 USD
+          // specify an amount of 1 MINER to get the exchange rate.
+          const expected = await getMinerToTokens(
+            path,
+            ethers.utils.parseEther("1")
+          );
 
-          const roundData = await aggregator.latestRoundData();
-          const usdPerEth = roundData[1];
-          // 1000 USD per ETH
-
-          const ethPerMiner = usdPerMiner
-            .mul(ethers.utils.parseEther("1"))
-            .div(usdPerEth);
-          // (124000000 / 1000^10*8 or 1.24 / 1000 ETH per MINER
-
-          const amountsOut = await router.getAmountsOut(ethPerMiner, path);
-          const expected = amountsOut[1];
-
+          // what is the contract returning?
           const swapped = await minerSwap.calculateTokensPerMiner(dai.address);
 
           expect(swapped).to.be.equal(expected);
