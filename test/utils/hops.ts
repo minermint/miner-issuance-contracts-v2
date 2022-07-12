@@ -172,11 +172,7 @@ export const getBestPricePathExactOut = async (
 };
 
 const getUniswapToken = async (address: string): Promise<Uniswap.Token> => {
-  const token = new Contract(
-    address,
-    ArtifactERC20.abi,
-    waffle.provider
-  );
+  const token = new Contract(address, ArtifactERC20.abi, waffle.provider);
 
   return new Uniswap.Token(
     Uniswap.ChainId.KOVAN,
@@ -185,4 +181,4 @@ const getUniswapToken = async (address: string): Promise<Uniswap.Token> => {
     await token.symbol(),
     await token.name()
   );
-}
+};

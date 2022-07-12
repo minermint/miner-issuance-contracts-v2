@@ -384,11 +384,67 @@ contract MinerSwap is PullPayment, Ownable {
             address(issuance),
             token,
             amount,
-            minerOut,
-            amounts[amounts.length - 1]
+            minerOut
         );
 
         return minerOut;
+    }
+
+    function issueExactMinerForTokens(
+        address token,
+        uint256 maxAmountIn,
+        uint256 exactMinerOut,
+        uint256 deadline
+    ) external returns (uint256) {
+        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
+
+        address[] memory path = new address[](2);
+        path[0] = address(erc20);
+        path[1] = router.WETH();
+
+        uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
+        uint256 requiredTokensIn = router.getAmountsIn(requiredETHIn, path)[0];
+
+        require(requiredTokensIn <= maxAmountIn, "MinerSwap/slippage");
+
+        TransferHelper.safeTransferFrom(
+            token,
+            msg.sender,
+            address(this),
+            requiredTokensIn
+        );
+
+        TransferHelper.safeApprove(token, uniswapRouter, requiredTokensIn);
+
+        uint256 balanceBefore = payments(owner());
+
+        uint256[] memory amounts = router.swapTokensForExactETH(
+            requiredETHIn,
+            requiredTokensIn,
+            path,
+            address(this),
+            deadline
+        );
+
+        uint256 balanceAfter = payments(owner());
+
+        require(
+            balanceAfter == balanceBefore.add(amounts[amounts.length - 1]),
+            "MinerSwap/invalid-eth-amount-transferred"
+        );
+
+        issuance.issue(_msgSender(), exactMinerOut);
+
+        emit IssuedExactMinerForTokens(
+            _msgSender(),
+            address(issuance),
+            token,
+            requiredTokensIn,
+            exactMinerOut
+        );
+
+        return exactMinerOut;
     }
 
     receive() external payable {
@@ -415,13 +471,20 @@ contract MinerSwap is PullPayment, Ownable {
         address indexed sender,
         address indexed token,
         uint256 amountIn,
-        uint256 amountOut,
-        uint256 ethAmount
+        uint256 amountOut
     );
 
     event IssuedExactMinerForETH(
         address indexed recipient,
         address indexed sender,
+        uint256 amountIn,
+        uint256 amountOut
+    );
+
+    event IssuedExactMinerForTokens(
+        address indexed recipient,
+        address indexed sender,
+        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );

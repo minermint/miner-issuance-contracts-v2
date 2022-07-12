@@ -11,7 +11,10 @@ import {
 } from "./utils/contracts/periphery";
 
 import { getMinerToTokens, getMinerToETH } from "./utils/xrates";
-import { getBestPricePathExactIn, getBestPricePathExactOut } from "./utils/hops";
+import {
+  getBestPricePathExactIn,
+  getBestPricePathExactOut,
+} from "./utils/hops";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
@@ -285,7 +288,7 @@ describe("MinerSwap", () => {
       });
     });
 
-    describe("swapping tokens for miner", async () => {
+    describe("issuing miner for exact tokens", async () => {
       const amount = ethers.utils.parseEther("10");
 
       let dai: any;
@@ -311,7 +314,7 @@ describe("MinerSwap", () => {
           const path = await getBestPricePathExactIn(
             await getMinerToETH(ethers.utils.parseEther("1")),
             await router.WETH(),
-            dai.address,
+            dai.address
           );
 
           // specify an amount of 1 MINER to get the exchange rate.
@@ -376,11 +379,6 @@ describe("MinerSwap", () => {
       it("should emit a Swapped Token for Miner event", async () => {
         await dai.approve(minerSwap.address, amount);
 
-        const expected = await minerSwap.calculateTokensToETH(
-          dai.address,
-          amount
-        );
-
         await expect(
           minerSwap.issueMinerForExactTokens(
             dai.address,
@@ -390,14 +388,7 @@ describe("MinerSwap", () => {
           )
         )
           .to.emit(minerSwap, "IssuedMinerForExactTokens")
-          .withArgs(
-            deployer,
-            issuance.address,
-            dai.address,
-            amount,
-            minerMin,
-            expected
-          );
+          .withArgs(deployer, issuance.address, dai.address, amount, minerMin);
       });
 
       // TODO: Should this be moved to escrow?
@@ -491,6 +482,61 @@ describe("MinerSwap", () => {
             deadline
           )
         ).revertedWith("MinerSwap/slippage");
+      });
+    });
+
+    describe("issuing exact miner for tokens", async () => {
+      const exactMiner = ethers.utils.parseEther("1");
+
+      let maxTokensIn: BigNumber;
+
+      let dai: any;
+
+      beforeEach(async () => {
+        dai = getDai();
+
+        const maxETHIn = await minerSwap.calculateMinerToETH(exactMiner);
+        maxTokensIn = (
+          await router.getAmountsIn(maxETHIn, [dai.address, router.WETH()])
+        )[0];
+      });
+
+      it("should swap a token for miner", async () => {
+        const balance = await miner.balanceOf(deployer);
+
+        const expected = exactMiner.add(balance);
+
+        await dai.approve(minerSwap.address, maxTokensIn);
+
+        await minerSwap.issueExactMinerForTokens(
+          dai.address,
+          maxTokensIn,
+          exactMiner,
+          deadline
+        );
+
+        expect(await miner.balanceOf(deployer)).to.be.equal(expected);
+      });
+
+      it("should emit a Swapped Token for Miner event", async () => {
+        await dai.approve(minerSwap.address, maxTokensIn);
+
+        await expect(
+          minerSwap.issueExactMinerForTokens(
+            dai.address,
+            maxTokensIn,
+            exactMiner,
+            deadline
+          )
+        )
+          .to.emit(minerSwap, "IssuedExactMinerForTokens")
+          .withArgs(
+            deployer,
+            issuance.address,
+            dai.address,
+            maxTokensIn,
+            exactMiner
+          );
       });
     });
 
