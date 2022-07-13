@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers";
-import { getTruflationOracle } from "./contracts/core";
+import { getTruflationOracle, getMiner } from "./contracts/core";
 import {
   getUniswapV2Router02,
   getAggregatorV3ETHUSD,

@@ -38,6 +38,8 @@ task(
   "list-exchange-rates",
   "Lists the applicable exchange rates for Miner, ETH and some base ERC20 tokens",
   async (_taskArgs, hre: HardhatRuntimeEnvironment) => {
+    await hre.deployments.fixture(["all"]);
+
     console.log("Unit test exchange rates\n");
 
     const ethPerMiner = await ExchangeRates.getMinerToETH(
