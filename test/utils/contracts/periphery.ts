@@ -1,4 +1,3 @@
-import { waffle } from "hardhat";
 import { Contract } from "ethers";
 import { testConfig } from "../../../config";
 import ArtifactIUniswapV2Router02 from "@uniswap/v2-periphery/build/IUniswapV2Router02.json";
@@ -10,7 +9,7 @@ export const getUniswapV2Router02 = (): Contract => {
   return new Contract(
     testConfig.uniswapV2Router02,
     JSON.stringify(ArtifactIUniswapV2Router02.abi),
-    waffle.provider.getSigner()
+    hre.ethers.provider.getSigner()
   );
 };
 
@@ -19,7 +18,7 @@ export const getUniswapV2Factory = async (): Promise<Contract> => {
   return new Contract(
     await router.factory(),
     JSON.stringify(ArtifactIUniswapV2Factory.abi),
-    waffle.provider.getSigner()
+    hre.ethers.provider.getSigner()
   );
 };
 
@@ -27,7 +26,7 @@ export const getDai = (): Contract => {
   return new Contract(
     testConfig.dai,
     JSON.stringify(ArtifactIERC20.abi),
-    waffle.provider.getSigner()
+    hre.ethers.provider.getSigner()
   );
 };
 
@@ -35,6 +34,6 @@ export const getAggregatorV3ETHUSD = (): Contract => {
   return new Contract(
     testConfig.aggregatorV3ETHUSD,
     JSON.stringify(ArtifactAggregatorV3Interface),
-    waffle.provider.getSigner()
+    hre.ethers.provider.getSigner()
   );
 };

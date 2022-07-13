@@ -4,24 +4,36 @@ import {
   getUniswapV2Router02,
   getAggregatorV3ETHUSD,
 } from "./contracts/periphery";
+import { getBestPricePathExactOut } from "./hops";
 
 /**
- * Gets the amount of tokens based on the Miner to token exchange rate.
+ * Calculates the amount of tokens required to exchange to an exact amount of
+ * Miner.
  *
- * Pass in a value of 1e18 for the exchange rate.
- *
- * The exchange rate is always computed through ETH (I.e. Miner -> ETH ->
- * Token), so the path MUST include the WETH token address as the last value in * the path.
+ * @param tokenAddress The address of the token whose amountIn value needs to
+ * be calculated.
+ * @param exactAmountOut The exact amount of Miner out this calculation should
+ * determine.
+ * @return The equivalent amount of tokens that would be required to
+ * successfully generate the exact amount of Miner.
  */
-export const getMinerToTokens = async (
-  path: string[] | undefined,
-  amount: BigNumber
+export const calculateTokensToExactMiner = async (
+  tokenAddress: string,
+  exactAmountOut: BigNumber
 ): Promise<BigNumber> => {
   const router = getUniswapV2Router02();
 
-  const amountsOut = await router.getAmountsOut(getMinerToETH(amount), path);
+  const requiredETHOut = await getMinerToETH(exactAmountOut);
 
-  return amountsOut[1];
+  const path = await getBestPricePathExactOut(
+    requiredETHOut,
+    await router.WETH(),
+    tokenAddress
+  );
+
+  const requiredTokensIn = (await router.getAmountsIn(requiredETHOut, path))[0];
+
+  return requiredTokensIn;
 };
 
 /**

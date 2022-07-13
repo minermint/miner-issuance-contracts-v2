@@ -60,7 +60,7 @@ describe("MinerSwap", () => {
   });
 
   describe("instantiation", () => {
-    it("should be able to change price feed oracle", async () => {
+    it.only("should be able to change price feed oracle", async () => {
       await minerSwap.setPriceFeedOracle(aggregator.address);
 
       expect(await minerSwap.priceFeedOracle()).to.be.equal(aggregator.address);
@@ -317,12 +317,7 @@ describe("MinerSwap", () => {
         await dai.approve(minerSwap.address, amount);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
-            path,
-            amount,
-            minerMin,
-            deadline
-          )
+          minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
         )
           .to.emit(minerSwap, "IssuedMinerForExactTokens")
           .withArgs(deployer, issuance.address, amount, minerMin);
@@ -359,12 +354,7 @@ describe("MinerSwap", () => {
         advanceBlockTimestamp(30 * 60);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
-            path,
-            amount,
-            minerMin,
-            deadline
-          )
+          minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
         ).to.be.revertedWith("UniswapV2Router: EXPIRED");
       });
 
@@ -372,12 +362,7 @@ describe("MinerSwap", () => {
         await dai.approve(minerSwap.address, amount);
 
         expect(
-          minerSwap.issueMinerForExactTokens(
-            ["0x1"],
-            amount,
-            amount,
-            deadline
-          )
+          minerSwap.issueMinerForExactTokens(["0x1"], amount, amount, deadline)
         ).to.be.revertedWith("");
       });
 
@@ -391,12 +376,7 @@ describe("MinerSwap", () => {
         advanceBlockTimestamp(30 * 60);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
-            path,
-            amount,
-            minerMin,
-            deadline
-          )
+          minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
         ).to.be.revertedWith("UniswapV2Router: EXPIRED");
 
         expect(await dai.balanceOf(deployer)).to.be.equal(expected);
@@ -464,12 +444,7 @@ describe("MinerSwap", () => {
           )
         )
           .to.emit(minerSwap, "IssuedExactMinerForTokens")
-          .withArgs(
-            deployer,
-            issuance.address,
-            maxTokensIn,
-            exactMiner
-          );
+          .withArgs(deployer, issuance.address, maxTokensIn, exactMiner);
       });
     });
 

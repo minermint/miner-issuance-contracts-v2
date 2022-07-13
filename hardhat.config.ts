@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
@@ -10,22 +11,53 @@ import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-docgen";
 import {
+  testConfig,
   networkConfig,
   privateKey,
   mnemonic,
   reportGas,
   etherscanAPIKey,
 } from "./config";
+import * as ExchangeRates from "./test/utils/xrates";
 
 dotenv.config();
 
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+declare global {
+  var hre: HardhatRuntimeEnvironment;
+}
+
+task("accounts", "Prints the list of accounts", async (_taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
 
   for (const account of accounts) {
     console.log(account.address);
   }
 });
+
+task(
+  "list-exchange-rates",
+  "Lists the applicable exchange rates for Miner, ETH and some base ERC20 tokens",
+  async (_taskArgs, hre: HardhatRuntimeEnvironment) => {
+    console.log("Unit test exchange rates\n");
+
+    const ethPerMiner = await ExchangeRates.getMinerToETH(
+      hre.ethers.utils.parseEther("1")
+    );
+
+    console.log(
+      "1 Miner -> " + hre.ethers.utils.formatEther(ethPerMiner) + " ETH"
+    );
+
+    const daiPerMiner = await ExchangeRates.calculateTokensToExactMiner(
+      testConfig.dai,
+      hre.ethers.utils.parseEther("1")
+    );
+
+    console.log(
+      "1 Miner -> " + hre.ethers.utils.formatEther(daiPerMiner) + " DAI"
+    );
+  }
+);
 
 const config: HardhatUserConfig = {
   solidity: {

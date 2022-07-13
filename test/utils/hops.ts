@@ -1,4 +1,3 @@
-import { waffle } from "hardhat";
 import { Contract, BigNumber } from "ethers";
 import ArtifactERC20 from "@uniswap/v2-core/build/IERC20.json";
 import * as Uniswap from "@uniswap/sdk";
@@ -25,7 +24,7 @@ const getTradingPairs = async (
   const tokens: any[] = [];
 
   for (const base in BASES[Uniswap.ChainId.KOVAN]) {
-    const token = new Contract(base, ArtifactERC20.abi, waffle.provider);
+    const token = new Contract(base, ArtifactERC20.abi, hre.ethers.provider);
 
     tokens.push(
       new Uniswap.Token(
@@ -90,7 +89,7 @@ const getTradingPairs = async (
       await Uniswap.Fetcher.fetchPairData(
         filteredPairs[i][0],
         filteredPairs[i][1],
-        waffle.provider
+        hre.ethers.provider
       )
     );
   }
@@ -172,7 +171,7 @@ export const getBestPricePathExactOut = async (
 };
 
 const getUniswapToken = async (address: string): Promise<Uniswap.Token> => {
-  const token = new Contract(address, ArtifactERC20.abi, waffle.provider);
+  const token = new Contract(address, ArtifactERC20.abi, hre.ethers.provider);
 
   return new Uniswap.Token(
     Uniswap.ChainId.KOVAN,
