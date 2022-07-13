@@ -10,12 +10,6 @@ import {
   getDai,
 } from "./utils/contracts/periphery";
 
-import { getMinerToTokens, getMinerToETH } from "./utils/xrates";
-import {
-  getBestPricePathExactIn,
-  getBestPricePathExactOut,
-} from "./utils/hops";
-
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
 describe("MinerSwap", () => {
@@ -24,11 +18,6 @@ describe("MinerSwap", () => {
   let issuer: any;
   let alice: any;
   let bob: any;
-
-  const ZERO_BALANCE = 0;
-
-  // $1.24 to 8 dp.
-  const EXCHANGE_RATE = ethers.utils.parseUnits("1.24", 8);
 
   let miner: any,
     minerSwap: any,
@@ -292,71 +281,20 @@ describe("MinerSwap", () => {
       const amount = ethers.utils.parseEther("10");
 
       let dai: any;
+      let path: any;
 
       let minerMin: BigNumber;
+      let requiredETHIn: BigNumber;
 
       beforeEach(async () => {
         dai = getDai();
 
-        minerMin = await minerSwap.calculateTokensToMiner(dai.address, amount);
-      });
+        path = [];
+        path[0] = dai.address;
+        path[1] = await router.WETH();
 
-      describe("calculating swaps", async () => {
-        let path: any;
-
-        beforeEach(async () => {
-          path = [];
-          path[0] = dai.address;
-          path[1] = await router.WETH();
-        });
-
-        it("should get the conversion rate for 1 Miner to tokens", async () => {
-          const path = await getBestPricePathExactIn(
-            await getMinerToETH(ethers.utils.parseEther("1")),
-            await router.WETH(),
-            dai.address
-          );
-
-          // specify an amount of 1 MINER to get the exchange rate.
-          const expected = await getMinerToTokens(
-            path,
-            ethers.utils.parseEther("1")
-          );
-
-          // what is the contract returning?
-          const swapped = await minerSwap.calculateTokensPerMiner(dai.address);
-
-          expect(swapped).to.be.equal(expected);
-        });
-
-        it("should get the amount of token required to convert to eth", async () => {
-          const actual = await minerSwap.calculateTokensToETH(
-            dai.address,
-            amount
-          );
-
-          const amounts = await router.getAmountsOut(amount, path);
-          const expected = amounts[path.length - 1];
-
-          expect(actual).to.be.equal(expected);
-        });
-
-        it("should get the amount of token require to convert to miner", async () => {
-          const actual = await minerSwap
-            .connect(await ethers.getSigner(deployer))
-            .calculateTokensToMiner(dai.address, amount);
-
-          const amounts = await router.getAmountsOut(amount, path);
-
-          const ethPerMiner = await minerSwap.calculateETHPerMiner();
-          const decimals = ethers.utils.parseEther("1");
-
-          const expected = amounts[path.length - 1]
-            .mul(decimals)
-            .div(ethPerMiner);
-
-          expect(actual).to.be.equal(expected);
-        });
+        requiredETHIn = (await router.getAmountsOut(amount, path))[1];
+        minerMin = await minerSwap.calculateETHToMiner(requiredETHIn);
       });
 
       it("should swap a token for miner", async () => {
@@ -393,10 +331,7 @@ describe("MinerSwap", () => {
 
       // TODO: Should this be moved to escrow?
       it("should have an Ether balance in MinerSwap", async () => {
-        const expected = await minerSwap.calculateTokensToETH(
-          dai.address,
-          amount
-        );
+        const expected = requiredETHIn;
 
         const initialBalance = await minerSwap.payments(deployer);
 
