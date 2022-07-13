@@ -238,40 +238,37 @@ contract MinerSwap is PullPayment, Ownable {
      * Issue at least `minMinerOut` Miner for exactly `amount` of `token`
      * tokens.
      * @ dev Emits a SwappedTokenToMiner event if successful.
-     * @param token address The address of the token being swapped. Must be a valid ERC20-compatible token with an existing liquidity pool on Uniswap.
+     * @param path address[] The optimal path to take when swapping a token for
+     * ETH. Must be a valid ERC20-compatible token and the final token must be
+     * WETH.
      * @param amount uint256 The amount of token to swap for Miner.
      * @param minMinerOut uint256 The minimum amount of Miner token to receive. Reverts if the minimum is not met.
      * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
      * @return uint256 The amount of Miner token swapped.
      */
     function issueMinerForExactTokens(
-        address token,
+        address[] calldata path, // No checks. Let uniswap validate the path.
         uint256 amount,
         uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
-
-        TransferHelper.safeTransferFrom(
-            token,
-            msg.sender,
-            address(this),
-            amount
-        );
-
-        TransferHelper.safeApprove(token, uniswapRouter, amount);
-
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
-        address[] memory path = new address[](2);
-        path[0] = address(erc20);
-        path[1] = router.WETH();
         uint256 etherMin = router.getAmountsOut(amount, path)[path.length - 1];
 
         require(
             _calculateETHToMiner(etherMin) >= minMinerOut,
             "MinerSwap/slippage"
         );
+
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            address(this),
+            amount
+        );
+
+        TransferHelper.safeApprove(path[0], uniswapRouter, amount);
 
         uint256 balanceBefore = payments(owner());
 
@@ -297,7 +294,6 @@ contract MinerSwap is PullPayment, Ownable {
         emit IssuedMinerForExactTokens(
             _msgSender(),
             address(issuance),
-            token,
             amount,
             minerOut
         );
@@ -305,18 +301,26 @@ contract MinerSwap is PullPayment, Ownable {
         return minerOut;
     }
 
+    /**
+     * Issue exactly `exactMinerOut` Miner for no more than `maxAmountIn` of
+     * the selected token.
+     * @ dev Emits a SwappedTokenToMiner event if successful.
+     * @param path address[] The optimal path to take when swapping a token for
+     * ETH. Must be a valid ERC20-compatible token and the final token must be
+     * WETH.
+     * @param maxAmountIn uint256 The maximum amount of tokens to swap for
+     * Miner. Reverts if the minimum is not met.
+     * @param exactMinerOut uint256 The exact amount of Miner token to receive.
+     * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
+     * @return uint256 The amount of Miner token swapped.
+     */
     function issueExactMinerForTokens(
-        address token,
+        address[] calldata path,
         uint256 maxAmountIn,
         uint256 exactMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
-
-        address[] memory path = new address[](2);
-        path[0] = address(erc20);
-        path[1] = router.WETH();
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
         uint256 requiredTokensIn = router.getAmountsIn(requiredETHIn, path)[0];
@@ -324,13 +328,13 @@ contract MinerSwap is PullPayment, Ownable {
         require(requiredTokensIn <= maxAmountIn, "MinerSwap/slippage");
 
         TransferHelper.safeTransferFrom(
-            token,
+            path[0],
             msg.sender,
             address(this),
             requiredTokensIn
         );
 
-        TransferHelper.safeApprove(token, uniswapRouter, requiredTokensIn);
+        TransferHelper.safeApprove(path[0], uniswapRouter, requiredTokensIn);
 
         uint256 balanceBefore = payments(owner());
 
@@ -354,7 +358,6 @@ contract MinerSwap is PullPayment, Ownable {
         emit IssuedExactMinerForTokens(
             _msgSender(),
             address(issuance),
-            token,
             requiredTokensIn,
             exactMinerOut
         );
@@ -384,7 +387,6 @@ contract MinerSwap is PullPayment, Ownable {
     event IssuedMinerForExactTokens(
         address indexed recipient,
         address indexed sender,
-        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );
@@ -399,7 +401,6 @@ contract MinerSwap is PullPayment, Ownable {
     event IssuedExactMinerForTokens(
         address indexed recipient,
         address indexed sender,
-        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );

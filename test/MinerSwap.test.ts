@@ -120,7 +120,15 @@ describe("MinerSwap", () => {
   });
 
   describe("swaps", () => {
+    let dai: any;
+    let path: any;
+
     beforeEach(async () => {
+      dai = getDai();
+      path = [];
+      path[0] = dai.address;
+      path[1] = await router.WETH();
+
       await minerSwap.setPriceFeedOracle(aggregator.address);
     });
 
@@ -280,19 +288,10 @@ describe("MinerSwap", () => {
     describe("issuing miner for exact tokens", async () => {
       const amount = ethers.utils.parseEther("10");
 
-      let dai: any;
-      let path: any;
-
       let minerMin: BigNumber;
       let requiredETHIn: BigNumber;
 
       beforeEach(async () => {
-        dai = getDai();
-
-        path = [];
-        path[0] = dai.address;
-        path[1] = await router.WETH();
-
         requiredETHIn = (await router.getAmountsOut(amount, path))[1];
         minerMin = await minerSwap.calculateETHToMiner(requiredETHIn);
       });
@@ -305,7 +304,7 @@ describe("MinerSwap", () => {
         await dai.approve(minerSwap.address, amount);
 
         await minerSwap.issueMinerForExactTokens(
-          dai.address,
+          path,
           amount,
           minerMin,
           deadline
@@ -319,14 +318,14 @@ describe("MinerSwap", () => {
 
         await expect(
           minerSwap.issueMinerForExactTokens(
-            dai.address,
+            path,
             amount,
             minerMin,
             deadline
           )
         )
           .to.emit(minerSwap, "IssuedMinerForExactTokens")
-          .withArgs(deployer, issuance.address, dai.address, amount, minerMin);
+          .withArgs(deployer, issuance.address, amount, minerMin);
       });
 
       // TODO: Should this be moved to escrow?
@@ -338,7 +337,7 @@ describe("MinerSwap", () => {
         await dai.approve(minerSwap.address, amount);
 
         await minerSwap.issueMinerForExactTokens(
-          dai.address,
+          path,
           amount,
           minerMin,
           deadline
@@ -361,7 +360,7 @@ describe("MinerSwap", () => {
 
         await expect(
           minerSwap.issueMinerForExactTokens(
-            dai.address,
+            path,
             amount,
             minerMin,
             deadline
@@ -374,7 +373,7 @@ describe("MinerSwap", () => {
 
         expect(
           minerSwap.issueMinerForExactTokens(
-            ethers.constants.AddressZero,
+            ["0x1"],
             amount,
             amount,
             deadline
@@ -393,7 +392,7 @@ describe("MinerSwap", () => {
 
         await expect(
           minerSwap.issueMinerForExactTokens(
-            dai.address,
+            path,
             amount,
             minerMin,
             deadline
@@ -411,7 +410,7 @@ describe("MinerSwap", () => {
 
         await expect(
           minerSwap.issueMinerForExactTokens(
-            dai.address,
+            path,
             amount,
             slippageMin,
             deadline
@@ -444,7 +443,7 @@ describe("MinerSwap", () => {
         await dai.approve(minerSwap.address, maxTokensIn);
 
         await minerSwap.issueExactMinerForTokens(
-          dai.address,
+          path,
           maxTokensIn,
           exactMiner,
           deadline
@@ -458,7 +457,7 @@ describe("MinerSwap", () => {
 
         await expect(
           minerSwap.issueExactMinerForTokens(
-            dai.address,
+            path,
             maxTokensIn,
             exactMiner,
             deadline
@@ -468,7 +467,6 @@ describe("MinerSwap", () => {
           .withArgs(
             deployer,
             issuance.address,
-            dai.address,
             maxTokensIn,
             exactMiner
           );
