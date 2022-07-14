@@ -14,7 +14,6 @@ import { calculateTokensToExactMiner } from "./utils/xrates";
 describe("MinerSwap", () => {
   let deployer: any;
   let owner: any;
-  let issuer: any;
   let alice: any;
   let bob: any;
 
@@ -30,7 +29,7 @@ describe("MinerSwap", () => {
   let deadline: number;
 
   before(async () => {
-    ({ deployer, owner, issuer, alice, bob } = await getNamedAccounts());
+    ({ deployer, owner, alice, bob } = await getNamedAccounts());
   });
 
   beforeEach(async () => {
@@ -56,7 +55,7 @@ describe("MinerSwap", () => {
   });
 
   describe("instantiation", () => {
-    it("should be able to change price feed oracle", async () => {
+    it.only("should be able to change price feed oracle", async () => {
       await minerSwap.setPriceFeedOracle(aggregator.address);
 
       expect(await minerSwap.priceFeedOracle()).to.be.equal(aggregator.address);

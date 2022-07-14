@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers, waffle, deployments, getNamedAccounts } from "hardhat";
+import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { Contract } from "ethers";
 import { testConfig } from "../config";
 
@@ -29,7 +29,7 @@ describe("Issuance", () => {
     miner = new Contract(
       testConfig.miner,
       ArtifactIERC20.abi,
-      waffle.provider.getSigner()
+      ethers.provider.getSigner()
     );
 
     await miner.transfer(issuance.address, supply);

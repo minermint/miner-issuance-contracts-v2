@@ -1,22 +1,9 @@
-import { ethers, waffle, deployments, getNamedAccounts } from "hardhat";
+import { ethers, deployments } from "hardhat";
 import { Contract } from "ethers";
 import { expect } from "chai";
 
 describe("TruflationUSDMinerPair", () => {
-  let deployer: any;
-  let owner: any;
-  let issuer: any;
-  let alice: any;
-  let bob: any;
-
-  // $3 to 8 dp.
-  const EXCHANGE_RATE = ethers.utils.parseUnits("3", 8);
-
   let pair: Contract;
-
-  before(async () => {
-    ({ deployer, owner, issuer, alice, bob } = await getNamedAccounts());
-  });
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
