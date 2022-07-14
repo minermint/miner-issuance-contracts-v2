@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { Contract } from "ethers";
 import { testConfig } from "../config";
-import { Issuance } from "../typechain-types";
+import type { Issuance } from "../typechain-types";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 

@@ -1,5 +1,7 @@
 import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
+
+// @ts-ignore
 import { TruflationUSDMinerPairMock } from "../typechain-types";
 
 describe("TruflationUSDMinerPair", () => {

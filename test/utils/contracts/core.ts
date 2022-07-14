@@ -1,7 +1,9 @@
 import { Contract } from "ethers";
 import { testConfig } from "../../../config";
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
-import { TruflationUSDMinerPairMock } from "../../../typechain-types";
+
+// @ts-ignore
+import type { TruflationUSDMinerPairMock } from "../../../typechain-types";
 
 export const getTruflationOracle =
   async (): Promise<TruflationUSDMinerPairMock> => {

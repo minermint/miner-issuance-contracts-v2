@@ -1,8 +1,8 @@
-import { ethers, waffle, deployments, getNamedAccounts } from "hardhat";
+import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { getTwentyMinuteDeadline } from "./utils/deadline";
-import { advanceBlockTimestamp } from "./utils/mining";
+import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 import { getMiner, getTruflationOracle } from "./utils/contracts/core";
 import {
   getUniswapV2Router02,
@@ -10,7 +10,7 @@ import {
   getDai,
 } from "./utils/contracts/periphery";
 import { calculateTokensToExactMiner } from "./utils/xrates";
-import {
+import type {
   Issuance,
   MinerSwap,
   TruflationUSDMinerPairMock,
@@ -197,7 +197,7 @@ describe("MinerSwap", () => {
       });
 
       it("should NOT issue when deadline expires", async () => {
-        advanceBlockTimestamp(30 * 60);
+        await helpers.time.increase(3600);
 
         await expect(
           minerSwap.issueMinerForExactETH(minerMin, deadline, {
@@ -263,7 +263,7 @@ describe("MinerSwap", () => {
       });
 
       it("should refund excess ETH", async () => {
-        const ethBalance = await waffle.provider.getBalance(alice);
+        const ethBalance = await ethers.provider.getBalance(alice);
 
         const tx = await minerSwap
           .connect(await ethers.getSigner(alice))
@@ -277,7 +277,7 @@ describe("MinerSwap", () => {
           .sub(maxEthIn)
           .sub(receipt.gasUsed.mul(receipt.effectiveGasPrice));
 
-        const balance = await waffle.provider.getBalance(alice);
+        const balance = await ethers.provider.getBalance(alice);
 
         expect(balance).to.be.equal(expected);
       });
@@ -349,7 +349,7 @@ describe("MinerSwap", () => {
           from: deployer,
         });
 
-        advanceBlockTimestamp(30 * 60);
+        await helpers.time.increase(30 * 60);
 
         await expect(
           minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
@@ -359,9 +359,14 @@ describe("MinerSwap", () => {
       it("should NOT swap invalid token", async () => {
         await dai.approve(minerSwap.address, amount);
 
-        expect(
-          minerSwap.issueMinerForExactTokens(["0x1"], amount, amount, deadline)
-        ).to.be.revertedWith("");
+        await expect(
+          minerSwap.issueMinerForExactTokens(
+            [minerSwap.address],
+            amount,
+            amount,
+            deadline
+          )
+        ).to.be.revertedWith("UniswapV2Library: INVALID_PATH");
       });
 
       it("should return tokens if deadline expires", async () => {
@@ -371,7 +376,7 @@ describe("MinerSwap", () => {
           from: deployer,
         });
 
-        advanceBlockTimestamp(30 * 60);
+        await helpers.time.increase(30 * 60);
 
         await expect(
           minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
@@ -452,7 +457,7 @@ describe("MinerSwap", () => {
 
         const wei = ethers.utils.parseEther("0.001");
 
-        const balanceBeforeWithdrawal = await waffle.provider.getBalance(owner);
+        const balanceBeforeWithdrawal = await ethers.provider.getBalance(owner);
 
         await minerSwap
           .connect(await ethers.getSigner(alice))
@@ -462,7 +467,7 @@ describe("MinerSwap", () => {
 
         await minerSwap.withdrawPayments(owner);
 
-        const balanceAfterWithdrawal = await waffle.provider.getBalance(owner);
+        const balanceAfterWithdrawal = await ethers.provider.getBalance(owner);
 
         const expected = balanceBeforeWithdrawal.add(wei);
 
@@ -472,7 +477,7 @@ describe("MinerSwap", () => {
       it("should NOT withdraw eth swap balance to bob", async () => {
         const wei = ethers.utils.parseEther("0.001");
 
-        const balanceBeforeWithdrawal = await waffle.provider.getBalance(bob);
+        const balanceBeforeWithdrawal = await ethers.provider.getBalance(bob);
 
         await minerSwap
           .connect(await ethers.getSigner(alice))
@@ -482,7 +487,7 @@ describe("MinerSwap", () => {
 
         await minerSwap.withdrawPayments(bob);
 
-        const balanceAfterWithdrawal = await waffle.provider.getBalance(bob);
+        const balanceAfterWithdrawal = await ethers.provider.getBalance(bob);
 
         expect(balanceBeforeWithdrawal).to.be.equal(balanceAfterWithdrawal);
       });
