@@ -55,7 +55,7 @@ describe("MinerSwap", () => {
   });
 
   describe("instantiation", () => {
-    it.only("should be able to change price feed oracle", async () => {
+    it("should be able to change price feed oracle", async () => {
       await minerSwap.setPriceFeedOracle(aggregator.address);
 
       expect(await minerSwap.priceFeedOracle()).to.be.equal(aggregator.address);
