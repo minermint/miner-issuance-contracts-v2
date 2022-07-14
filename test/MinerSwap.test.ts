@@ -10,19 +10,21 @@ import {
   getDai,
 } from "./utils/contracts/periphery";
 import { calculateTokensToExactMiner } from "./utils/xrates";
+import {
+  Issuance,
+  MinerSwap,
+  TruflationUSDMinerPairMock,
+} from "../typechain-types";
 
 describe("MinerSwap", () => {
-  let deployer: any;
-  let owner: any;
-  let alice: any;
-  let bob: any;
+  let deployer: string, owner: string, alice: string, bob: string;
 
   let miner: any,
-    minerSwap: any,
-    issuance: any,
+    minerSwap: MinerSwap,
+    issuance: Issuance,
     aggregator: any,
     router: any,
-    oracle: any;
+    oracle: TruflationUSDMinerPairMock;
 
   const supply = ethers.utils.parseEther("10");
 
@@ -35,17 +37,17 @@ describe("MinerSwap", () => {
   beforeEach(async () => {
     await deployments.fixture(["all"]);
 
-    miner = await getMiner();
+    miner = getMiner();
 
     oracle = await getTruflationOracle();
 
-    issuance = await ethers.getContract("Issuance");
+    issuance = await ethers.getContract<Issuance>("Issuance");
 
     await miner.transfer(issuance.address, supply);
 
     router = getUniswapV2Router02();
 
-    minerSwap = await ethers.getContract("MinerSwap");
+    minerSwap = await ethers.getContract<MinerSwap>("MinerSwap");
 
     await issuance.addIssuer(minerSwap.address);
 
@@ -93,6 +95,7 @@ describe("MinerSwap", () => {
       await minerSwap.setPriceFeedOracle(ethers.constants.AddressZero);
       const amount = ethers.utils.parseEther("0.001");
 
+      // set min miner out to 0 as it shouldn't reach any amount validation.
       await expect(
         minerSwap.issueMinerForExactETH(0, deadline, { value: amount })
       ).to.be.revertedWith("MinerSwap/no-oracle-set");

@@ -1,13 +1,15 @@
 import { ethers, deployments } from "hardhat";
-import { Contract } from "ethers";
 import { expect } from "chai";
+import { TruflationUSDMinerPairMock } from "../typechain-types";
 
 describe("TruflationUSDMinerPair", () => {
-  let pair: Contract;
+  let pair: TruflationUSDMinerPairMock;
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
-    pair = await ethers.getContract("TruflationUSDMinerPairMock");
+    pair = await ethers.getContract<TruflationUSDMinerPairMock>(
+      "TruflationUSDMinerPairMock"
+    );
   });
 
   it("should report today's inflation rate", async () => {

@@ -2,13 +2,14 @@ import { expect } from "chai";
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { Contract } from "ethers";
 import { testConfig } from "../config";
+import { Issuance } from "../typechain-types";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
 describe("Issuance", () => {
   const ZERO_BALANCE = 0;
 
-  let issuance: Contract;
+  let issuance: Issuance;
   let miner: Contract;
 
   let deployer: any;
@@ -24,7 +25,7 @@ describe("Issuance", () => {
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
-    issuance = await ethers.getContract("Issuance");
+    issuance = await ethers.getContract<Issuance>("Issuance");
 
     miner = new Contract(
       testConfig.miner,

@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers";
-import { getTruflationOracle, getMiner } from "./contracts/core";
+import { getTruflationOracle } from "./contracts/core";
 import {
   getUniswapV2Router02,
   getAggregatorV3ETHUSD,
@@ -40,6 +40,9 @@ export const calculateTokensToExactMiner = async (
  * Gets the amount of ETH based on the Miner to ETH exchange rate.
  *
  * Pass in a value of 1e18 for the exchange rate.
+ *
+ * @param amount The amount of Miner to convert.
+ * @returns The equivalent amount of ETH.
  */
 export const getMinerToETH = async (amount: BigNumber): Promise<BigNumber> => {
   const oracle = await getTruflationOracle();
