@@ -19,6 +19,7 @@ import {
   etherscanAPIKey,
 } from "./config";
 import * as ExchangeRates from "./test/utils/xrates";
+import { getERC20Token } from "./test/utils/contracts/periphery";
 
 dotenv.config();
 
@@ -50,14 +51,26 @@ task(
       "1 Miner -> " + hre.ethers.utils.formatEther(ethPerMiner) + " ETH"
     );
 
-    const daiPerMiner = await ExchangeRates.calculateTokensToExactMiner(
-      testConfig.dai,
-      hre.ethers.utils.parseEther("1")
-    );
+    const ethPerDai = await ExchangeRates.getETHPerToken(testConfig.currencies.dai);
 
-    console.log(
-      "1 Miner -> " + hre.ethers.utils.formatEther(daiPerMiner) + " DAI"
-    );
+    console.log("1 Dai -> " + hre.ethers.utils.formatEther(ethPerDai) + " ETH");
+
+    for (var name in testConfig.currencies) {
+      const tokensPerMiner = await ExchangeRates.calculateTokensToExactMiner(
+        testConfig.currencies[name],
+        hre.ethers.utils.parseEther("1")
+      );
+
+      console.log(
+        "1 Miner -> " +
+          hre.ethers.utils.formatUnits(
+            tokensPerMiner,
+            await getERC20Token(testConfig.currencies[name]).decimals()
+          ) +
+          " " +
+          name.toUpperCase()
+      );
+    }
   }
 );
 

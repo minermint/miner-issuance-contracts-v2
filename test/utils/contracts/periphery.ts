@@ -22,10 +22,10 @@ export const getUniswapV2Factory = async (): Promise<Contract> => {
   );
 };
 
-export const getDai = (): Contract => {
+export const getERC20Token = (address: string): Contract => {
   return new Contract(
-    testConfig.dai,
-    JSON.stringify(ArtifactIERC20.abi),
+    address,
+    ArtifactIERC20.abi,
     hre.ethers.provider.getSigner()
   );
 };

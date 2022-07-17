@@ -97,13 +97,13 @@ contract MinerSwap is PullPayment, Ownable {
         priceFeedSet
         returns (uint256)
     {
-        uint256 rate = truflation.getTodaysExchangeRate();
+        uint256 usdPerMiner = truflation.getTodaysExchangeRate();
 
-        (, int256 answer, , , ) = priceFeedOracle.latestRoundData();
+        (, int256 usdPerETH, , , ) = priceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         // the result will be the price of 1 miner in wei.
-        return (rate * 1e18) / uint256(answer);
+        return usdPerMiner * 1e18 / uint256(usdPerETH);
     }
 
     /**
@@ -125,11 +125,11 @@ contract MinerSwap is PullPayment, Ownable {
         view
         returns (uint256)
     {
-        uint256 xRate = _calculateETHPerMiner();
+        uint256 ethPerMinerRate = _calculateETHPerMiner();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
         // miner.
-        return (amount * 1e18) / xRate;
+        return (amount * 1e18) / ethPerMinerRate;
     }
 
     function calculateMinerToETH(uint256 amount)
@@ -145,10 +145,10 @@ contract MinerSwap is PullPayment, Ownable {
         view
         returns (uint256)
     {
-        uint256 xRate = _calculateETHPerMiner();
+        uint256 ethPerMinerRate = _calculateETHPerMiner();
 
         // x Miner / 1 Miner To ETH Exchange Rate = y ETH
-        return (amount * xRate) / 1e18;
+        return (amount * ethPerMinerRate) / 1e18;
     }
 
     /**
@@ -252,14 +252,16 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
+        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
-        uint256 etherMin = router.getAmountsOut(amount, path)[path.length - 1];
+        // if the path is invalid, it should fail here.
+        uint256 expectedETHOut = router.getAmountsOut(amount, path)[path.length - 1];
 
-        require(
-            _calculateETHToMiner(etherMin) >= minMinerOut,
-            "MinerSwap/slippage"
-        );
+        uint256 expectedMinerOut = _calculateETHToMiner(expectedETHOut);
+
+        require(expectedMinerOut >= minMinerOut, "MinerSwap/slippage");
 
         TransferHelper.safeTransferFrom(
             path[0],
@@ -274,7 +276,7 @@ contract MinerSwap is PullPayment, Ownable {
 
         uint256[] memory amounts = router.swapExactTokensForETH(
             amount,
-            etherMin,
+            expectedETHOut,
             path,
             address(this),
             deadline
@@ -287,18 +289,20 @@ contract MinerSwap is PullPayment, Ownable {
             "MinerSwap/invalid-eth-amount-transferred"
         );
 
-        uint256 minerOut = _calculateETHToMiner(amounts[amounts.length - 1]);
+        // the amount of eth received from the swap may be more than the min.
+        // So, recheck actual miner to issue.
+        uint256 actualMinerOut = _calculateETHToMiner(amounts[amounts.length - 1]);
 
-        issuance.issue(_msgSender(), minerOut);
+        issuance.issue(_msgSender(), actualMinerOut);
 
         emit IssuedMinerForExactTokens(
             _msgSender(),
             address(issuance),
             amount,
-            minerOut
+            actualMinerOut
         );
 
-        return minerOut;
+        return actualMinerOut;
     }
 
     /**
@@ -320,6 +324,8 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 exactMinerOut,
         uint256 deadline
     ) external returns (uint256) {
+        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);

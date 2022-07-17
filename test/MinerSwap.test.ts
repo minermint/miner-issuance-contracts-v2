@@ -7,9 +7,18 @@ import { getMiner, getTruflationOracle } from "./utils/contracts/core";
 import {
   getUniswapV2Router02,
   getAggregatorV3ETHUSD,
-  getDai,
+  getERC20Token,
 } from "./utils/contracts/periphery";
-import { calculateTokensToExactMiner } from "./utils/xrates";
+import {
+  calculateTokensToExactMiner,
+  calculateExactTokensToMiner,
+} from "./utils/xrates";
+import {
+  getBestPricePathExactIn,
+  getBestPricePathExactOut,
+} from "./utils/hops";
+import fundDai from "./utils/fundDai";
+import { testConfig } from "../config";
 import type {
   Issuance,
   MinerSwap,
@@ -30,12 +39,19 @@ describe("MinerSwap", () => {
 
   let deadline: number;
 
+  let dai: any;
+
   before(async () => {
     ({ deployer, owner, alice, bob } = await getNamedAccounts());
   });
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
+
+    // get some Dai.
+    await fundDai();
+
+    dai = getERC20Token(testConfig.currencies.dai);
 
     miner = getMiner();
 
@@ -118,15 +134,7 @@ describe("MinerSwap", () => {
   });
 
   describe("swaps", () => {
-    let dai: any;
-    let path: any;
-
     beforeEach(async () => {
-      dai = getDai();
-      path = [];
-      path[0] = dai.address;
-      path[1] = await router.WETH();
-
       await minerSwap.setPriceFeedOracle(aggregator.address);
     });
 
@@ -284,27 +292,39 @@ describe("MinerSwap", () => {
     });
 
     describe("issuing miner for exact tokens", async () => {
-      const amount = ethers.utils.parseEther("10");
+      const exactTokensIn = ethers.utils.parseEther("1");
 
-      let minerMin: BigNumber;
+      let minerMinOut: BigNumber;
       let requiredETHIn: BigNumber;
+      let path: string[];
 
       beforeEach(async () => {
-        requiredETHIn = (await router.getAmountsOut(amount, path))[1];
-        minerMin = await minerSwap.calculateETHToMiner(requiredETHIn);
+        path = await getBestPricePathExactIn(
+          exactTokensIn,
+          testConfig.currencies.dai,
+          await router.WETH()
+        );
+
+        const amounts = await router.getAmountsOut(exactTokensIn, path);
+        requiredETHIn = amounts[amounts.length - 1];
+
+        minerMinOut = await calculateExactTokensToMiner(
+          testConfig.currencies.dai,
+          exactTokensIn
+        );
       });
 
-      it("should swap a token for miner", async () => {
+      it("should swap dai for miner", async () => {
         const balance = await miner.balanceOf(deployer);
 
-        const expected = minerMin.add(balance);
+        const expected = minerMinOut.add(balance);
 
-        await dai.approve(minerSwap.address, amount);
+        await dai.approve(minerSwap.address, exactTokensIn);
 
         await minerSwap.issueMinerForExactTokens(
           path,
-          amount,
-          minerMin,
+          exactTokensIn,
+          minerMinOut,
           deadline
         );
 
@@ -312,13 +332,18 @@ describe("MinerSwap", () => {
       });
 
       it("should emit a Swapped Token for Miner event", async () => {
-        await dai.approve(minerSwap.address, amount);
+        await dai.approve(minerSwap.address, exactTokensIn);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
+          minerSwap.issueMinerForExactTokens(
+            path,
+            exactTokensIn,
+            minerMinOut,
+            deadline
+          )
         )
           .to.emit(minerSwap, "IssuedMinerForExactTokens")
-          .withArgs(deployer, issuance.address, amount, minerMin);
+          .withArgs(deployer, issuance.address, exactTokensIn, minerMinOut);
       });
 
       // TODO: Should this be moved to escrow?
@@ -327,12 +352,12 @@ describe("MinerSwap", () => {
 
         const initialBalance = await minerSwap.payments(deployer);
 
-        await dai.approve(minerSwap.address, amount);
+        await dai.approve(minerSwap.address, exactTokensIn);
 
         await minerSwap.issueMinerForExactTokens(
           path,
-          amount,
-          minerMin,
+          exactTokensIn,
+          minerMinOut,
           deadline
         );
 
@@ -345,25 +370,30 @@ describe("MinerSwap", () => {
       });
 
       it("should NOT swap when deadline expires", async () => {
-        await dai.approve(minerSwap.address, amount, {
+        await dai.approve(minerSwap.address, exactTokensIn, {
           from: deployer,
         });
 
         await helpers.time.increase(30 * 60);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
-        ).to.be.revertedWith("UniswapV2Router: EXPIRED");
+          minerSwap.issueMinerForExactTokens(
+            path,
+            exactTokensIn,
+            minerMinOut,
+            deadline
+          )
+        ).to.be.revertedWith("MinerSwap/deadline-expired");
       });
 
       it("should NOT swap invalid token", async () => {
-        await dai.approve(minerSwap.address, amount);
+        await dai.approve(minerSwap.address, exactTokensIn);
 
         await expect(
           minerSwap.issueMinerForExactTokens(
             [minerSwap.address],
-            amount,
-            amount,
+            exactTokensIn,
+            minerMinOut,
             deadline
           )
         ).to.be.revertedWith("UniswapV2Library: INVALID_PATH");
@@ -372,29 +402,34 @@ describe("MinerSwap", () => {
       it("should return tokens if deadline expires", async () => {
         const expected = await dai.balanceOf(deployer);
 
-        await dai.approve(minerSwap.address, amount, {
+        await dai.approve(minerSwap.address, exactTokensIn, {
           from: deployer,
         });
 
         await helpers.time.increase(30 * 60);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(path, amount, minerMin, deadline)
-        ).to.be.revertedWith("UniswapV2Router: EXPIRED");
+          minerSwap.issueMinerForExactTokens(
+            path,
+            exactTokensIn,
+            minerMinOut,
+            deadline
+          )
+        ).to.be.revertedWith("MinerSwap/deadline-expired");
 
         expect(await dai.balanceOf(deployer)).to.be.equal(expected);
       });
 
       it("should NOT swap if price falls below slippage", async () => {
-        await dai.approve(minerSwap.address, amount);
+        await dai.approve(minerSwap.address, exactTokensIn);
 
         // increase the min miner beyond what will be swapped.
-        const slippageMin = minerMin.add(ethers.utils.parseEther("1"));
+        const slippageMin = minerMinOut.add(ethers.utils.parseEther("1"));
 
         await expect(
           minerSwap.issueMinerForExactTokens(
             path,
-            amount,
+            exactTokensIn,
             slippageMin,
             deadline
           )
@@ -406,12 +441,14 @@ describe("MinerSwap", () => {
       const exactMinerOut = ethers.utils.parseEther("1");
 
       let maxTokensIn: BigNumber;
-
-      let dai: any;
+      let path: string[];
 
       beforeEach(async () => {
-        dai = getDai();
-
+        path = await getBestPricePathExactOut(
+          exactMinerOut,
+          testConfig.currencies.dai,
+          await router.WETH()
+        );
         maxTokensIn = await calculateTokensToExactMiner(
           dai.address,
           exactMinerOut
