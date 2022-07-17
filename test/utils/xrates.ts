@@ -17,7 +17,7 @@ import { getBestPricePathExactIn, getBestPricePathExactOut } from "./hops";
  * @return The equivalent amount of tokens that would be required to
  * successfully generate the exact amount of Miner.
  */
- // getTokensInFromExactMinerOut
+// getTokensInFromExactMinerOut
 export const calculateTokensToExactMiner = async (
   tokenAddress: string,
   exactAmountOut: BigNumber
@@ -47,7 +47,7 @@ export const calculateTokensToExactMiner = async (
  * @return The equivalent amount of miner that would be received in relation
  * to an exact amount of tokens in.
  */
- //getMinerOutFromExactTokensIn
+//getMinerOutFromExactTokensIn
 export const calculateExactTokensToMiner = async (
   tokenAddress: string,
   exactAmountIn: BigNumber
@@ -78,7 +78,9 @@ export const calculateExactTokensToMiner = async (
  * @return The equivalent amount of ETH.
  */
 export const getMinerToETH = async (amount: BigNumber): Promise<BigNumber> => {
-  return amount.mul(await getETHPerMiner()).div(hre.ethers.utils.parseEther("1"));
+  return amount
+    .mul(await getETHPerMiner())
+    .div(hre.ethers.utils.parseEther("1"));
 };
 
 /**
@@ -90,7 +92,9 @@ export const getMinerToETH = async (amount: BigNumber): Promise<BigNumber> => {
  * @return The equivalent amount of Miner.
  */
 export const getETHToMiner = async (amount: BigNumber): Promise<BigNumber> => {
-  return amount.mul(hre.ethers.utils.parseEther("1")).div(await getETHPerMiner());
+  return amount
+    .mul(hre.ethers.utils.parseEther("1"))
+    .div(await getETHPerMiner());
 };
 
 /**
@@ -124,7 +128,10 @@ export const getETHPerToken = async (address: string): Promise<BigNumber> => {
     await router.WETH()
   );
 
-  const amounts = await router.getAmountsOut(hre.ethers.utils.parseEther("1"), path);
+  const amounts = await router.getAmountsOut(
+    hre.ethers.utils.parseEther("1"),
+    path
+  );
 
   return amounts[amounts.length - 1];
 };

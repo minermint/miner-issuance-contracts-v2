@@ -51,7 +51,9 @@ task(
       "1 Miner -> " + hre.ethers.utils.formatEther(ethPerMiner) + " ETH"
     );
 
-    const ethPerDai = await ExchangeRates.getETHPerToken(testConfig.currencies.dai);
+    const ethPerDai = await ExchangeRates.getETHPerToken(
+      testConfig.currencies.dai
+    );
 
     console.log("1 Dai -> " + hre.ethers.utils.formatEther(ethPerDai) + " ETH");
 

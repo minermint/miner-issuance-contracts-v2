@@ -103,7 +103,7 @@ contract MinerSwap is PullPayment, Ownable {
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         // the result will be the price of 1 miner in wei.
-        return usdPerMiner * 1e18 / uint256(usdPerETH);
+        return (usdPerMiner * 1e18) / uint256(usdPerETH);
     }
 
     /**
@@ -257,7 +257,9 @@ contract MinerSwap is PullPayment, Ownable {
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         // if the path is invalid, it should fail here.
-        uint256 expectedETHOut = router.getAmountsOut(amount, path)[path.length - 1];
+        uint256 expectedETHOut = router.getAmountsOut(amount, path)[
+            path.length - 1
+        ];
 
         uint256 expectedMinerOut = _calculateETHToMiner(expectedETHOut);
 
@@ -291,7 +293,9 @@ contract MinerSwap is PullPayment, Ownable {
 
         // the amount of eth received from the swap may be more than the min.
         // So, recheck actual miner to issue.
-        uint256 actualMinerOut = _calculateETHToMiner(amounts[amounts.length - 1]);
+        uint256 actualMinerOut = _calculateETHToMiner(
+            amounts[amounts.length - 1]
+        );
 
         issuance.issue(_msgSender(), actualMinerOut);
 
