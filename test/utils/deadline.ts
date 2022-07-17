@@ -1,5 +1,3 @@
-import { waffle } from "hardhat";
-
 export async function getTwentyMinuteDeadline() {
   return getDeadline(20);
 }
@@ -9,7 +7,7 @@ export async function getOneDayDeadline() {
 }
 
 export async function getDeadline(minutes: number) {
-  const timestamp = (await waffle.provider.getBlock("latest")).timestamp;
+  const timestamp = (await hre.ethers.provider.getBlock("latest")).timestamp;
   const advance = minutes * 60;
   return timestamp + advance;
 }

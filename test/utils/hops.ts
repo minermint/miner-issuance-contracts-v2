@@ -1,18 +1,20 @@
-import { waffle } from "hardhat";
 import { Contract, BigNumber } from "ethers";
 import ArtifactERC20 from "@uniswap/v2-core/build/IERC20.json";
+import ArtifactIUniswapV2Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json";
 import * as Uniswap from "@uniswap/sdk";
 import flatMap from "lodash.flatmap";
 
 // base tokens for finding best price. The more base tokens the more accurate
 // the pricing.
 const BASES: {
-  [chainId in Uniswap.ChainId]?: { [tokenName: string]: string };
+  [chainId in Uniswap.ChainId]?: { [address: string]: string };
 } = {
-  [Uniswap.ChainId.KOVAN]: {
-    "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa": "DAI", // Dai
-    "0xe22da380ee6B445bb8273C81944ADEB6E8450422": "USDC", // USDC
-    "0xd0A1E359811322d97991E03f863a0C30C2cF029C": "WETH", // WETH
+  [Uniswap.ChainId.MAINNET]: {
+    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": "WBTC", // Wrapped BTC
+    "0x6B175474E89094C44Da98b954EedeAC495271d0F": "DAI", // Dai
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "USDC", // USDC
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7": "USDT", // USDT
+    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": "WETH", // WETH
   },
 };
 
@@ -24,12 +26,12 @@ const getTradingPairs = async (
 ) => {
   const tokens: any[] = [];
 
-  for (const base in BASES[Uniswap.ChainId.KOVAN]) {
-    const token = new Contract(base, ArtifactERC20.abi, waffle.provider);
+  for (const base in BASES[Uniswap.ChainId.MAINNET]) {
+    const token = new Contract(base, ArtifactERC20.abi, hre.ethers.provider);
 
     tokens.push(
       new Uniswap.Token(
-        Uniswap.ChainId.KOVAN,
+        Uniswap.ChainId.MAINNET,
         token.address,
         await token.decimals(),
         await token.symbol(),
@@ -54,9 +56,9 @@ const getTradingPairs = async (
     )
   );
 
-  const filteredPairs = allPairs
+  const filteredPairs = await allPairs
     .filter(([t0, t1]) => t0.address !== t1.address)
-    .reduce(function (previousValue, currentValue) {
+    .reduce((previousValue, currentValue) => {
       if (
         !previousValue.find(
           (value) =>
@@ -69,7 +71,7 @@ const getTradingPairs = async (
 
       return previousValue;
     }, [])
-    .reduce(function (previousValue, currentValue) {
+    .reduce((previousValue, currentValue) => {
       if (
         !previousValue.find(
           (value: any) =>
@@ -86,13 +88,24 @@ const getTradingPairs = async (
   const pairs = [];
 
   for (var i = 0; i < filteredPairs.length; i++) {
-    pairs.push(
-      await Uniswap.Fetcher.fetchPairData(
-        filteredPairs[i][0],
-        filteredPairs[i][1],
-        waffle.provider
-      )
+    // strip out pairs without a reserve, I.e. unfunded pools.
+    const pairAddress = Uniswap.Pair.getAddress(
+      filteredPairs[i][0],
+      filteredPairs[i][1]
     );
+    const iface = new hre.ethers.utils.Interface(ArtifactIUniswapV2Pair.abi);
+    const bytecode = await hre.ethers.provider.getCode(pairAddress);
+    const selector = iface.getSighash(iface.getFunction("getReserves"));
+
+    if (bytecode.includes(selector.slice(2, 10))) {
+      pairs.push(
+        await Uniswap.Fetcher.fetchPairData(
+          filteredPairs[i][0],
+          filteredPairs[i][1],
+          hre.ethers.provider
+        )
+      );
+    }
   }
 
   return pairs;
@@ -109,7 +122,7 @@ const getTradingPairs = async (
  * tokenIn to tokenOut for the exact amount of tokenIn.
  */
 export const getBestPricePathExactIn = async (
-  amount: BigNumber,
+  exactAmountIn: BigNumber,
   tokenInAddress: string,
   tokenOutAddress: string
 ) => {
@@ -121,7 +134,10 @@ export const getBestPricePathExactIn = async (
 
   const bestTrades = Uniswap.Trade.bestTradeExactIn(
     pairs,
-    new Uniswap.TokenAmount(tokenIn, Uniswap.JSBI.BigInt(amount.toString())),
+    new Uniswap.TokenAmount(
+      tokenIn,
+      Uniswap.JSBI.BigInt(exactAmountIn.toString())
+    ),
     tokenOut,
     { maxHops: MAX_HOPS, maxNumResults: 1 }
   );
@@ -140,17 +156,17 @@ export const getBestPricePathExactIn = async (
  * best price. For example, if DAI is being swapped for WETH, tokenOut will
  * be WETH and tokenIn will be DAI.
  *
- * @param {string} tokenOutAddress The address of the token representing the
- * exact "out" amount.
  * @param {string} tokenInAddress The address of the token whose "best price" we
  * are trying to determine.
- * @returns An array of token addresses representing the best price path from
+ * @param {string} tokenOutAddress The address of the token representing the
+ * exact "out" amount.
+ * @return An array of token addresses representing the best price path from
  * tokenOut to tokenIn for the exact amount of tokenOut.
  */
 export const getBestPricePathExactOut = async (
-  amount: BigNumber,
-  tokenOutAddress: string,
-  tokenInAddress: string
+  exactAmountOut: BigNumber,
+  tokenInAddress: string,
+  tokenOutAddress: string
 ) => {
   const tokenOut = await getUniswapToken(tokenOutAddress);
   const tokenIn = await getUniswapToken(tokenInAddress);
@@ -160,7 +176,10 @@ export const getBestPricePathExactOut = async (
   const bestTrades = Uniswap.Trade.bestTradeExactOut(
     pairs,
     tokenIn,
-    new Uniswap.TokenAmount(tokenOut, Uniswap.JSBI.BigInt(amount.toString())),
+    new Uniswap.TokenAmount(
+      tokenOut,
+      Uniswap.JSBI.BigInt(exactAmountOut.toString())
+    ),
     { maxHops: MAX_HOPS, maxNumResults: 1 }
   );
 
@@ -172,10 +191,10 @@ export const getBestPricePathExactOut = async (
 };
 
 const getUniswapToken = async (address: string): Promise<Uniswap.Token> => {
-  const token = new Contract(address, ArtifactERC20.abi, waffle.provider);
+  const token = new Contract(address, ArtifactERC20.abi, hre.ethers.provider);
 
   return new Uniswap.Token(
-    Uniswap.ChainId.KOVAN,
+    Uniswap.ChainId.MAINNET,
     token.address,
     await token.decimals(),
     await token.symbol(),

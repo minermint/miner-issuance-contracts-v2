@@ -5,7 +5,6 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/PullPayment.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -16,8 +15,6 @@ import "./Issuance.sol";
 
 /// @title Swap Ether and other ERC20 tokens for Miner.
 contract MinerSwap is PullPayment, Ownable {
-    using SafeMath for uint256;
-
     AggregatorV3Interface public priceFeedOracle;
 
     TruflationUSDMinerPairMock public truflation;
@@ -100,37 +97,13 @@ contract MinerSwap is PullPayment, Ownable {
         priceFeedSet
         returns (uint256)
     {
-        uint256 rate = truflation.getTodaysExchangeRate();
+        uint256 usdPerMiner = truflation.getTodaysExchangeRate();
 
-        (, int256 answer, , , ) = priceFeedOracle.latestRoundData();
+        (, int256 usdPerETH, , , ) = priceFeedOracle.latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         // the result will be the price of 1 miner in wei.
-        return rate.mul(1e18).div(uint256(answer));
-    }
-
-    /**
-     * Calculates the price of a single Miner token in the token specified by address. The token must be ERC20 compatible.
-     * @param token address The address of the token being swapped for Miner. Must be a valid ERC20 compatible token.
-     * @return uint256 The price of a single Miner token in the token specified by address.
-     */
-    function calculateTokensPerMiner(address token)
-        external
-        view
-        returns (uint256)
-    {
-        return _calculateTokensPerMiner(token);
-    }
-
-    function _calculateTokensPerMiner(address token)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 ethPerMiner = _calculateETHPerMiner();
-        uint256 amount = calculateEthToTokens(token, ethPerMiner);
-
-        return amount;
+        return (usdPerMiner * 1e18) / uint256(usdPerETH);
     }
 
     /**
@@ -152,11 +125,11 @@ contract MinerSwap is PullPayment, Ownable {
         view
         returns (uint256)
     {
-        uint256 xRate = _calculateETHPerMiner();
+        uint256 ethPerMinerRate = _calculateETHPerMiner();
 
         // multiply sent eth by 10^18 so that it transfers the correct amount of
         // miner.
-        return amount.mul(1e18).div(xRate);
+        return (amount * 1e18) / ethPerMinerRate;
     }
 
     function calculateMinerToETH(uint256 amount)
@@ -172,68 +145,10 @@ contract MinerSwap is PullPayment, Ownable {
         view
         returns (uint256)
     {
-        uint256 xRate = _calculateETHPerMiner();
+        uint256 ethPerMinerRate = _calculateETHPerMiner();
 
         // x Miner / 1 Miner To ETH Exchange Rate = y ETH
-        return (amount * xRate) / 1e18;
-    }
-
-    /**
-     * Calculates how much Ether will be received for the amount of token. The token must be ERC20 compatible.
-     * @param token address The address of the token being swapped for. Must be a valid ERC20 compatible token.
-     * @param amount uint256 The amount of token to swap.
-     * @return uint256 The amount of Ether received for the specified token amount.
-     */
-    function calculateTokensToETH(address token, uint256 amount)
-        public
-        view
-        returns (uint256)
-    {
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
-        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
-
-        address[] memory path = new address[](2);
-        path[0] = address(erc20);
-        path[1] = router.WETH();
-
-        return router.getAmountsOut(amount, path)[path.length - 1];
-    }
-
-    /**
-     * Calculates how many tokens will be received for the amount of Ether. The token must be ERC20 compatible.
-     * @param token address The address of the token being swapped to. Must be a valid ERC20 compatible token.
-     * @param amount uint256 The amount of token to swap.
-     * @return uint256 The amount of Ether received for the specified token amount.
-     */
-    function calculateEthToTokens(address token, uint256 amount)
-        public
-        view
-        returns (uint256)
-    {
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
-        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
-
-        address[] memory path = new address[](2);
-        path[0] = router.WETH();
-        path[1] = address(erc20);
-
-        return router.getAmountsOut(amount, path)[path.length - 1];
-    }
-
-    /**
-     * Calculates how many Miner tokens will be received for the amount of token specified. The token must be ERC20 compatible.
-     * @param token address The address of the token being swapped for. Must be a valid ERC20 compatible token.
-     * @param amount uint256 The amount of token to swap.
-     * @return uint256 The amount of Miner token received for the specified token amount.
-     */
-    function calculateTokensToMiner(address token, uint256 amount)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 tokenToEth = calculateTokensToETH(token, amount);
-
-        return _calculateETHToMiner(tokenToEth);
+        return (amount * ethPerMinerRate) / 1e18;
     }
 
     /**
@@ -323,46 +238,47 @@ contract MinerSwap is PullPayment, Ownable {
      * Issue at least `minMinerOut` Miner for exactly `amount` of `token`
      * tokens.
      * @ dev Emits a SwappedTokenToMiner event if successful.
-     * @param token address The address of the token being swapped. Must be a valid ERC20-compatible token with an existing liquidity pool on Uniswap.
+     * @param path address[] The optimal path to take when swapping a token for
+     * ETH. Must be a valid ERC20-compatible token and the final token must be
+     * WETH.
      * @param amount uint256 The amount of token to swap for Miner.
      * @param minMinerOut uint256 The minimum amount of Miner token to receive. Reverts if the minimum is not met.
      * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
      * @return uint256 The amount of Miner token swapped.
      */
     function issueMinerForExactTokens(
-        address token,
+        address[] calldata path, // No checks. Let uniswap validate the path.
         uint256 amount,
         uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
+        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
+
+        // if the path is invalid, it should fail here.
+        uint256 expectedETHOut = router.getAmountsOut(amount, path)[
+            path.length - 1
+        ];
+
+        uint256 expectedMinerOut = _calculateETHToMiner(expectedETHOut);
+
+        require(expectedMinerOut >= minMinerOut, "MinerSwap/slippage");
 
         TransferHelper.safeTransferFrom(
-            token,
+            path[0],
             msg.sender,
             address(this),
             amount
         );
 
-        TransferHelper.safeApprove(token, uniswapRouter, amount);
-
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
-
-        address[] memory path = new address[](2);
-        path[0] = address(erc20);
-        path[1] = router.WETH();
-        uint256 etherMin = calculateTokensToETH(token, amount);
-
-        require(
-            _calculateETHToMiner(etherMin) >= minMinerOut,
-            "MinerSwap/slippage"
-        );
+        TransferHelper.safeApprove(path[0], uniswapRouter, amount);
 
         uint256 balanceBefore = payments(owner());
 
         uint256[] memory amounts = router.swapExactTokensForETH(
             amount,
-            etherMin,
+            expectedETHOut,
             path,
             address(this),
             deadline
@@ -371,37 +287,50 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 balanceAfter = payments(owner());
 
         require(
-            balanceAfter == balanceBefore.add(amounts[amounts.length - 1]),
+            balanceAfter == balanceBefore + amounts[amounts.length - 1],
             "MinerSwap/invalid-eth-amount-transferred"
         );
 
-        uint256 minerOut = _calculateETHToMiner(amounts[amounts.length - 1]);
+        // the amount of eth received from the swap may be more than the min.
+        // So, recheck actual miner to issue.
+        uint256 actualMinerOut = _calculateETHToMiner(
+            amounts[amounts.length - 1]
+        );
 
-        issuance.issue(_msgSender(), minerOut);
+        issuance.issue(_msgSender(), actualMinerOut);
 
         emit IssuedMinerForExactTokens(
             _msgSender(),
             address(issuance),
-            token,
             amount,
-            minerOut
+            actualMinerOut
         );
 
-        return minerOut;
+        return actualMinerOut;
     }
 
+    /**
+     * Issue exactly `exactMinerOut` Miner for no more than `maxAmountIn` of
+     * the selected token.
+     * @ dev Emits a SwappedTokenToMiner event if successful.
+     * @param path address[] The optimal path to take when swapping a token for
+     * ETH. Must be a valid ERC20-compatible token and the final token must be
+     * WETH.
+     * @param maxAmountIn uint256 The maximum amount of tokens to swap for
+     * Miner. Reverts if the minimum is not met.
+     * @param exactMinerOut uint256 The exact amount of Miner token to receive.
+     * @param deadline uint256 A timestamp indicating how long the swap will stay active. Reverts if expired.
+     * @return uint256 The amount of Miner token swapped.
+     */
     function issueExactMinerForTokens(
-        address token,
+        address[] calldata path,
         uint256 maxAmountIn,
         uint256 exactMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        IUniswapV2ERC20 erc20 = IUniswapV2ERC20(token);
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
+        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
 
-        address[] memory path = new address[](2);
-        path[0] = address(erc20);
-        path[1] = router.WETH();
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
         uint256 requiredTokensIn = router.getAmountsIn(requiredETHIn, path)[0];
@@ -409,13 +338,13 @@ contract MinerSwap is PullPayment, Ownable {
         require(requiredTokensIn <= maxAmountIn, "MinerSwap/slippage");
 
         TransferHelper.safeTransferFrom(
-            token,
+            path[0],
             msg.sender,
             address(this),
             requiredTokensIn
         );
 
-        TransferHelper.safeApprove(token, uniswapRouter, requiredTokensIn);
+        TransferHelper.safeApprove(path[0], uniswapRouter, requiredTokensIn);
 
         uint256 balanceBefore = payments(owner());
 
@@ -430,7 +359,7 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 balanceAfter = payments(owner());
 
         require(
-            balanceAfter == balanceBefore.add(amounts[amounts.length - 1]),
+            balanceAfter == balanceBefore + amounts[amounts.length - 1],
             "MinerSwap/invalid-eth-amount-transferred"
         );
 
@@ -439,7 +368,6 @@ contract MinerSwap is PullPayment, Ownable {
         emit IssuedExactMinerForTokens(
             _msgSender(),
             address(issuance),
-            token,
             requiredTokensIn,
             exactMinerOut
         );
@@ -469,7 +397,6 @@ contract MinerSwap is PullPayment, Ownable {
     event IssuedMinerForExactTokens(
         address indexed recipient,
         address indexed sender,
-        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );
@@ -484,7 +411,6 @@ contract MinerSwap is PullPayment, Ownable {
     event IssuedExactMinerForTokens(
         address indexed recipient,
         address indexed sender,
-        address indexed token,
         uint256 amountIn,
         uint256 amountOut
     );

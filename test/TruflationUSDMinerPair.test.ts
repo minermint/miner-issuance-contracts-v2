@@ -1,26 +1,17 @@
-import { ethers, waffle, deployments, getNamedAccounts } from "hardhat";
-import { Contract } from "ethers";
+import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 
+// @ts-ignore
+import { TruflationUSDMinerPairMock } from "../typechain-types";
+
 describe("TruflationUSDMinerPair", () => {
-  let deployer: any;
-  let owner: any;
-  let issuer: any;
-  let alice: any;
-  let bob: any;
-
-  // $3 to 8 dp.
-  const EXCHANGE_RATE = ethers.utils.parseUnits("3", 8);
-
-  let pair: Contract;
-
-  before(async () => {
-    ({ deployer, owner, issuer, alice, bob } = await getNamedAccounts());
-  });
+  let pair: TruflationUSDMinerPairMock;
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
-    pair = await ethers.getContract("TruflationUSDMinerPairMock");
+    pair = await ethers.getContract<TruflationUSDMinerPairMock>(
+      "TruflationUSDMinerPairMock"
+    );
   });
 
   it("should report today's inflation rate", async () => {
