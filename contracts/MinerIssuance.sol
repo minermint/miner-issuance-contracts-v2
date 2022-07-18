@@ -11,31 +11,31 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./oracles/TruflationUSDMinerPairMock.sol";
-import "./Issuance.sol";
+import "./MinerReserve.sol";
 
-/// @title Swap Ether and other ERC20 tokens for Miner.
-contract MinerSwap is PullPayment, Ownable {
+/// @title Issue Miner for Ether and other ERC20 tokens.
+contract MinerIssuance is PullPayment, Ownable {
     AggregatorV3Interface public priceFeedOracle;
 
     TruflationUSDMinerPairMock public truflation;
 
-    Issuance public issuance;
+    MinerReserve public reserve;
 
     address public uniswapRouter;
 
     /**
-     * Initializes the MinerSwap contract.
+     * Initializes the MinerIssuance contract.
      * @param truflationAddress TruflationUSDMinerPairMock The Miner oracle contract.
-     * @param issuanceAddress Issuance The Issuance contract.
+     * @param reserveAddress MinerReserve The MinerReserve contract.
      * @param uniswapRouterAddress address The Uniswap Router contract.
      */
     constructor(
         TruflationUSDMinerPairMock truflationAddress,
-        Issuance issuanceAddress,
+        MinerReserve reserveAddress,
         address uniswapRouterAddress
     ) {
         _setMinerOracle(truflationAddress);
-        _setIssuance(issuanceAddress);
+        _setMinerReserve(reserveAddress);
         _setUniswapRouterAddress(uniswapRouterAddress);
     }
 
@@ -51,11 +51,11 @@ contract MinerSwap is PullPayment, Ownable {
     }
 
     /**
-     * Sets the Issuance contract.
-     * @param issuanceAddress Issuance The Issuance contract.
+     * Sets the MinerReserve contract.
+     * @param reserveAddress MinerReserve The MinerReserve contract.
      */
-    function setIssuance(Issuance issuanceAddress) public onlyOwner {
-        _setIssuance(issuanceAddress);
+    function setReserve(MinerReserve reserveAddress) public onlyOwner {
+        _setMinerReserve(reserveAddress);
     }
 
     /**
@@ -75,8 +75,8 @@ contract MinerSwap is PullPayment, Ownable {
         truflation = truflationAddress;
     }
 
-    function _setIssuance(Issuance issuanceAddress) private {
-        issuance = issuanceAddress;
+    function _setMinerReserve(MinerReserve reserveAddress) private {
+        reserve = reserveAddress;
     }
 
     function _setUniswapRouterAddress(address uniswapRouterAddress) private {
@@ -164,23 +164,23 @@ contract MinerSwap is PullPayment, Ownable {
         payable
         returns (uint256)
     {
-        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
 
         uint256 ethIn = msg.value;
 
-        require(ethIn > 0, "MinerSwap/deposit-invalid");
+        require(ethIn > 0, "MinerIssuance/deposit-invalid");
 
         uint256 minerOut = _calculateETHToMiner(ethIn);
 
-        require(minerOut >= minMinerOut, "MinerSwap/slippage");
+        require(minerOut >= minMinerOut, "MinerIssuance/slippage");
 
         _asyncTransfer(owner(), ethIn);
 
-        issuance.issue(_msgSender(), minerOut);
+        reserve.issue(_msgSender(), minerOut);
 
         emit IssuedMinerForExactETH(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             ethIn,
             minerOut
         );
@@ -201,15 +201,15 @@ contract MinerSwap is PullPayment, Ownable {
         payable
         returns (uint256)
     {
-        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
 
         uint256 ethIn = msg.value;
 
-        require(ethIn > 0, "MinerSwap/deposit-invalid");
+        require(ethIn > 0, "MinerIssuance/deposit-invalid");
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
 
-        require(ethIn >= requiredETHIn, "MinerSwap/slippage");
+        require(ethIn >= requiredETHIn, "MinerIssuance/slippage");
 
         _asyncTransfer(owner(), requiredETHIn);
 
@@ -219,14 +219,14 @@ contract MinerSwap is PullPayment, Ownable {
                 value: ethIn - requiredETHIn
             }("");
 
-            require(success, "Issuance/cannot-refund-ether");
+            require(success, "MinerReserve/cannot-refund-ether");
         }
 
-        issuance.issue(_msgSender(), exactMinerOut);
+        reserve.issue(_msgSender(), exactMinerOut);
 
         emit IssuedExactMinerForETH(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             requiredETHIn,
             exactMinerOut
         );
@@ -252,7 +252,7 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
 
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
@@ -263,7 +263,7 @@ contract MinerSwap is PullPayment, Ownable {
 
         uint256 expectedMinerOut = _calculateETHToMiner(expectedETHOut);
 
-        require(expectedMinerOut >= minMinerOut, "MinerSwap/slippage");
+        require(expectedMinerOut >= minMinerOut, "MinerIssuance/slippage");
 
         TransferHelper.safeTransferFrom(
             path[0],
@@ -288,7 +288,7 @@ contract MinerSwap is PullPayment, Ownable {
 
         require(
             balanceAfter == balanceBefore + amounts[amounts.length - 1],
-            "MinerSwap/invalid-eth-amount-transferred"
+            "MinerIssuance/invalid-eth-amount-transferred"
         );
 
         // the amount of eth received from the swap may be more than the min.
@@ -297,11 +297,11 @@ contract MinerSwap is PullPayment, Ownable {
             amounts[amounts.length - 1]
         );
 
-        issuance.issue(_msgSender(), actualMinerOut);
+        reserve.issue(_msgSender(), actualMinerOut);
 
         emit IssuedMinerForExactTokens(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             amount,
             actualMinerOut
         );
@@ -328,14 +328,14 @@ contract MinerSwap is PullPayment, Ownable {
         uint256 exactMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        require(deadline >= block.timestamp, "MinerSwap/deadline-expired");
+        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
 
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
         uint256 requiredTokensIn = router.getAmountsIn(requiredETHIn, path)[0];
 
-        require(requiredTokensIn <= maxAmountIn, "MinerSwap/slippage");
+        require(requiredTokensIn <= maxAmountIn, "MinerIssuance/slippage");
 
         TransferHelper.safeTransferFrom(
             path[0],
@@ -360,14 +360,14 @@ contract MinerSwap is PullPayment, Ownable {
 
         require(
             balanceAfter == balanceBefore + amounts[amounts.length - 1],
-            "MinerSwap/invalid-eth-amount-transferred"
+            "MinerIssuance/invalid-eth-amount-transferred"
         );
 
-        issuance.issue(_msgSender(), exactMinerOut);
+        reserve.issue(_msgSender(), exactMinerOut);
 
         emit IssuedExactMinerForTokens(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             requiredTokensIn,
             exactMinerOut
         );
@@ -382,7 +382,7 @@ contract MinerSwap is PullPayment, Ownable {
     modifier priceFeedSet() {
         require(
             address(priceFeedOracle) != address(0),
-            "MinerSwap/no-oracle-set"
+            "MinerIssuance/no-oracle-set"
         );
         _;
     }

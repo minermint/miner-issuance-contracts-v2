@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract Issuance is AccessControl, Ownable {
+contract MinerReserve is AccessControl, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -39,10 +39,10 @@ contract Issuance is AccessControl, Ownable {
      * @param amount uint256 The amount of Miner tokens to purchase.
      */
     function issue(address recipient, uint256 amount) public onlyIssuer {
-        require(amount > 0, "Issuance/amount-invalid");
+        require(amount > 0, "MinerReserve/amount-invalid");
         require(
             _token.balanceOf(address(this)) >= amount,
-            "Issuance/balance-exceeded"
+            "MinerReserve/balance-exceeded"
         );
 
         _token.transfer(recipient, amount);
@@ -51,7 +51,10 @@ contract Issuance is AccessControl, Ownable {
     }
 
     modifier onlyIssuer() {
-        require(hasRole(ISSUER, _msgSender()), "Issuance/no-issuer-privileges");
+        require(
+            hasRole(ISSUER, _msgSender()),
+            "MinerReserve/no-issuer-privileges"
+        );
         _;
     }
 

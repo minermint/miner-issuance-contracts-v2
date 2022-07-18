@@ -112,8 +112,9 @@ const getTradingPairs = async (
 };
 
 /**
- * Get the best price path for exactly the amount of from token.
+ * Get the best price path for exactly the amount of token in.
  *
+ * @param {BigNumber} exactAmountIn The exact amount of token in.
  * @param {string} tokenInAddress The address of the token representing the
  * exact "in" amount.
  * @param {string} tokenOutAddress The address of the token whose "best price"
@@ -150,12 +151,13 @@ export const getBestPricePathExactIn = async (
 };
 
 /**
- * Get the best price path for exactly the amount of tokenOut.
+ * Get the best price path for exactly the amount of token out.
  *
  * The order of tokenIn and tokenout are reversed in the case of an exact out
  * best price. For example, if DAI is being swapped for WETH, tokenOut will
  * be WETH and tokenIn will be DAI.
  *
+ * @param {BigNumber} exactAmountOut The exact amount of token out.
  * @param {string} tokenInAddress The address of the token whose "best price" we
  * are trying to determine.
  * @param {string} tokenOutAddress The address of the token representing the
