@@ -8,11 +8,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
-  await deploy("Issuance", {
+  await deploy("MinerReserve", {
     from: deployer,
     args: [networkConfig[network.name].miner],
   });
 };
 
 export default func;
-func.tags = ["issuance", "contract", "all"];
+func.tags = ["minerreserve", "contract", "all"];

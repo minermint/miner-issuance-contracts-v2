@@ -11,7 +11,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./oracles/TruflationUSDMinerPairMock.sol";
-import "./Issuance.sol";
+import "./MinerReserve.sol";
 
 /// @title Swap Ether and other ERC20 tokens for Miner.
 contract MinerSwap is PullPayment, Ownable {
@@ -19,23 +19,23 @@ contract MinerSwap is PullPayment, Ownable {
 
     TruflationUSDMinerPairMock public truflation;
 
-    Issuance public issuance;
+    MinerReserve public reserve;
 
     address public uniswapRouter;
 
     /**
      * Initializes the MinerSwap contract.
      * @param truflationAddress TruflationUSDMinerPairMock The Miner oracle contract.
-     * @param issuanceAddress Issuance The Issuance contract.
+     * @param reserveAddress MinerReserve The MinerReserve contract.
      * @param uniswapRouterAddress address The Uniswap Router contract.
      */
     constructor(
         TruflationUSDMinerPairMock truflationAddress,
-        Issuance issuanceAddress,
+        MinerReserve reserveAddress,
         address uniswapRouterAddress
     ) {
         _setMinerOracle(truflationAddress);
-        _setIssuance(issuanceAddress);
+        _setMinerReserve(reserveAddress);
         _setUniswapRouterAddress(uniswapRouterAddress);
     }
 
@@ -51,11 +51,11 @@ contract MinerSwap is PullPayment, Ownable {
     }
 
     /**
-     * Sets the Issuance contract.
-     * @param issuanceAddress Issuance The Issuance contract.
+     * Sets the MinerReserve contract.
+     * @param reserveAddress MinerReserve The MinerReserve contract.
      */
-    function setIssuance(Issuance issuanceAddress) public onlyOwner {
-        _setIssuance(issuanceAddress);
+    function setReserve(MinerReserve reserveAddress) public onlyOwner {
+        _setMinerReserve(reserveAddress);
     }
 
     /**
@@ -75,8 +75,8 @@ contract MinerSwap is PullPayment, Ownable {
         truflation = truflationAddress;
     }
 
-    function _setIssuance(Issuance issuanceAddress) private {
-        issuance = issuanceAddress;
+    function _setMinerReserve(MinerReserve reserveAddress) private {
+        reserve = reserveAddress;
     }
 
     function _setUniswapRouterAddress(address uniswapRouterAddress) private {
@@ -176,11 +176,11 @@ contract MinerSwap is PullPayment, Ownable {
 
         _asyncTransfer(owner(), ethIn);
 
-        issuance.issue(_msgSender(), minerOut);
+        reserve.issue(_msgSender(), minerOut);
 
         emit IssuedMinerForExactETH(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             ethIn,
             minerOut
         );
@@ -219,14 +219,14 @@ contract MinerSwap is PullPayment, Ownable {
                 value: ethIn - requiredETHIn
             }("");
 
-            require(success, "Issuance/cannot-refund-ether");
+            require(success, "MinerReserve/cannot-refund-ether");
         }
 
-        issuance.issue(_msgSender(), exactMinerOut);
+        reserve.issue(_msgSender(), exactMinerOut);
 
         emit IssuedExactMinerForETH(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             requiredETHIn,
             exactMinerOut
         );
@@ -297,11 +297,11 @@ contract MinerSwap is PullPayment, Ownable {
             amounts[amounts.length - 1]
         );
 
-        issuance.issue(_msgSender(), actualMinerOut);
+        reserve.issue(_msgSender(), actualMinerOut);
 
         emit IssuedMinerForExactTokens(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             amount,
             actualMinerOut
         );
@@ -363,11 +363,11 @@ contract MinerSwap is PullPayment, Ownable {
             "MinerSwap/invalid-eth-amount-transferred"
         );
 
-        issuance.issue(_msgSender(), exactMinerOut);
+        reserve.issue(_msgSender(), exactMinerOut);
 
         emit IssuedExactMinerForTokens(
             _msgSender(),
-            address(issuance),
+            address(reserve),
             requiredTokensIn,
             exactMinerOut
         );

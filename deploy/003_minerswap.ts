@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import { networkConfig, testConfig } from "../config";
+import { networkConfig } from "../config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre;
@@ -9,14 +9,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
-  const issuance = await ethers.getContract("Issuance");
+  const reserve = await ethers.getContract("MinerReserve");
   const oracle = await ethers.getContract("TruflationUSDMinerPairMock");
 
   await deploy("MinerSwap", {
     from: deployer,
     args: [
       oracle.address,
-      issuance.address,
+      reserve.address,
       networkConfig[network.name].uniswap_v2_router_02,
     ],
   });
@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   minerSwap.setPriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
 
-  await issuance.addIssuer(minerSwap.address);
+  await reserve.addIssuer(minerSwap.address);
 };
 
 export default func;

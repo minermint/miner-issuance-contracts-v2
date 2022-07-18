@@ -2,14 +2,16 @@ import { expect } from "chai";
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { Contract } from "ethers";
 import { testConfig } from "../config";
-import type { Issuance } from "../typechain-types";
+
+// @ts-ignore
+import type { MinerReserve } from "../typechain-types";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
-describe("Issuance", () => {
+describe("MinerReserve", () => {
   const ZERO_BALANCE = 0;
 
-  let issuance: Issuance;
+  let reserve: MinerReserve;
   let miner: Contract;
 
   let deployer: any;
@@ -25,7 +27,7 @@ describe("Issuance", () => {
 
   beforeEach(async () => {
     await deployments.fixture(["all"]);
-    issuance = await ethers.getContract<Issuance>("Issuance");
+    reserve = await ethers.getContract<MinerReserve>("MinerReserve");
 
     miner = new Contract(
       testConfig.miner,
@@ -33,88 +35,87 @@ describe("Issuance", () => {
       ethers.provider.getSigner()
     );
 
-    await miner.transfer(issuance.address, supply);
+    await miner.transfer(reserve.address, supply);
   });
 
-  it("should fund the token issuance", async () => {
-    expect(await miner.balanceOf(issuance.address)).to.be.equal(supply);
+  it("should fund the token reserve", async () => {
+    expect(await miner.balanceOf(reserve.address)).to.be.equal(supply);
   });
 
   it("should be able to change contract ownership", async () => {
-    await issuance.transferOwnership(alice);
+    await reserve.transferOwnership(alice);
 
-    expect(await issuance.owner()).to.be.equal(alice);
+    expect(await reserve.owner()).to.be.equal(alice);
   });
 
-  describe("permitting issuance", () => {
+  describe("permitting reserve", () => {
     it("should add a new admin as owner", async () => {
-      await issuance.grantRole(await issuance.ADMIN(), alice);
+      await reserve.grantRole(await reserve.ADMIN(), alice);
 
-      expect(await issuance.hasRole(await issuance.ADMIN(), alice)).to.be.true;
+      expect(await reserve.hasRole(await reserve.ADMIN(), alice)).to.be.true;
     });
 
     it("should add a new admin as admin", async () => {
-      await issuance.grantRole(await issuance.ADMIN(), alice);
-      await issuance
+      await reserve.grantRole(await reserve.ADMIN(), alice);
+      await reserve
         .connect(await ethers.getSigner(alice))
-        .grantRole(await issuance.ADMIN(), bob);
+        .grantRole(await reserve.ADMIN(), bob);
 
-      expect(await issuance.hasRole(await issuance.ADMIN(), bob)).to.be.true;
+      expect(await reserve.hasRole(await reserve.ADMIN(), bob)).to.be.true;
     });
 
     it("should add an issuer", async () => {
-      await issuance.addIssuer(issuer);
+      await reserve.addIssuer(issuer);
 
-      expect(await issuance.hasRole(await issuance.ISSUER(), issuer)).to.be
-        .true;
+      expect(await reserve.hasRole(await reserve.ISSUER(), issuer)).to.be.true;
     });
 
     it("should emit a RoleGranted event", async () => {
-      const args = [await issuance.ISSUER(), issuer, deployer];
-      await expect(issuance.addIssuer(issuer))
-        .to.emit(issuance, "RoleGranted")
+      const args = [await reserve.ISSUER(), issuer, deployer];
+      await expect(reserve.addIssuer(issuer))
+        .to.emit(reserve, "RoleGranted")
         .withArgs(...args);
     });
 
     it("should add an issuer as admin", async () => {
-      await issuance.grantRole(issuance.ADMIN(), alice);
-      await issuance
+      await reserve.grantRole(reserve.ADMIN(), alice);
+      await reserve
         .connect(await ethers.getSigner(alice))
-        .grantRole(issuance.ISSUER(), bob);
+        .grantRole(reserve.ISSUER(), bob);
 
-      expect(await issuance.hasRole(issuance.ISSUER(), bob)).to.be.true;
+      expect(await reserve.hasRole(reserve.ISSUER(), bob)).to.be.true;
     });
 
     it("should remove an issuer", async () => {
-      await issuance.addIssuer(issuer);
-      await issuance.removeIssuer(issuer);
+      await reserve.addIssuer(issuer);
+      await reserve.removeIssuer(issuer);
 
-      expect(await issuance.hasRole(issuance.ISSUER(), issuer)).to.be.false;
+      expect(await reserve.hasRole(reserve.ISSUER(), issuer)).to.be.false;
     });
 
     it("should emit a RoleRevoked event", async () => {
-      const args = [await issuance.ISSUER(), issuer, deployer];
-      await issuance.addIssuer(issuer);
+      const args = [await reserve.ISSUER(), issuer, deployer];
+      await reserve.addIssuer(issuer);
 
-      await expect(await issuance.removeIssuer(issuer))
-        .to.emit(issuance, "RoleRevoked")
+      await expect(await reserve.removeIssuer(issuer))
+        .to.emit(reserve, "RoleRevoked")
         .withArgs(...args);
     });
 
     it("should NOT add issuer using invalid admin", async () => {
       await expect(
-        issuance.connect(await ethers.getSigner(bob)).issue(alice, ZERO_BALANCE)
-      ).to.revertedWith("Issuance/no-issuer-privileges");
+        reserve.connect(await ethers.getSigner(bob)).issue(alice, ZERO_BALANCE)
+      ).to.revertedWith("MinerReserve/no-issuer-privileges");
     });
   });
 
   describe("issuing miner", () => {
     beforeEach(async () => {
-      await issuance.addIssuer(issuer);
+      await reserve.addIssuer(issuer);
     });
 
     it("should issue miner tokens", async () => {
-      await issuance
+      await reserve
         .connect(await ethers.getSigner(issuer))
         .issue(alice, supply);
 
@@ -125,32 +126,32 @@ describe("Issuance", () => {
 
     it("should emit a Issued event", async () => {
       await expect(
-        issuance.connect(await ethers.getSigner(issuer)).issue(alice, supply)
+        reserve.connect(await ethers.getSigner(issuer)).issue(alice, supply)
       )
-        .to.emit(issuance, "Issued")
+        .to.emit(reserve, "Issued")
         .withArgs(alice, supply);
     });
 
     it("should NOT issue from an invalid address", async () => {
       await expect(
-        issuance.connect(await ethers.getSigner(bob)).issue(alice, supply)
-      ).to.revertedWith("Issuance/no-issuer-privileges");
+        reserve.connect(await ethers.getSigner(bob)).issue(alice, supply)
+      ).to.revertedWith("MinerReserve/no-issuer-privileges");
     });
 
     it("should NOT issue zero tokens", async () => {
       await expect(
-        issuance
+        reserve
           .connect(await ethers.getSigner(issuer))
           .issue(alice, ZERO_BALANCE)
-      ).to.revertedWith("Issuance/amount-invalid");
+      ).to.revertedWith("MinerReserve/amount-invalid");
     });
 
     it("should NOT exceed issuing more tokens than are available", async () => {
       await expect(
-        issuance
+        reserve
           .connect(await ethers.getSigner(issuer))
           .issue(alice, supply.add(1))
-      ).to.revertedWith("Issuance/balance-exceeded");
+      ).to.revertedWith("MinerReserve/balance-exceeded");
     });
   });
 });
