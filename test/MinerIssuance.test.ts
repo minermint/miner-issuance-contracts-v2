@@ -21,18 +21,18 @@ import {
 import fundDai from "./utils/fundDai";
 import { testConfig } from "../config";
 
+// @TODO: Need to spread over two lines. ts-ignore can't handle multi-line.
 // @ts-ignore
-import type {
-  MinerReserve,
-  MinerSwap,
-  TruflationUSDMinerPairMock,
-} from "../typechain-types";
+import type { MinerReserve, MinerIssuance } from "../typechain-types";
 
-describe("MinerSwap", () => {
+// @ts-ignore
+import type { TruflationUSDMinerPairMock } from "../typechain-types";
+
+describe("MinerIssuance", () => {
   let deployer: string, owner: string, alice: string, bob: string;
 
   let miner: any,
-    minerSwap: MinerSwap,
+    issuance: MinerIssuance,
     reserve: MinerReserve,
     aggregator: any,
     router: any,
@@ -66,9 +66,9 @@ describe("MinerSwap", () => {
 
     router = getUniswapV2Router02();
 
-    minerSwap = await ethers.getContract<MinerSwap>("MinerSwap");
+    issuance = await ethers.getContract<MinerIssuance>("MinerIssuance");
 
-    await reserve.addIssuer(minerSwap.address);
+    await reserve.addIssuer(issuance.address);
 
     deadline = await getTwentyMinuteDeadline();
 
@@ -77,68 +77,68 @@ describe("MinerSwap", () => {
 
   describe("instantiation", () => {
     it("should be able to change price feed oracle", async () => {
-      await minerSwap.setPriceFeedOracle(aggregator.address);
+      await issuance.setPriceFeedOracle(aggregator.address);
 
-      expect(await minerSwap.priceFeedOracle()).to.be.equal(aggregator.address);
+      expect(await issuance.priceFeedOracle()).to.be.equal(aggregator.address);
     });
 
     it("should NOT be able to change price feed oracle without permission", async () => {
       await expect(
-        minerSwap
+        issuance
           .connect(await ethers.getSigner(alice))
           .setPriceFeedOracle(aggregator.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should be able to change miner oracle", async () => {
-      await minerSwap.setMinerOracle(aggregator.address);
+      await issuance.setMinerOracle(aggregator.address);
 
-      expect(await minerSwap.truflation()).to.be.equal(aggregator.address);
+      expect(await issuance.truflation()).to.be.equal(aggregator.address);
     });
 
     it("should be able to change reserve", async () => {
-      await minerSwap.setReserve(reserve.address);
+      await issuance.setReserve(reserve.address);
 
-      expect(await minerSwap.reserve()).to.be.equal(reserve.address);
+      expect(await issuance.reserve()).to.be.equal(reserve.address);
     });
 
     it("should NOT be able to change miner oracle without permission", async () => {
       await expect(
-        minerSwap
+        issuance
           .connect(await ethers.getSigner(alice))
           .setMinerOracle(aggregator.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should NOT be able to convert with a zero address price feed", async () => {
-      await minerSwap.setPriceFeedOracle(ethers.constants.AddressZero);
+      await issuance.setPriceFeedOracle(ethers.constants.AddressZero);
       const amount = ethers.utils.parseEther("0.001");
 
       // set min miner out to 0 as it shouldn't reach any amount validation.
       await expect(
-        minerSwap.issueMinerForExactETH(0, deadline, { value: amount })
-      ).to.be.revertedWith("MinerSwap/no-oracle-set");
+        issuance.issueMinerForExactETH(0, deadline, { value: amount })
+      ).to.be.revertedWith("MinerIssuance/no-oracle-set");
     });
   });
 
   describe("ownership", async () => {
     it("should transfer ownership", async () => {
-      await minerSwap.transferOwnership(alice);
-      const newOwner = await minerSwap.owner();
+      await issuance.transferOwnership(alice);
+      const newOwner = await issuance.owner();
 
       expect(newOwner).to.be.equal(alice);
     });
 
     it("should emit OwnershipTransferred event", async () => {
-      await expect(minerSwap.transferOwnership(alice))
-        .to.emit(minerSwap, "OwnershipTransferred")
+      await expect(issuance.transferOwnership(alice))
+        .to.emit(issuance, "OwnershipTransferred")
         .withArgs(deployer, alice);
     });
   });
 
   describe("swaps", () => {
     beforeEach(async () => {
-      await minerSwap.setPriceFeedOracle(aggregator.address);
+      await issuance.setPriceFeedOracle(aggregator.address);
     });
 
     describe("issuing miner for exact ETH", () => {
@@ -148,7 +148,7 @@ describe("MinerSwap", () => {
       let minerMin: BigNumber;
 
       beforeEach(async () => {
-        minerMin = await minerSwap.calculateETHToMiner(amount);
+        minerMin = await issuance.calculateETHToMiner(amount);
 
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
@@ -159,7 +159,7 @@ describe("MinerSwap", () => {
       });
 
       it("should issue miner for exact ETH", async () => {
-        await minerSwap
+        await issuance
           .connect(await ethers.getSigner(alice))
           .issueMinerForExactETH(minerMin, deadline, {
             value: amount,
@@ -172,33 +172,33 @@ describe("MinerSwap", () => {
 
       it("should emit a IssuedMinerForExactETH event", async () => {
         await expect(
-          minerSwap
+          issuance
             .connect(await ethers.getSigner(alice))
             .issueMinerForExactETH(minerMin, deadline, {
               value: amount,
             })
         )
-          .to.emit(minerSwap, "IssuedMinerForExactETH")
+          .to.emit(issuance, "IssuedMinerForExactETH")
           .withArgs(alice, reserve.address, amount, expected);
       });
 
       it("should NOT convert zero ETH", async () => {
         await expect(
-          minerSwap
+          issuance
             .connect(await ethers.getSigner(alice))
             .issueMinerForExactETH(minerMin, deadline, {
               value: ethers.constants.Zero,
             })
-        ).to.be.revertedWith("MinerSwap/deposit-invalid");
+        ).to.be.revertedWith("MinerIssuance/deposit-invalid");
       });
 
       it("should NOT exceed issuing more miner than the reserve has available", async () => {
         // eat up the entire supply of reserve.
         await expect(
-          minerSwap
+          issuance
             .connect(await ethers.getSigner(alice))
             .issueMinerForExactETH(
-              await minerSwap.calculateETHToMiner(supply.add(1)),
+              await issuance.calculateETHToMiner(supply.add(1)),
               deadline,
               {
                 value: supply.add(1),
@@ -211,23 +211,23 @@ describe("MinerSwap", () => {
         await helpers.time.increase(3600);
 
         await expect(
-          minerSwap.issueMinerForExactETH(minerMin, deadline, {
+          issuance.issueMinerForExactETH(minerMin, deadline, {
             value: ethers.utils.parseEther("10"),
           })
-        ).to.be.revertedWith("MinerSwap/deadline-expired");
+        ).to.be.revertedWith("MinerIssuance/deadline-expired");
       });
 
       it("should NOT convert if price falls below slippage", async () => {
         // increase the min miner beyond what will be swapped.
-        const minerMin = (await minerSwap.calculateETHToMiner(amount)).add(1);
+        const minerMin = (await issuance.calculateETHToMiner(amount)).add(1);
 
         await expect(
-          minerSwap
+          issuance
             .connect(await ethers.getSigner(alice))
             .issueMinerForExactETH(minerMin, deadline, {
               value: amount,
             })
-        ).to.be.revertedWith("MinerSwap/slippage");
+        ).to.be.revertedWith("MinerIssuance/slippage");
       });
     });
 
@@ -239,7 +239,7 @@ describe("MinerSwap", () => {
       let maxEthIn: BigNumber;
 
       beforeEach(async () => {
-        maxEthIn = await minerSwap.calculateMinerToETH(exactMinerOut);
+        maxEthIn = await issuance.calculateMinerToETH(exactMinerOut);
 
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
@@ -250,7 +250,7 @@ describe("MinerSwap", () => {
       });
 
       it("should issue exact miner for ETH", async () => {
-        await minerSwap
+        await issuance
           .connect(await ethers.getSigner(alice))
           .issueExactMinerForETH(exactMinerOut, deadline, {
             value: maxEthIn,
@@ -263,20 +263,20 @@ describe("MinerSwap", () => {
 
       it("should emit a IssuedExactMinerForETH event", async () => {
         await expect(
-          minerSwap
+          issuance
             .connect(await ethers.getSigner(alice))
             .issueMinerForExactETH(exactMinerOut, deadline, {
               value: maxEthIn,
             })
         )
-          .to.emit(minerSwap, "IssuedMinerForExactETH")
+          .to.emit(issuance, "IssuedMinerForExactETH")
           .withArgs(alice, reserve.address, maxEthIn, expected);
       });
 
       it("should refund excess ETH", async () => {
         const ethBalance = await ethers.provider.getBalance(alice);
 
-        const tx = await minerSwap
+        const tx = await issuance
           .connect(await ethers.getSigner(alice))
           .issueExactMinerForETH(exactMinerOut, deadline, {
             value: maxEthIn.add(1),
@@ -322,9 +322,9 @@ describe("MinerSwap", () => {
 
         const expected = minerMinOut.add(balance);
 
-        await dai.approve(minerSwap.address, exactTokensIn);
+        await dai.approve(issuance.address, exactTokensIn);
 
-        await minerSwap.issueMinerForExactTokens(
+        await issuance.issueMinerForExactTokens(
           path,
           exactTokensIn,
           minerMinOut,
@@ -335,37 +335,37 @@ describe("MinerSwap", () => {
       });
 
       it("should emit a Swapped Token for Miner event", async () => {
-        await dai.approve(minerSwap.address, exactTokensIn);
+        await dai.approve(issuance.address, exactTokensIn);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
+          issuance.issueMinerForExactTokens(
             path,
             exactTokensIn,
             minerMinOut,
             deadline
           )
         )
-          .to.emit(minerSwap, "IssuedMinerForExactTokens")
+          .to.emit(issuance, "IssuedMinerForExactTokens")
           .withArgs(deployer, reserve.address, exactTokensIn, minerMinOut);
       });
 
       // TODO: Should this be moved to escrow?
-      it("should have an Ether balance in MinerSwap", async () => {
+      it("should have an Ether balance in MinerIssuance", async () => {
         const expected = requiredETHIn;
 
-        const initialBalance = await minerSwap.payments(deployer);
+        const initialBalance = await issuance.payments(deployer);
 
-        await dai.approve(minerSwap.address, exactTokensIn);
+        await dai.approve(issuance.address, exactTokensIn);
 
-        await minerSwap.issueMinerForExactTokens(
+        await issuance.issueMinerForExactTokens(
           path,
           exactTokensIn,
           minerMinOut,
           deadline
         );
 
-        await minerSwap.payments(deployer);
-        let balance = await minerSwap.payments(deployer);
+        await issuance.payments(deployer);
+        let balance = await issuance.payments(deployer);
 
         balance = balance.sub(initialBalance);
 
@@ -373,28 +373,28 @@ describe("MinerSwap", () => {
       });
 
       it("should NOT swap when deadline expires", async () => {
-        await dai.approve(minerSwap.address, exactTokensIn, {
+        await dai.approve(issuance.address, exactTokensIn, {
           from: deployer,
         });
 
         await helpers.time.increase(30 * 60);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
+          issuance.issueMinerForExactTokens(
             path,
             exactTokensIn,
             minerMinOut,
             deadline
           )
-        ).to.be.revertedWith("MinerSwap/deadline-expired");
+        ).to.be.revertedWith("MinerIssuance/deadline-expired");
       });
 
       it("should NOT swap invalid token", async () => {
-        await dai.approve(minerSwap.address, exactTokensIn);
+        await dai.approve(issuance.address, exactTokensIn);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
-            [minerSwap.address],
+          issuance.issueMinerForExactTokens(
+            [issuance.address],
             exactTokensIn,
             minerMinOut,
             deadline
@@ -405,38 +405,38 @@ describe("MinerSwap", () => {
       it("should return tokens if deadline expires", async () => {
         const expected = await dai.balanceOf(deployer);
 
-        await dai.approve(minerSwap.address, exactTokensIn, {
+        await dai.approve(issuance.address, exactTokensIn, {
           from: deployer,
         });
 
         await helpers.time.increase(30 * 60);
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
+          issuance.issueMinerForExactTokens(
             path,
             exactTokensIn,
             minerMinOut,
             deadline
           )
-        ).to.be.revertedWith("MinerSwap/deadline-expired");
+        ).to.be.revertedWith("MinerIssuance/deadline-expired");
 
         expect(await dai.balanceOf(deployer)).to.be.equal(expected);
       });
 
       it("should NOT swap if price falls below slippage", async () => {
-        await dai.approve(minerSwap.address, exactTokensIn);
+        await dai.approve(issuance.address, exactTokensIn);
 
         // increase the min miner beyond what will be swapped.
         const slippageMin = minerMinOut.add(ethers.utils.parseEther("1"));
 
         await expect(
-          minerSwap.issueMinerForExactTokens(
+          issuance.issueMinerForExactTokens(
             path,
             exactTokensIn,
             slippageMin,
             deadline
           )
-        ).revertedWith("MinerSwap/slippage");
+        ).revertedWith("MinerIssuance/slippage");
       });
     });
 
@@ -463,9 +463,9 @@ describe("MinerSwap", () => {
 
         const expected = balance.add(exactMinerOut);
 
-        await dai.approve(minerSwap.address, maxTokensIn);
+        await dai.approve(issuance.address, maxTokensIn);
 
-        await minerSwap.issueExactMinerForTokens(
+        await issuance.issueExactMinerForTokens(
           path,
           maxTokensIn,
           exactMinerOut,
@@ -476,36 +476,36 @@ describe("MinerSwap", () => {
       });
 
       it("should emit a Swapped Token for Miner event", async () => {
-        await dai.approve(minerSwap.address, maxTokensIn);
+        await dai.approve(issuance.address, maxTokensIn);
 
         await expect(
-          minerSwap.issueExactMinerForTokens(
+          issuance.issueExactMinerForTokens(
             path,
             maxTokensIn,
             exactMinerOut,
             deadline
           )
         )
-          .to.emit(minerSwap, "IssuedExactMinerForTokens")
+          .to.emit(issuance, "IssuedExactMinerForTokens")
           .withArgs(deployer, reserve.address, maxTokensIn, exactMinerOut);
       });
     });
 
     describe("escrow", () => {
       it("should withdraw to owner only", async () => {
-        await minerSwap.transferOwnership(owner);
+        await issuance.transferOwnership(owner);
 
         const wei = ethers.utils.parseEther("0.001");
 
         const balanceBeforeWithdrawal = await ethers.provider.getBalance(owner);
 
-        await minerSwap
+        await issuance
           .connect(await ethers.getSigner(alice))
           .issueMinerForExactETH(0, deadline, {
             value: wei,
           });
 
-        await minerSwap.withdrawPayments(owner);
+        await issuance.withdrawPayments(owner);
 
         const balanceAfterWithdrawal = await ethers.provider.getBalance(owner);
 
@@ -519,13 +519,13 @@ describe("MinerSwap", () => {
 
         const balanceBeforeWithdrawal = await ethers.provider.getBalance(bob);
 
-        await minerSwap
+        await issuance
           .connect(await ethers.getSigner(alice))
           .issueMinerForExactETH(0, deadline, {
             value: wei,
           });
 
-        await minerSwap.withdrawPayments(bob);
+        await issuance.withdrawPayments(bob);
 
         const balanceAfterWithdrawal = await ethers.provider.getBalance(bob);
 

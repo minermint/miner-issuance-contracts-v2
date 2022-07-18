@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const reserve = await ethers.getContract("MinerReserve");
   const oracle = await ethers.getContract("TruflationUSDMinerPairMock");
 
-  await deploy("MinerSwap", {
+  await deploy("MinerIssuance", {
     from: deployer,
     args: [
       oracle.address,
@@ -21,12 +21,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
   });
 
-  const minerSwap = await ethers.getContract("MinerSwap");
+  const issuance = await ethers.getContract("MinerIssuance");
 
-  minerSwap.setPriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
+  issuance.setPriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
 
-  await reserve.addIssuer(minerSwap.address);
+  await reserve.addIssuer(issuance.address);
 };
 
 export default func;
-func.tags = ["minerswap", "contract", "all"];
+func.tags = ["minerissuance", "contract", "all"];
