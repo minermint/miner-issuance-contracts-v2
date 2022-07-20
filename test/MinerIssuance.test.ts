@@ -386,7 +386,7 @@ describe("MinerIssuance", () => {
             minerMinOut,
             deadline
           )
-        ).to.be.revertedWith("MinerIssuance/deadline-expired");
+        ).to.be.revertedWith("UniswapV2Router: EXPIRED");
       });
 
       it("should NOT swap invalid token", async () => {
@@ -418,7 +418,7 @@ describe("MinerIssuance", () => {
             minerMinOut,
             deadline
           )
-        ).to.be.revertedWith("MinerIssuance/deadline-expired");
+        ).to.be.revertedWith("UniswapV2Router: EXPIRED");
 
         expect(await dai.balanceOf(deployer)).to.be.equal(expected);
       });

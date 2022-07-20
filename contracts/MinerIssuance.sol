@@ -189,7 +189,9 @@ contract MinerIssuance is PullPayment, Ownable {
     }
 
     /**
-     * Issue at exactly `exactMinerOut` Miner for no more than `maxETHIn` ETH.
+     * Issue exactly `exactMinerOut` Miner for no more than `maxETHIn` ETH. Any
+     * additional ether will be refunded back to the user.
+     *
      * @param exactMinerOut uint256 The exact amount of Miner token to receive.
      * Reverts if the minimum is not met.
      * @param deadline uint256 A timestamp indicating how long the swap will
@@ -217,9 +219,9 @@ contract MinerIssuance is PullPayment, Ownable {
         if (ethIn >= requiredETHIn) {
             (bool success, ) = address(msg.sender).call{
                 value: ethIn - requiredETHIn
-            }("");
+            }(new bytes(0));
 
-            require(success, "MinerReserve/cannot-refund-ether");
+            require(success, "MinerIssuance/cannot-refund-ether");
         }
 
         reserve.issue(_msgSender(), exactMinerOut);
@@ -252,8 +254,6 @@ contract MinerIssuance is PullPayment, Ownable {
         uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
-
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         // if the path is invalid, it should fail here.
@@ -328,8 +328,6 @@ contract MinerIssuance is PullPayment, Ownable {
         uint256 exactMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
-
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
