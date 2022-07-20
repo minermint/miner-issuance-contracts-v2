@@ -172,7 +172,10 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 minerOut = _calculateETHToMiner(ethIn);
 
-        require(minerOut >= minMinerOut, "MinerIssuance/slippage");
+        require(
+            minerOut >= minMinerOut,
+            "MinerIssuance/insufficient-amount-out"
+        );
 
         _asyncTransfer(owner(), ethIn);
 
@@ -211,7 +214,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
 
-        require(ethIn >= requiredETHIn, "MinerIssuance/slippage");
+        require(ethIn >= requiredETHIn, "MinerIssuance/insufficient-amount-in");
 
         _asyncTransfer(owner(), requiredETHIn);
 
@@ -263,7 +266,10 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 expectedMinerOut = _calculateETHToMiner(expectedETHOut);
 
-        require(expectedMinerOut >= minMinerOut, "MinerIssuance/slippage");
+        require(
+            expectedMinerOut >= minMinerOut,
+            "MinerIssuance/insufficient-amount-out"
+        );
 
         TransferHelper.safeTransferFrom(
             path[0],
@@ -333,7 +339,10 @@ contract MinerIssuance is PullPayment, Ownable {
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
         uint256 requiredTokensIn = router.getAmountsIn(requiredETHIn, path)[0];
 
-        require(requiredTokensIn <= maxAmountIn, "MinerIssuance/slippage");
+        require(
+            requiredTokensIn <= maxAmountIn,
+            "MinerIssuance/insufficient-amount-in"
+        );
 
         TransferHelper.safeTransferFrom(
             path[0],

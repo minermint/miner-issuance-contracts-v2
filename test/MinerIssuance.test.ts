@@ -227,7 +227,7 @@ describe("MinerIssuance", () => {
             .issueMinerForExactETH(minerMin, deadline, {
               value: amount,
             })
-        ).to.be.revertedWith("MinerIssuance/slippage");
+        ).to.be.revertedWith("MinerIssuance/insufficient-amount-out");
       });
     });
 
@@ -436,7 +436,7 @@ describe("MinerIssuance", () => {
             slippageMin,
             deadline
           )
-        ).revertedWith("MinerIssuance/slippage");
+        ).revertedWith("MinerIssuance/insufficient-amount-out");
       });
     });
 
