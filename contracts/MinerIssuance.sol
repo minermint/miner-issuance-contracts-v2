@@ -214,7 +214,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
 
-        require(ethIn >= requiredETHIn, "MinerIssuance/insufficient-amount-in");
+        require(requiredETHIn <= ethIn, "MinerIssuance/excessive-amount-in");
 
         _asyncTransfer(owner(), requiredETHIn);
 
@@ -341,7 +341,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         require(
             requiredTokensIn <= maxAmountIn,
-            "MinerIssuance/insufficient-amount-in"
+            "MinerIssuance/excessive-amount-in"
         );
 
         TransferHelper.safeTransferFrom(
