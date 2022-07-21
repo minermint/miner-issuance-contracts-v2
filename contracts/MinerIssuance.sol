@@ -91,11 +91,7 @@ contract MinerIssuance is PullPayment, Ownable {
         return _calculateETHPerMiner();
     }
 
-    function _calculateETHPerMiner()
-        internal
-        view
-        returns (uint256)
-    {
+    function _calculateETHPerMiner() internal view returns (uint256) {
         require(
             address(priceFeedOracle) != address(0),
             "MinerIssuance/no-oracle-set"
@@ -185,12 +181,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         reserve.issue(_msgSender(), minerOut);
 
-        emit IssuedMinerForExactETH(
-            _msgSender(),
-            address(reserve),
-            ethIn,
-            minerOut
-        );
+        emit Issued(_msgSender(), address(reserve), ethIn, minerOut);
 
         return minerOut;
     }
@@ -233,7 +224,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         reserve.issue(_msgSender(), exactMinerOut);
 
-        emit IssuedExactMinerForETH(
+        emit Issued(
             _msgSender(),
             address(reserve),
             requiredETHIn,
@@ -309,12 +300,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         reserve.issue(_msgSender(), actualMinerOut);
 
-        emit IssuedMinerForExactTokens(
-            _msgSender(),
-            address(reserve),
-            amount,
-            actualMinerOut
-        );
+        emit Issued(_msgSender(), address(reserve), amount, actualMinerOut);
 
         return actualMinerOut;
     }
@@ -376,7 +362,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         reserve.issue(_msgSender(), exactMinerOut);
 
-        emit IssuedExactMinerForTokens(
+        emit Issued(
             _msgSender(),
             address(reserve),
             requiredTokensIn,
@@ -390,28 +376,7 @@ contract MinerIssuance is PullPayment, Ownable {
         _asyncTransfer(owner(), msg.value);
     }
 
-    event IssuedMinerForExactETH(
-        address indexed recipient,
-        address indexed sender,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-
-    event IssuedMinerForExactTokens(
-        address indexed recipient,
-        address indexed sender,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-
-    event IssuedExactMinerForETH(
-        address indexed recipient,
-        address indexed sender,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-
-    event IssuedExactMinerForTokens(
+    event Issued(
         address indexed recipient,
         address indexed sender,
         uint256 amountIn,
