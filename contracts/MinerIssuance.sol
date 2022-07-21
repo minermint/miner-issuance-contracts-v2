@@ -94,9 +94,13 @@ contract MinerIssuance is PullPayment, Ownable {
     function _calculateETHPerMiner()
         internal
         view
-        priceFeedSet
         returns (uint256)
     {
+        require(
+            address(priceFeedOracle) != address(0),
+            "MinerIssuance/no-oracle-set"
+        );
+
         uint256 usdPerMiner = truflation.getTodaysExchangeRate();
 
         (, int256 usdPerETH, , , ) = priceFeedOracle.latestRoundData();
@@ -384,14 +388,6 @@ contract MinerIssuance is PullPayment, Ownable {
 
     receive() external payable {
         _asyncTransfer(owner(), msg.value);
-    }
-
-    modifier priceFeedSet() {
-        require(
-            address(priceFeedOracle) != address(0),
-            "MinerIssuance/no-oracle-set"
-        );
-        _;
     }
 
     event IssuedMinerForExactETH(
