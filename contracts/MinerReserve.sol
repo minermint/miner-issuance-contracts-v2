@@ -11,11 +11,11 @@ contract MinerReserve is AccessControl {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 private _token;
+    address private _token;
 
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
 
-    constructor(IERC20 token) {
+    constructor(address token) {
         _token = token;
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -33,11 +33,11 @@ contract MinerReserve is AccessControl {
     {
         require(amount > 0, "MinerReserve/amount-invalid");
         require(
-            _token.balanceOf(address(this)) >= amount,
+            IERC20(_token).balanceOf(address(this)) >= amount,
             "MinerReserve/balance-exceeded"
         );
 
-        _token.transfer(recipient, amount);
+        IERC20(_token).safeTransfer(recipient, amount);
 
         emit Issued(recipient, amount);
     }
