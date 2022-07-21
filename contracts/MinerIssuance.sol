@@ -5,6 +5,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/PullPayment.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -14,7 +15,7 @@ import "./oracles/TruflationUSDMinerPairMock.sol";
 import "./MinerReserve.sol";
 
 /// @title Issue Miner for Ether and other ERC20 tokens.
-contract MinerIssuance is PullPayment, Ownable {
+contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     AggregatorV3Interface public priceFeedOracle;
 
     TruflationUSDMinerPairMock public truflation;
@@ -198,6 +199,7 @@ contract MinerIssuance is PullPayment, Ownable {
      */
     function issueExactMinerForETH(uint256 exactMinerOut, uint256 deadline)
         external
+        nonReentrant
         payable
         returns (uint256)
     {
