@@ -68,7 +68,7 @@ describe("MinerIssuance", () => {
 
     issuance = await ethers.getContract<MinerIssuance>("MinerIssuance");
 
-    await reserve.addIssuer(issuance.address);
+    await reserve.grantRole(reserve.ISSUER_ROLE(), issuance.address);
 
     deadline = await getTwentyMinuteDeadline();
 

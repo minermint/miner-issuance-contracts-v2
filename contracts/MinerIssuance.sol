@@ -199,8 +199,8 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
      */
     function issueExactMinerForETH(uint256 exactMinerOut, uint256 deadline)
         external
-        nonReentrant
         payable
+        nonReentrant
         returns (uint256)
     {
         require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
