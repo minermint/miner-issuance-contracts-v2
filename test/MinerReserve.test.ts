@@ -42,62 +42,54 @@ describe("MinerReserve", () => {
     expect(await miner.balanceOf(reserve.address)).to.be.equal(supply);
   });
 
-  it("should be able to change contract ownership", async () => {
-    await reserve.transferOwnership(alice);
-
-    expect(await reserve.owner()).to.be.equal(alice);
-  });
-
   describe("permitting reserve", () => {
-    it("should add a new admin as owner", async () => {
-      await reserve.grantRole(await reserve.ADMIN(), alice);
-
-      expect(await reserve.hasRole(await reserve.ADMIN(), alice)).to.be.true;
-    });
-
     it("should add a new admin as admin", async () => {
-      await reserve.grantRole(await reserve.ADMIN(), alice);
+      await reserve.grantRole(await reserve.DEFAULT_ADMIN_ROLE(), alice);
       await reserve
         .connect(await ethers.getSigner(alice))
-        .grantRole(await reserve.ADMIN(), bob);
+        .grantRole(await reserve.DEFAULT_ADMIN_ROLE(), bob);
 
-      expect(await reserve.hasRole(await reserve.ADMIN(), bob)).to.be.true;
+      expect(await reserve.hasRole(await reserve.DEFAULT_ADMIN_ROLE(), bob)).to
+        .be.true;
     });
 
     it("should add an issuer", async () => {
-      await reserve.addIssuer(issuer);
+      await reserve.grantRole(await reserve.ISSUER_ROLE(), issuer);
 
-      expect(await reserve.hasRole(await reserve.ISSUER(), issuer)).to.be.true;
+      expect(await reserve.hasRole(await reserve.ISSUER_ROLE(), issuer)).to.be
+        .true;
     });
 
     it("should emit a RoleGranted event", async () => {
-      const args = [await reserve.ISSUER(), issuer, deployer];
-      await expect(reserve.addIssuer(issuer))
+      const args = [await reserve.ISSUER_ROLE(), issuer, deployer];
+      await expect(reserve.grantRole(await reserve.ISSUER_ROLE(), issuer))
         .to.emit(reserve, "RoleGranted")
         .withArgs(...args);
     });
 
     it("should add an issuer as admin", async () => {
-      await reserve.grantRole(reserve.ADMIN(), alice);
+      await reserve.grantRole(reserve.DEFAULT_ADMIN_ROLE(), alice);
       await reserve
         .connect(await ethers.getSigner(alice))
-        .grantRole(reserve.ISSUER(), bob);
+        .grantRole(reserve.ISSUER_ROLE(), bob);
 
-      expect(await reserve.hasRole(reserve.ISSUER(), bob)).to.be.true;
+      expect(await reserve.hasRole(reserve.ISSUER_ROLE(), bob)).to.be.true;
     });
 
     it("should remove an issuer", async () => {
-      await reserve.addIssuer(issuer);
-      await reserve.removeIssuer(issuer);
+      await reserve.grantRole(await reserve.ISSUER_ROLE(), issuer);
+      await reserve.revokeRole(await reserve.ISSUER_ROLE(), issuer);
 
-      expect(await reserve.hasRole(reserve.ISSUER(), issuer)).to.be.false;
+      expect(await reserve.hasRole(reserve.ISSUER_ROLE(), issuer)).to.be.false;
     });
 
     it("should emit a RoleRevoked event", async () => {
-      const args = [await reserve.ISSUER(), issuer, deployer];
-      await reserve.addIssuer(issuer);
+      const args = [await reserve.ISSUER_ROLE(), issuer, deployer];
+      await reserve.grantRole(await reserve.ISSUER_ROLE(), issuer);
 
-      await expect(await reserve.removeIssuer(issuer))
+      await expect(
+        await reserve.revokeRole(await reserve.ISSUER_ROLE(), issuer)
+      )
         .to.emit(reserve, "RoleRevoked")
         .withArgs(...args);
     });
@@ -105,13 +97,18 @@ describe("MinerReserve", () => {
     it("should NOT add issuer using invalid admin", async () => {
       await expect(
         reserve.connect(await ethers.getSigner(bob)).issue(alice, ZERO_BALANCE)
-      ).to.revertedWith("MinerReserve/no-issuer-privileges");
+      ).to.revertedWith(
+        "AccessControl: account " +
+          bob.toLowerCase() +
+          " is missing role " +
+          (await reserve.ISSUER_ROLE())
+      );
     });
   });
 
   describe("issuing miner", () => {
     beforeEach(async () => {
-      await reserve.addIssuer(issuer);
+      await reserve.grantRole(await reserve.ISSUER_ROLE(), issuer);
     });
 
     it("should issue miner tokens", async () => {
@@ -135,7 +132,12 @@ describe("MinerReserve", () => {
     it("should NOT issue from an invalid address", async () => {
       await expect(
         reserve.connect(await ethers.getSigner(bob)).issue(alice, supply)
-      ).to.revertedWith("MinerReserve/no-issuer-privileges");
+      ).to.revertedWith(
+        "AccessControl: account " +
+          bob.toLowerCase() +
+          " is missing role " +
+          (await reserve.ISSUER_ROLE())
+      );
     });
 
     it("should NOT issue zero tokens", async () => {

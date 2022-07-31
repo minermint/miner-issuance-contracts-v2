@@ -68,7 +68,7 @@ describe("MinerIssuance", () => {
 
     issuance = await ethers.getContract<MinerIssuance>("MinerIssuance");
 
-    await reserve.addIssuer(issuance.address);
+    await reserve.grantRole(reserve.ISSUER_ROLE(), issuance.address);
 
     deadline = await getTwentyMinuteDeadline();
 
@@ -170,7 +170,7 @@ describe("MinerIssuance", () => {
         expect(balance).to.be.equal(expected);
       });
 
-      it("should emit a IssuedMinerForExactETH event", async () => {
+      it("should emit an Issued event", async () => {
         await expect(
           issuance
             .connect(await ethers.getSigner(alice))
@@ -178,7 +178,7 @@ describe("MinerIssuance", () => {
               value: amount,
             })
         )
-          .to.emit(issuance, "IssuedMinerForExactETH")
+          .to.emit(issuance, "Issued")
           .withArgs(alice, reserve.address, amount, expected);
       });
 
@@ -227,7 +227,7 @@ describe("MinerIssuance", () => {
             .issueMinerForExactETH(minerMin, deadline, {
               value: amount,
             })
-        ).to.be.revertedWith("MinerIssuance/slippage");
+        ).to.be.revertedWith("MinerIssuance/insufficient-amount-out");
       });
     });
 
@@ -261,7 +261,7 @@ describe("MinerIssuance", () => {
         expect(balance).to.be.equal(expected);
       });
 
-      it("should emit a IssuedExactMinerForETH event", async () => {
+      it("should emit an Issued event", async () => {
         await expect(
           issuance
             .connect(await ethers.getSigner(alice))
@@ -269,7 +269,7 @@ describe("MinerIssuance", () => {
               value: maxEthIn,
             })
         )
-          .to.emit(issuance, "IssuedMinerForExactETH")
+          .to.emit(issuance, "Issued")
           .withArgs(alice, reserve.address, maxEthIn, expected);
       });
 
@@ -334,7 +334,7 @@ describe("MinerIssuance", () => {
         expect(await miner.balanceOf(deployer)).to.be.equal(expected);
       });
 
-      it("should emit a Swapped Token for Miner event", async () => {
+      it("should emit an Issued event", async () => {
         await dai.approve(issuance.address, exactTokensIn);
 
         await expect(
@@ -345,7 +345,7 @@ describe("MinerIssuance", () => {
             deadline
           )
         )
-          .to.emit(issuance, "IssuedMinerForExactTokens")
+          .to.emit(issuance, "Issued")
           .withArgs(deployer, reserve.address, exactTokensIn, minerMinOut);
       });
 
@@ -386,7 +386,7 @@ describe("MinerIssuance", () => {
             minerMinOut,
             deadline
           )
-        ).to.be.revertedWith("MinerIssuance/deadline-expired");
+        ).to.be.revertedWith("UniswapV2Router: EXPIRED");
       });
 
       it("should NOT swap invalid token", async () => {
@@ -418,7 +418,7 @@ describe("MinerIssuance", () => {
             minerMinOut,
             deadline
           )
-        ).to.be.revertedWith("MinerIssuance/deadline-expired");
+        ).to.be.revertedWith("UniswapV2Router: EXPIRED");
 
         expect(await dai.balanceOf(deployer)).to.be.equal(expected);
       });
@@ -436,7 +436,7 @@ describe("MinerIssuance", () => {
             slippageMin,
             deadline
           )
-        ).revertedWith("MinerIssuance/slippage");
+        ).revertedWith("MinerIssuance/insufficient-amount-out");
       });
     });
 
@@ -486,7 +486,7 @@ describe("MinerIssuance", () => {
             deadline
           )
         )
-          .to.emit(issuance, "IssuedExactMinerForTokens")
+          .to.emit(issuance, "Issued")
           .withArgs(deployer, reserve.address, maxTokensIn, exactMinerOut);
       });
     });

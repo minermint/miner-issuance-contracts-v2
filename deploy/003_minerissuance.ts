@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   issuance.setPriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
 
-  await reserve.addIssuer(issuance.address);
+  await reserve.grantRole(await reserve.ISSUER_ROLE(), issuance.address);
 };
 
 export default func;

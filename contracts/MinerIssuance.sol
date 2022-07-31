@@ -5,6 +5,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/PullPayment.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -14,7 +15,7 @@ import "./oracles/TruflationUSDMinerPairMock.sol";
 import "./MinerReserve.sol";
 
 /// @title Issue Miner for Ether and other ERC20 tokens.
-contract MinerIssuance is PullPayment, Ownable {
+contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     AggregatorV3Interface public priceFeedOracle;
 
     TruflationUSDMinerPairMock public truflation;
@@ -91,12 +92,12 @@ contract MinerIssuance is PullPayment, Ownable {
         return _calculateETHPerMiner();
     }
 
-    function _calculateETHPerMiner()
-        internal
-        view
-        priceFeedSet
-        returns (uint256)
-    {
+    function _calculateETHPerMiner() internal view returns (uint256) {
+        require(
+            address(priceFeedOracle) != address(0),
+            "MinerIssuance/no-oracle-set"
+        );
+
         uint256 usdPerMiner = truflation.getTodaysExchangeRate();
 
         (, int256 usdPerETH, , , ) = priceFeedOracle.latestRoundData();
@@ -172,24 +173,24 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 minerOut = _calculateETHToMiner(ethIn);
 
-        require(minerOut >= minMinerOut, "MinerIssuance/slippage");
+        require(
+            minerOut >= minMinerOut,
+            "MinerIssuance/insufficient-amount-out"
+        );
 
         _asyncTransfer(owner(), ethIn);
 
         reserve.issue(_msgSender(), minerOut);
 
-        emit IssuedMinerForExactETH(
-            _msgSender(),
-            address(reserve),
-            ethIn,
-            minerOut
-        );
+        emit Issued(_msgSender(), address(reserve), ethIn, minerOut);
 
         return minerOut;
     }
 
     /**
-     * Issue at exactly `exactMinerOut` Miner for no more than `maxETHIn` ETH.
+     * Issue exactly `exactMinerOut` Miner for no more than `maxETHIn` ETH. Any
+     * additional ether will be refunded back to the user.
+     *
      * @param exactMinerOut uint256 The exact amount of Miner token to receive.
      * Reverts if the minimum is not met.
      * @param deadline uint256 A timestamp indicating how long the swap will
@@ -199,6 +200,7 @@ contract MinerIssuance is PullPayment, Ownable {
     function issueExactMinerForETH(uint256 exactMinerOut, uint256 deadline)
         external
         payable
+        nonReentrant
         returns (uint256)
     {
         require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
@@ -209,7 +211,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
 
-        require(ethIn >= requiredETHIn, "MinerIssuance/slippage");
+        require(requiredETHIn <= ethIn, "MinerIssuance/excessive-amount-in");
 
         _asyncTransfer(owner(), requiredETHIn);
 
@@ -217,14 +219,14 @@ contract MinerIssuance is PullPayment, Ownable {
         if (ethIn >= requiredETHIn) {
             (bool success, ) = address(msg.sender).call{
                 value: ethIn - requiredETHIn
-            }("");
+            }(new bytes(0));
 
-            require(success, "MinerReserve/cannot-refund-ether");
+            require(success, "MinerIssuance/cannot-refund-ether");
         }
 
         reserve.issue(_msgSender(), exactMinerOut);
 
-        emit IssuedExactMinerForETH(
+        emit Issued(
             _msgSender(),
             address(reserve),
             requiredETHIn,
@@ -252,8 +254,6 @@ contract MinerIssuance is PullPayment, Ownable {
         uint256 minMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
-
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         // if the path is invalid, it should fail here.
@@ -263,7 +263,10 @@ contract MinerIssuance is PullPayment, Ownable {
 
         uint256 expectedMinerOut = _calculateETHToMiner(expectedETHOut);
 
-        require(expectedMinerOut >= minMinerOut, "MinerIssuance/slippage");
+        require(
+            expectedMinerOut >= minMinerOut,
+            "MinerIssuance/insufficient-amount-out"
+        );
 
         TransferHelper.safeTransferFrom(
             path[0],
@@ -299,12 +302,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         reserve.issue(_msgSender(), actualMinerOut);
 
-        emit IssuedMinerForExactTokens(
-            _msgSender(),
-            address(reserve),
-            amount,
-            actualMinerOut
-        );
+        emit Issued(_msgSender(), address(reserve), amount, actualMinerOut);
 
         return actualMinerOut;
     }
@@ -328,14 +326,15 @@ contract MinerIssuance is PullPayment, Ownable {
         uint256 exactMinerOut,
         uint256 deadline
     ) external returns (uint256) {
-        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
-
         IUniswapV2Router02 router = IUniswapV2Router02(uniswapRouter);
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
         uint256 requiredTokensIn = router.getAmountsIn(requiredETHIn, path)[0];
 
-        require(requiredTokensIn <= maxAmountIn, "MinerIssuance/slippage");
+        require(
+            requiredTokensIn <= maxAmountIn,
+            "MinerIssuance/excessive-amount-in"
+        );
 
         TransferHelper.safeTransferFrom(
             path[0],
@@ -365,7 +364,7 @@ contract MinerIssuance is PullPayment, Ownable {
 
         reserve.issue(_msgSender(), exactMinerOut);
 
-        emit IssuedExactMinerForTokens(
+        emit Issued(
             _msgSender(),
             address(reserve),
             requiredTokensIn,
@@ -379,36 +378,7 @@ contract MinerIssuance is PullPayment, Ownable {
         _asyncTransfer(owner(), msg.value);
     }
 
-    modifier priceFeedSet() {
-        require(
-            address(priceFeedOracle) != address(0),
-            "MinerIssuance/no-oracle-set"
-        );
-        _;
-    }
-
-    event IssuedMinerForExactETH(
-        address indexed recipient,
-        address indexed sender,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-
-    event IssuedMinerForExactTokens(
-        address indexed recipient,
-        address indexed sender,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-
-    event IssuedExactMinerForETH(
-        address indexed recipient,
-        address indexed sender,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-
-    event IssuedExactMinerForTokens(
+    event Issued(
         address indexed recipient,
         address indexed sender,
         uint256 amountIn,
