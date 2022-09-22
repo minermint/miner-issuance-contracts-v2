@@ -11,14 +11,14 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
-import "./oracles/TruflationUSDMinerPairMock.sol";
 import "./MinerReserve.sol";
+import "hardhat-project/contracts/IUSDMinerPair.sol";
 
 /// @title Issue Miner for Ether and other ERC20 tokens.
 contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     AggregatorV3Interface public priceFeedOracle;
 
-    TruflationUSDMinerPairMock public truflation;
+    IUSDMinerPair public pair;
 
     MinerReserve public reserve;
 
@@ -26,61 +26,56 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
     /**
      * Initializes the MinerIssuance contract.
-     * @param truflationAddress TruflationUSDMinerPairMock The Miner oracle contract.
+     * @param address pairAddress The USD Miner pair.
      * @param reserveAddress MinerReserve The MinerReserve contract.
      * @param uniswapRouterAddress address The Uniswap Router contract.
      */
     constructor(
-        TruflationUSDMinerPairMock truflationAddress,
-        MinerReserve reserveAddress,
+        address pairAddress,
+        address reserveAddress,
         address uniswapRouterAddress
     ) {
-        _setMinerOracle(truflationAddress);
-        _setMinerReserve(reserveAddress);
-        _setUniswapRouterAddress(uniswapRouterAddress);
+        _changePair(pair);
+        _changeReserve(reserveAddress);
+        _changeUniswapRouterAddress(uniswapRouterAddress);
     }
 
     /**
-     * Sets the Miner oraacle contract.
-     * @param truflationAddress IMinerTruflationUSDMinerPairMockOracle The Miner oracle contract.
+     * Sets the USD to Miner pair address.
+     * @param address pairAddress The USD Miner pair address.
      */
-    function setMinerOracle(TruflationUSDMinerPairMock truflationAddress)
-        public
-        onlyOwner
-    {
-        _setMinerOracle(truflationAddress);
+    function changePair(address pairAddress) public onlyOwner {
+        _changePair(pairAddress);
     }
 
     /**
-     * Sets the MinerReserve contract.
-     * @param reserveAddress MinerReserve The MinerReserve contract.
+     * Sets the Reserve contract.
+     * @param reserveAddress reserveAddress The Reserve contract.
      */
-    function setReserve(MinerReserve reserveAddress) public onlyOwner {
-        _setMinerReserve(reserveAddress);
+    function changeReserve(address reserveAddress) public onlyOwner {
+        _changeReserve(reserveAddress);
     }
 
     /**
-     * Sets the Price Feed contract. This will be a valid Chainlink contract. An example of available contracts are available at https://docs.chain.link/docs/ethereum-addresses/.
+     * Changes the Price Feed contract. This will be a valid Chainlink contract. An example of available contracts are available at https://docs.chain.link/docs/ethereum-addresses/.
      * @param priceFeedOracleAddress AggregatorV3Interface The Price Feed contract.
      */
-    function setPriceFeedOracle(AggregatorV3Interface priceFeedOracleAddress)
+    function changePriceFeedOracle(address priceFeedOracleAddress)
         public
         onlyOwner
     {
         priceFeedOracle = priceFeedOracleAddress;
     }
 
-    function _setMinerOracle(TruflationUSDMinerPairMock truflationAddress)
-        private
-    {
-        truflation = truflationAddress;
+    function _changePair(address pairAddress) private {
+        pair = pairAddress;
     }
 
-    function _setMinerReserve(MinerReserve reserveAddress) private {
+    function _changeReserve(MinerReserve reserveAddress) private {
         reserve = reserveAddress;
     }
 
-    function _setUniswapRouterAddress(address uniswapRouterAddress) private {
+    function _changeUniswapRouterAddress(address uniswapRouterAddress) private {
         uniswapRouter = uniswapRouterAddress;
     }
 
@@ -98,7 +93,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
             "MinerIssuance/no-oracle-set"
         );
 
-        uint256 usdPerMiner = truflation.getTodaysExchangeRate();
+        uint256 usdPerMiner = pair.getPrice();
 
         (, int256 usdPerETH, , , ) = priceFeedOracle.latestRoundData();
 

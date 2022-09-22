@@ -62,7 +62,7 @@ npx hardhat deploy --network mainnet
 
 ### .env
 
-You can also place the MNEMONIC and/or INFURA_ID variables into an .env file.
+You can also place the MNEMONIC and/or PRIVATE_KEY variables into an .env file.
 
 ## Registering a contract on Etherscan and Sourcify
 

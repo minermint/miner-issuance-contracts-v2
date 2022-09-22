@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { getTwentyMinuteDeadline } from "./utils/deadline";
 import * as helpers from "@nomicfoundation/hardhat-network-helpers";
-import { getMiner, getTruflationOracle } from "./utils/contracts/core";
+import { getMiner, getPair } from "./utils/contracts/core";
 import {
   getUniswapV2Router02,
   getAggregatorV3ETHUSD,
@@ -20,13 +20,15 @@ import {
 } from "./utils/hops";
 import fundDai from "./utils/fundDai";
 import { testConfig } from "../config";
+import { EXACT_MINER_OUT } from "./utils/constants";
 
 // @TODO: Need to spread over two lines. ts-ignore can't handle multi-line.
 // @ts-ignore
-import type { MinerReserve, MinerIssuance } from "../typechain-types";
-
-// @ts-ignore
-import type { TruflationUSDMinerPairMock } from "../typechain-types";
+import type {
+  MinerReserve,
+  MinerIssuance,
+  USDMinerPair,
+} from "../typechain-types";
 
 describe("MinerIssuance", () => {
   let deployer: string, owner: string, alice: string, bob: string;
@@ -36,7 +38,7 @@ describe("MinerIssuance", () => {
     reserve: MinerReserve,
     aggregator: any,
     router: any,
-    oracle: TruflationUSDMinerPairMock;
+    pair: USDMinerPair;
 
   const supply = ethers.utils.parseEther("10");
 
@@ -58,7 +60,7 @@ describe("MinerIssuance", () => {
 
     miner = getMiner();
 
-    oracle = await getTruflationOracle();
+    pair = await getPair();
 
     reserve = await ethers.getContract<MinerReserve>("MinerReserve");
 
@@ -77,7 +79,7 @@ describe("MinerIssuance", () => {
 
   describe("instantiation", () => {
     it("should be able to change price feed oracle", async () => {
-      await issuance.setPriceFeedOracle(aggregator.address);
+      await issuance.changePriceFeedOracle(aggregator.address);
 
       expect(await issuance.priceFeedOracle()).to.be.equal(aggregator.address);
     });
@@ -86,32 +88,32 @@ describe("MinerIssuance", () => {
       await expect(
         issuance
           .connect(await ethers.getSigner(alice))
-          .setPriceFeedOracle(aggregator.address)
+          .changePriceFeedOracle(aggregator.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should be able to change miner oracle", async () => {
-      await issuance.setMinerOracle(aggregator.address);
+    it("should be able to change pair", async () => {
+      await issuance.changePair(aggregator.address);
 
       expect(await issuance.truflation()).to.be.equal(aggregator.address);
     });
 
     it("should be able to change reserve", async () => {
-      await issuance.setReserve(reserve.address);
+      await issuance.changeReserve(reserve.address);
 
       expect(await issuance.reserve()).to.be.equal(reserve.address);
     });
 
-    it("should NOT be able to change miner oracle without permission", async () => {
+    it("should NOT be able to change pair without permission", async () => {
       await expect(
         issuance
           .connect(await ethers.getSigner(alice))
-          .setMinerOracle(aggregator.address)
+          .changePair(aggregator.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should NOT be able to convert with a zero address price feed", async () => {
-      await issuance.setPriceFeedOracle(ethers.constants.AddressZero);
+      await issuance.changePriceFeedOracle(ethers.constants.AddressZero);
       const amount = ethers.utils.parseEther("0.001");
 
       // set min miner out to 0 as it shouldn't reach any amount validation.
@@ -138,7 +140,7 @@ describe("MinerIssuance", () => {
 
   describe("swaps", () => {
     beforeEach(async () => {
-      await issuance.setPriceFeedOracle(aggregator.address);
+      await issuance.changePriceFeedOracle(aggregator.address);
     });
 
     describe("issuing miner for exact ETH", () => {
@@ -152,7 +154,7 @@ describe("MinerIssuance", () => {
 
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
-        const xRate = await oracle.getTodaysExchangeRate();
+        const expected = await pair.getPrice();
         expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
 
         expected = amount.mul(ethers.utils.parseEther("1")).div(expectedRate);
@@ -234,7 +236,7 @@ describe("MinerIssuance", () => {
     describe("issuing exact miner for ETH", () => {
       const exactMinerOut = ethers.utils.parseEther("1");
 
-      let expectedRate: any, expected: any;
+      let expected: any;
 
       let maxEthIn: BigNumber;
 
@@ -243,10 +245,8 @@ describe("MinerIssuance", () => {
 
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
-        const xRate = await oracle.getTodaysExchangeRate();
-        expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
 
-        expected = maxEthIn.mul(ethers.utils.parseEther("1")).div(expectedRate);
+        expected = await pair.getPrice();
       });
 
       it("should issue exact miner for ETH", async () => {
@@ -441,34 +441,32 @@ describe("MinerIssuance", () => {
     });
 
     describe("issuing exact miner for tokens", async () => {
-      const exactMinerOut = ethers.utils.parseEther("1");
-
       let maxTokensIn: BigNumber;
       let path: string[];
 
       beforeEach(async () => {
         path = await getBestPricePathExactOut(
-          await getMinerToETH(exactMinerOut),
+          await getMinerToETH(EXACT_MINER_OUT),
           testConfig.currencies.dai,
           await router.WETH()
         );
         maxTokensIn = await calculateTokensToExactMiner(
           dai.address,
-          exactMinerOut
+          EXACT_MINER_OUT
         );
       });
 
       it("should issue exact Miner for Dai", async () => {
         const balance = await miner.balanceOf(deployer);
 
-        const expected = balance.add(exactMinerOut);
+        const expected = balance.add(EXACT_MINER_OUT);
 
         await dai.approve(issuance.address, maxTokensIn);
 
         await issuance.issueExactMinerForTokens(
           path,
           maxTokensIn,
-          exactMinerOut,
+          EXACT_MINER_OUT,
           deadline
         );
 
@@ -482,12 +480,12 @@ describe("MinerIssuance", () => {
           issuance.issueExactMinerForTokens(
             path,
             maxTokensIn,
-            exactMinerOut,
+            EXACT_MINER_OUT,
             deadline
           )
         )
           .to.emit(issuance, "Issued")
-          .withArgs(deployer, reserve.address, maxTokensIn, exactMinerOut);
+          .withArgs(deployer, reserve.address, maxTokensIn, EXACT_MINER_OUT);
       });
     });
 

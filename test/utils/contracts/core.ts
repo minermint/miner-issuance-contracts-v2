@@ -3,14 +3,11 @@ import { testConfig } from "../../../config";
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
 // @ts-ignore
-import type { TruflationUSDMinerPairMock } from "../../../typechain-types";
+import type { IUSDMinerPair } from "../../../typechain-types";
 
-export const getTruflationOracle =
-  async (): Promise<TruflationUSDMinerPairMock> => {
-    return await hre.ethers.getContract<TruflationUSDMinerPairMock>(
-      "TruflationUSDMinerPairMock"
-    );
-  };
+export const getPair = async (): Promise<IUSDMinerPair> => {
+  return await hre.ethers.getContract<IUSDMinerPair>("IUSDMinerPair");
+};
 
 export const getMiner = (): Contract => {
   return new Contract(

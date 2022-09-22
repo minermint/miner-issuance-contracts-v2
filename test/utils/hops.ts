@@ -4,6 +4,8 @@ import ArtifactIUniswapV2Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json";
 import * as Uniswap from "@uniswap/sdk";
 import flatMap from "lodash.flatmap";
 
+const SELECTED_CHAIN = Uniswap.ChainId.MAINNET;
+
 // base tokens for finding best price. The more base tokens the more accurate
 // the pricing.
 const BASES: {
@@ -16,6 +18,12 @@ const BASES: {
     "0xdAC17F958D2ee523a2206206994597C13D831ec7": "USDT", // USDT
     "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": "WETH", // WETH
   },
+  [SELECTED_CHAIN]: {
+    "0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735": "DAI",
+    "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926": "USDC",
+    "0x577D296678535e4903D59A4C929B718e1D575e0A": "WBTC",
+    "0xc778417E063141139Fce010982780140Aa0cD5Ab": "WETH",
+  },
 };
 
 const MAX_HOPS = 3;
@@ -26,12 +34,12 @@ const getTradingPairs = async (
 ) => {
   const tokens: any[] = [];
 
-  for (const base in BASES[Uniswap.ChainId.MAINNET]) {
+  for (const base in BASES[SELECTED_CHAIN]) {
     const token = new Contract(base, ArtifactERC20.abi, hre.ethers.provider);
 
     tokens.push(
       new Uniswap.Token(
-        Uniswap.ChainId.MAINNET,
+        SELECTED_CHAIN,
         token.address,
         await token.decimals(),
         await token.symbol(),
@@ -196,7 +204,7 @@ const getUniswapToken = async (address: string): Promise<Uniswap.Token> => {
   const token = new Contract(address, ArtifactERC20.abi, hre.ethers.provider);
 
   return new Uniswap.Token(
-    Uniswap.ChainId.MAINNET,
+    SELECTED_CHAIN,
     token.address,
     await token.decimals(),
     await token.symbol(),
