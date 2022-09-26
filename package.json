@@ -1,5 +1,5 @@
 {
-  "name": "minertoken",
+  "name": "miner-issuance-contracts-v2",
   "version": "2.0.0-dev",
   "description": "Miner Token smart contracts.",
   "author": [
@@ -10,8 +10,7 @@
     "compile": "npx hardhat compile",
     "coverage": "npx hardhat coverage",
     "deploy:development": "npx hardhat deploy --network localhost",
-    "deploy:kovan": "npx hardhat deploy --network kovan",
-    "deploy:goerli": "npx hardhat deploy --network goerli",
+    "deploy:testnet": "npx hardhat deploy --network goerli",
     "test": "npx hardhat accounts && npx hardhat test",
     "lint": "npm run lint:sol && npm run lint:ts && npm run prettier:check",
     "lint:sol": "solhint --max-warnings 5 \"contracts/**/*.sol\"",
@@ -61,6 +60,7 @@
     "@uniswap/lib": "^4.0.1-alpha",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
-    "dotenv": "^16.0.1"
+    "dotenv": "^16.0.1",
+    "hardhat-project": "github:minermint/miner-truflation-contracts"
   }
 }

@@ -80,7 +80,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.9",
+        version: "0.8.15",
         settings: {
           optimizer: {
             enabled: true,
@@ -91,9 +91,11 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
-    kovan: {
-      url: networkConfig["kovan"].url,
-      accounts: privateKey !== undefined ? [privateKey] : [],
+    goerli: {
+      url: networkConfig["goerli"].url,
+      accounts: {
+        mnemonic: mnemonic,
+      },
     },
     hardhat: {
       accounts: {
