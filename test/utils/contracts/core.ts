@@ -6,7 +6,9 @@ import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json"
 import type { IUSDMinerPair } from "../../../typechain-types";
 
 export const getPair = async (): Promise<IUSDMinerPair> => {
-  return await hre.ethers.getContract<IUSDMinerPair>("IUSDMinerPair");
+  const artifact = await hre.deployments.getArtifact("IUSDMinerPair");
+
+  return await hre.ethers.getContractAt<IUSDMinerPair>(artifact.abi, testConfig.priceUSDMiner);
 };
 
 export const getMiner = (): Contract => {
