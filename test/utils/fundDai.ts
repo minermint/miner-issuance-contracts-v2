@@ -5,7 +5,7 @@ import { getBestPricePathExactOut } from "./hops";
 
 export default async () => {
   const router = getUniswapV2Router02();
-  const exactDaiOut = hre.ethers.utils.parseEther("10");
+  const exactDaiOut = hre.ethers.utils.parseEther(testConfig.balances.dai);
 
   const path = await getBestPricePathExactOut(
     exactDaiOut,

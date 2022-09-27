@@ -10,12 +10,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const reserve = await ethers.getContract("MinerReserve");
-  const oracle = await ethers.getContract("TruflationUSDMinerPairMock");
 
   await deploy("MinerIssuance", {
     from: deployer,
     args: [
-      oracle.address,
+      networkConfig[network.name].priceUSDMiner,
       reserve.address,
       networkConfig[network.name].uniswap_v2_router_02,
     ],
@@ -23,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const issuance = await ethers.getContract("MinerIssuance");
 
-  issuance.setPriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
+  issuance.changePriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
 
   await reserve.grantRole(await reserve.ISSUER_ROLE(), issuance.address);
 };

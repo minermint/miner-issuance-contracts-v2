@@ -24,11 +24,7 @@ import { EXACT_MINER_OUT } from "./utils/constants";
 
 // @TODO: Need to spread over two lines. ts-ignore can't handle multi-line.
 // @ts-ignore
-import type {
-  MinerReserve,
-  MinerIssuance,
-  USDMinerPair,
-} from "../typechain-types";
+import type { MinerReserve, MinerIssuance, IUSDMinerPair } from "../typechain-types";
 
 describe("MinerIssuance", () => {
   let deployer: string, owner: string, alice: string, bob: string;
@@ -38,9 +34,9 @@ describe("MinerIssuance", () => {
     reserve: MinerReserve,
     aggregator: any,
     router: any,
-    pair: USDMinerPair;
+    pair: IUSDMinerPair;
 
-  const supply = ethers.utils.parseEther("10");
+  const supply = EXACT_MINER_OUT;
 
   let deadline: number;
 
@@ -95,7 +91,7 @@ describe("MinerIssuance", () => {
     it("should be able to change pair", async () => {
       await issuance.changePair(aggregator.address);
 
-      expect(await issuance.truflation()).to.be.equal(aggregator.address);
+      expect(await issuance.pair()).to.be.equal(aggregator.address);
     });
 
     it("should be able to change reserve", async () => {
@@ -154,7 +150,7 @@ describe("MinerIssuance", () => {
 
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
-        const expected = await pair.getPrice();
+        const xRate = await pair.getPrice();
         expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
 
         expected = amount.mul(ethers.utils.parseEther("1")).div(expectedRate);
@@ -199,14 +195,9 @@ describe("MinerIssuance", () => {
         await expect(
           issuance
             .connect(await ethers.getSigner(alice))
-            .issueMinerForExactETH(
-              await issuance.calculateETHToMiner(supply.add(1)),
-              deadline,
-              {
-                value: supply.add(1),
-              }
-            )
-        ).to.be.revertedWith("MinerReserve/balance-exceeded");
+            .issueExactMinerForETH(supply.add(1), deadline, {
+              value: await issuance.calculateMinerToETH(supply.add(1)),
+            })).to.be.revertedWith("MinerReserve/balance-exceeded");
       });
 
       it("should NOT issue when deadline expires", async () => {
@@ -234,7 +225,7 @@ describe("MinerIssuance", () => {
     });
 
     describe("issuing exact miner for ETH", () => {
-      const exactMinerOut = ethers.utils.parseEther("1");
+      const exactMinerOut = EXACT_MINER_OUT;
 
       let expected: any;
 
@@ -243,10 +234,7 @@ describe("MinerIssuance", () => {
       beforeEach(async () => {
         maxEthIn = await issuance.calculateMinerToETH(exactMinerOut);
 
-        const roundData = await aggregator.latestRoundData();
-        const answer = roundData[1];
-
-        expected = await pair.getPrice();
+        expected = EXACT_MINER_OUT;
       });
 
       it("should issue exact miner for ETH", async () => {
@@ -262,10 +250,10 @@ describe("MinerIssuance", () => {
       });
 
       it("should emit an Issued event", async () => {
-        await expect(
-          issuance
+        expect(
+          await issuance
             .connect(await ethers.getSigner(alice))
-            .issueMinerForExactETH(exactMinerOut, deadline, {
+            .issueExactMinerForETH(exactMinerOut, deadline, {
               value: maxEthIn,
             })
         )
@@ -450,6 +438,7 @@ describe("MinerIssuance", () => {
           testConfig.currencies.dai,
           await router.WETH()
         );
+
         maxTokensIn = await calculateTokensToExactMiner(
           dai.address,
           EXACT_MINER_OUT

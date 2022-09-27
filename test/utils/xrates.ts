@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers";
-import { getTruflationOracle } from "./contracts/core";
+import { getPair } from "./contracts/core";
 import {
   getUniswapV2Router02,
   getAggregatorV3ETHUSD,
@@ -106,11 +106,11 @@ export const getETHToMiner = async (amount: BigNumber): Promise<BigNumber> => {
  * @returns Promise<BigNumber> The amount of ETH for 1 Miner.
  */
 export const getETHPerMiner = async (): Promise<BigNumber> => {
-  const oracle = await getTruflationOracle();
+  const oracle = await getPair();
   const aggregator = getAggregatorV3ETHUSD();
 
   // 1 MINER : x USD
-  const usdPerMiner = await oracle.getTodaysExchangeRate();
+  const usdPerMiner = await oracle.getPrice();
 
   // 1 ETH : y USD
   const roundData = await aggregator.latestRoundData();

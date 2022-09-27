@@ -4,7 +4,7 @@ import ArtifactIUniswapV2Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json";
 import * as Uniswap from "@uniswap/sdk";
 import flatMap from "lodash.flatmap";
 
-const SELECTED_CHAIN = Uniswap.ChainId.MAINNET;
+const SELECTED_CHAIN = Uniswap.ChainId.GÖRLI;
 
 // base tokens for finding best price. The more base tokens the more accurate
 // the pricing.
@@ -19,10 +19,10 @@ const BASES: {
     "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": "WETH", // WETH
   },
   [SELECTED_CHAIN]: {
-    "0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735": "DAI",
-    "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926": "USDC",
-    "0x577D296678535e4903D59A4C929B718e1D575e0A": "WBTC",
-    "0xc778417E063141139Fce010982780140Aa0cD5Ab": "WETH",
+    "0xdc31Ee1784292379Fbb2964b3B9C4124D8F89C60": "DAI",
+    "0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C": "USDC",
+    "0xC04B0d3107736C32e19F1c62b2aF67BE61d63a05": "WBTC",
+    "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6": "WETH",
   },
 };
 

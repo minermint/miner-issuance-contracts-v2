@@ -12,22 +12,22 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./MinerReserve.sol";
-import "hardhat-project/contracts/IUSDMinerPair.sol";
+import "./IUSDMinerPair.sol";
 
 /// @title Issue Miner for Ether and other ERC20 tokens.
 contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
-    AggregatorV3Interface public priceFeedOracle;
+    address public priceFeedOracle;
 
-    IUSDMinerPair public pair;
+    address public pair;
 
-    MinerReserve public reserve;
+    address public reserve;
 
     address public uniswapRouter;
 
     /**
      * Initializes the MinerIssuance contract.
-     * @param address pairAddress The USD Miner pair.
-     * @param reserveAddress MinerReserve The MinerReserve contract.
+     * @param pairAddress address The USD Miner pair.
+     * @param reserveAddress address The MinerReserve contract.
      * @param uniswapRouterAddress address The Uniswap Router contract.
      */
     constructor(
@@ -35,14 +35,14 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
         address reserveAddress,
         address uniswapRouterAddress
     ) {
-        _changePair(pair);
+        _changePair(pairAddress);
         _changeReserve(reserveAddress);
         _changeUniswapRouterAddress(uniswapRouterAddress);
     }
 
     /**
      * Sets the USD to Miner pair address.
-     * @param address pairAddress The USD Miner pair address.
+     * @param pairAddress address The USD Miner pair address.
      */
     function changePair(address pairAddress) public onlyOwner {
         _changePair(pairAddress);
@@ -50,7 +50,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
     /**
      * Sets the Reserve contract.
-     * @param reserveAddress reserveAddress The Reserve contract.
+     * @param reserveAddress address The Reserve contract.
      */
     function changeReserve(address reserveAddress) public onlyOwner {
         _changeReserve(reserveAddress);
@@ -58,7 +58,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
     /**
      * Changes the Price Feed contract. This will be a valid Chainlink contract. An example of available contracts are available at https://docs.chain.link/docs/ethereum-addresses/.
-     * @param priceFeedOracleAddress AggregatorV3Interface The Price Feed contract.
+     * @param priceFeedOracleAddress address The Price Feed contract.
      */
     function changePriceFeedOracle(address priceFeedOracleAddress)
         public
@@ -71,7 +71,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
         pair = pairAddress;
     }
 
-    function _changeReserve(MinerReserve reserveAddress) private {
+    function _changeReserve(address reserveAddress) private {
         reserve = reserveAddress;
     }
 
@@ -89,13 +89,13 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
     function _calculateETHPerMiner() internal view returns (uint256) {
         require(
-            address(priceFeedOracle) != address(0),
+            priceFeedOracle != address(0),
             "MinerIssuance/no-oracle-set"
         );
 
-        uint256 usdPerMiner = pair.getPrice();
+        uint256 usdPerMiner = IUSDMinerPair(pair).getPrice();
 
-        (, int256 usdPerETH, , , ) = priceFeedOracle.latestRoundData();
+        (, int256 usdPerETH, , , ) = AggregatorV3Interface(priceFeedOracle).latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         // the result will be the price of 1 miner in wei.
@@ -175,9 +175,9 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         _asyncTransfer(owner(), ethIn);
 
-        reserve.issue(_msgSender(), minerOut);
+        MinerReserve(reserve).issue(_msgSender(), minerOut);
 
-        emit Issued(_msgSender(), address(reserve), ethIn, minerOut);
+        emit Issued(_msgSender(), reserve, ethIn, minerOut);
 
         return minerOut;
     }
@@ -219,11 +219,11 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
             require(success, "MinerIssuance/cannot-refund-ether");
         }
 
-        reserve.issue(_msgSender(), exactMinerOut);
+        MinerReserve(reserve).issue(_msgSender(), exactMinerOut);
 
         emit Issued(
             _msgSender(),
-            address(reserve),
+            reserve,
             requiredETHIn,
             exactMinerOut
         );
@@ -295,9 +295,9 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
             amounts[amounts.length - 1]
         );
 
-        reserve.issue(_msgSender(), actualMinerOut);
+        MinerReserve(reserve).issue(_msgSender(), actualMinerOut);
 
-        emit Issued(_msgSender(), address(reserve), amount, actualMinerOut);
+        emit Issued(_msgSender(), reserve, amount, actualMinerOut);
 
         return actualMinerOut;
     }
@@ -357,11 +357,11 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
             "MinerIssuance/invalid-eth-amount-transferred"
         );
 
-        reserve.issue(_msgSender(), exactMinerOut);
+        MinerReserve(reserve).issue(_msgSender(), exactMinerOut);
 
         emit Issued(
             _msgSender(),
-            address(reserve),
+            reserve,
             requiredTokensIn,
             exactMinerOut
         );
