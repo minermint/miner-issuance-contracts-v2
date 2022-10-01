@@ -28,7 +28,7 @@ export const networkConfig: networkConfigInfo = {
     miner: "0x20c23F279CCD0c804a9a89f78b57b3Ba2f4B1698",
     uniswap_v2_router_02: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
     aggregatorV3ETHUSD: "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e",
-    priceUSDMiner: "0xEEE8B4522617FE2f992351CB7C34568A77042d1d"
+    priceUSDMiner: "0xEEE8B4522617FE2f992351CB7C34568A77042d1d",
   },
   hardhat: {
     // url: process.env.MAINNET_URL || "",
@@ -38,7 +38,7 @@ export const networkConfig: networkConfigInfo = {
     url: process.env.TESTNET_URL || "",
     miner: "0x20c23F279CCD0c804a9a89f78b57b3Ba2f4B1698",
     aggregatorV3ETHUSD: "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e",
-    priceUSDMiner: "0xEEE8B4522617FE2f992351CB7C34568A77042d1d"
+    priceUSDMiner: "0xEEE8B4522617FE2f992351CB7C34568A77042d1d",
   },
 };
 
@@ -48,7 +48,7 @@ export interface testConfigInfo {
   currencies: { [name: string]: string };
   aggregatorV3ETHUSD: string;
   priceUSDMiner: string;
-  balances: {[name: string]: string };
+  balances: { [name: string]: string };
 }
 
 export const testConfig: testConfigInfo = {
@@ -67,6 +67,6 @@ export const testConfig: testConfigInfo = {
   aggregatorV3ETHUSD: networkConfig.hardhat.aggregatorV3ETHUSD,
   priceUSDMiner: networkConfig.hardhat.priceUSDMiner,
   balances: {
-    dai: "500000"
-  }
+    dai: "500000",
+  },
 };

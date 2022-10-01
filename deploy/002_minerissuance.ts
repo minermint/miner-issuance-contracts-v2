@@ -22,7 +22,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const issuance = await ethers.getContract("MinerIssuance");
 
-  issuance.changePriceFeedOracle(networkConfig[network.name].aggregatorV3ETHUSD);
+  issuance.changePriceFeedOracle(
+    networkConfig[network.name].aggregatorV3ETHUSD
+  );
 
   await reserve.grantRole(await reserve.ISSUER_ROLE(), issuance.address);
 };

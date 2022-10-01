@@ -197,7 +197,8 @@ describe("MinerIssuance", () => {
             .connect(await ethers.getSigner(alice))
             .issueExactMinerForETH(supply.add(1), deadline, {
               value: await issuance.calculateMinerToETH(supply.add(1)),
-            })).to.be.revertedWith("MinerReserve/balance-exceeded");
+            })
+        ).to.be.revertedWith("MinerReserve/balance-exceeded");
       });
 
       it("should NOT issue when deadline expires", async () => {

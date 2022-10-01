@@ -6,8 +6,6 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/PullPayment.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
@@ -57,7 +55,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     }
 
     /**
-     * Changes the Price Feed contract. This will be a valid Chainlink contract. An example of available contracts are available at https://docs.chain.link/docs/ethereum-addresses/.
+     * Changes the Price Feed contract. This will be a valid Chainlink contract. A list of contracts is available at https://docs.chain.link/docs/ethereum-addresses/.
      * @param priceFeedOracleAddress address The Price Feed contract.
      */
     function changePriceFeedOracle(address priceFeedOracleAddress)
@@ -88,14 +86,12 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     }
 
     function _calculateETHPerMiner() internal view returns (uint256) {
-        require(
-            priceFeedOracle != address(0),
-            "MinerIssuance/no-oracle-set"
-        );
+        require(priceFeedOracle != address(0), "MinerIssuance/no-oracle-set");
 
         uint256 usdPerMiner = IUSDMinerPair(pair).getPrice();
 
-        (, int256 usdPerETH, , , ) = AggregatorV3Interface(priceFeedOracle).latestRoundData();
+        (, int256 usdPerETH, , , ) = AggregatorV3Interface(priceFeedOracle)
+            .latestRoundData();
 
         // latest per miner price * by 18 dp, divide by latest price per eth.
         // the result will be the price of 1 miner in wei.
@@ -221,12 +217,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         MinerReserve(reserve).issue(_msgSender(), exactMinerOut);
 
-        emit Issued(
-            _msgSender(),
-            reserve,
-            requiredETHIn,
-            exactMinerOut
-        );
+        emit Issued(_msgSender(), reserve, requiredETHIn, exactMinerOut);
 
         return exactMinerOut;
     }
@@ -359,12 +350,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         MinerReserve(reserve).issue(_msgSender(), exactMinerOut);
 
-        emit Issued(
-            _msgSender(),
-            reserve,
-            requiredTokensIn,
-            exactMinerOut
-        );
+        emit Issued(_msgSender(), reserve, requiredTokensIn, exactMinerOut);
 
         return exactMinerOut;
     }
