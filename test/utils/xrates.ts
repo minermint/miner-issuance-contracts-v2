@@ -116,7 +116,7 @@ export const getETHPerMiner = async (): Promise<BigNumber> => {
   const roundData = await aggregator.latestRoundData();
   const usdPerETH = roundData[1];
 
-  return hre.ethers.utils.parseEther("1").mul(usdPerMiner).div(usdPerETH);
+  return usdPerMiner.mul(hre.ethers.utils.parseUnits("1", await aggregator.decimals())).div(usdPerETH);
 };
 
 export const getETHPerToken = async (address: string): Promise<BigNumber> => {

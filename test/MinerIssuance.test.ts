@@ -36,7 +36,7 @@ describe("MinerIssuance", () => {
     router: any,
     pair: IUSDMinerPair;
 
-  const supply = EXACT_MINER_OUT;
+  const supply = ethers.utils.parseEther("1"); // EXACT_MINER_OUT;
 
   let deadline: number;
 
@@ -151,7 +151,8 @@ describe("MinerIssuance", () => {
         const roundData = await aggregator.latestRoundData();
         const answer = roundData[1];
         const xRate = await pair.getPrice();
-        expectedRate = xRate.mul(ethers.utils.parseEther("1")).div(answer);
+
+        expectedRate = xRate.mul(ethers.utils.parseUnits("1", await aggregator.decimals())).div(answer);
 
         expected = amount.mul(ethers.utils.parseEther("1")).div(expectedRate);
       });

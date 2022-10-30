@@ -93,9 +93,10 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
         (, int256 usdPerETH, , , ) = AggregatorV3Interface(priceFeedOracle)
             .latestRoundData();
 
-        // latest per miner price * by 18 dp, divide by latest price per eth.
-        // the result will be the price of 1 miner in wei.
-        return (usdPerMiner * 1e18) / uint256(usdPerETH);
+        // latest per miner price * by dp of swap contract, divide by latest
+        // price per eth. the result will be the price of 1 miner in wei.
+        return (usdPerMiner * 10**uint256(AggregatorV3Interface(priceFeedOracle)
+            .decimals())) / uint256(usdPerETH);
     }
 
     /**
