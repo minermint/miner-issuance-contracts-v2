@@ -24,7 +24,7 @@ import { getERC20Token } from "./test/utils/contracts/periphery";
 dotenv.config();
 
 declare global {
-  var hre: HardhatRuntimeEnvironment;
+  const hre: HardhatRuntimeEnvironment;
 }
 
 task("accounts", "Prints the list of accounts", async (_taskArgs, hre) => {
@@ -57,7 +57,7 @@ task(
 
     console.log("1 Dai -> " + hre.ethers.utils.formatEther(ethPerDai) + " ETH");
 
-    for (var name in testConfig.currencies) {
+    for (const name in testConfig.currencies) {
       const tokensPerMiner = await ExchangeRates.calculateTokensToExactMiner(
         testConfig.currencies[name],
         hre.ethers.utils.parseEther("1")
@@ -92,7 +92,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     goerli: {
-      url: networkConfig["goerli"].url,
+      url: networkConfig.goerli.url,
       accounts: {
         mnemonic: mnemonic,
       },
@@ -102,7 +102,7 @@ const config: HardhatUserConfig = {
         mnemonic: mnemonic,
       },
       forking: {
-        url: networkConfig["hardhat"].url,
+        url: networkConfig.hardhat.url,
       },
     },
   },
