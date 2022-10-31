@@ -78,16 +78,16 @@ describe("MinerIssuance", () => {
 
   describe("instantiation", () => {
     it("should be able to change price feed oracle", async () => {
-      await issuance.changePriceFeedOracle(aggregator.address);
+      await issuance.changePriceFeed(aggregator.address);
 
-      expect(await issuance.priceFeedOracle()).to.be.equal(aggregator.address);
+      expect(await issuance.priceFeed()).to.be.equal(aggregator.address);
     });
 
     it("should NOT be able to change price feed oracle without permission", async () => {
       await expect(
         issuance
           .connect(await ethers.getSigner(alice))
-          .changePriceFeedOracle(aggregator.address)
+          .changePriceFeed(aggregator.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
@@ -125,12 +125,12 @@ describe("MinerIssuance", () => {
       await expect(
         issuance
           .connect(await ethers.getSigner(alice))
-          .changeUniswapRouterAddress(aggregator.address)
+          .changeUniswapRouter(aggregator.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should NOT be able to convert with a zero address price feed", async () => {
-      await issuance.changePriceFeedOracle(ethers.constants.AddressZero);
+      await issuance.changePriceFeed(ethers.constants.AddressZero);
       const amount = ethers.utils.parseEther("0.001");
 
       // set min miner out to 0 as it shouldn't reach any amount validation.
@@ -157,7 +157,7 @@ describe("MinerIssuance", () => {
 
   describe("swaps", () => {
     beforeEach(async () => {
-      await issuance.changePriceFeedOracle(aggregator.address);
+      await issuance.changePriceFeed(aggregator.address);
     });
 
     describe("issuing miner for exact ETH", () => {
@@ -539,7 +539,7 @@ describe("MinerIssuance", () => {
         routerFake.getAmountsOut.returns(amounts);
         routerFake.swapExactTokensForETH.returns(amounts);
 
-        await issuance.changeUniswapRouterAddress(routerFake.address);
+        await issuance.changeUniswapRouter(routerFake.address);
 
         await dai.approve(issuance.address, exactTokensIn);
 
@@ -630,7 +630,7 @@ describe("MinerIssuance", () => {
         routerFake.getAmountsIn.returns(amounts);
         routerFake.swapTokensForExactETH.returns(amounts);
 
-        await issuance.changeUniswapRouterAddress(routerFake.address);
+        await issuance.changeUniswapRouter(routerFake.address);
 
         await dai.approve(issuance.address, maxTokensIn);
 

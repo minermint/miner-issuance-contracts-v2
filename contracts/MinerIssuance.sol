@@ -14,7 +14,7 @@ import "./IUSDMinerPair.sol";
 
 /// @title Issue Miner for Ether and other ERC20 tokens.
 contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
-    address public priceFeedOracle;
+    address public priceFeed;
 
     address public pair;
 
@@ -24,68 +24,72 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
     /**
      * Initializes the Issuance contract.
-     * @param pairAddress address The USD Miner pair.
-     * @param reserveAddress address The MinerReserve contract.
-     * @param uniswapRouterAddress address The Uniswap Router contract.
+     * @param pair_ address The USD Miner pair.
+     * @param reserve_ address The MinerReserve contract.
+     * @param uniswapRouter_ address The Uniswap Router contract.
      */
     constructor(
-        address pairAddress,
-        address reserveAddress,
-        address uniswapRouterAddress
+        address pair_,
+        address reserve_,
+        address uniswapRouter_
     ) {
-        _changePair(pairAddress);
-        _changeReserve(reserveAddress);
-        _changeUniswapRouterAddress(uniswapRouterAddress);
+        _changePair(pair_);
+        _changeReserve(reserve_);
+        _changeUniswapRouter(uniswapRouter_);
     }
 
     /**
      * Sets the USD to Miner pair address.
-     * @param pairAddress address The USD Miner pair address.
+     * @param pair_ address The USD Miner pair address.
      */
-    function changePair(address pairAddress) public onlyOwner {
-        _changePair(pairAddress);
+    function changePair(address pair_) external onlyOwner {
+        _changePair(pair_);
+    }
+
+    function _changePair(address pair_) internal {
+        pair = pair_;
     }
 
     /**
      * Sets the Reserve contract.
-     * @param reserveAddress address The Reserve contract.
+     * @param reserve_ address The Reserve contract.
      */
-    function changeReserve(address reserveAddress) public onlyOwner {
-        _changeReserve(reserveAddress);
+    function changeReserve(address reserve_) external onlyOwner {
+        _changeReserve(reserve_);
+    }
+
+    function _changeReserve(address reserve_) internal {
+        reserve = reserve_;
     }
 
     /**
-     * Changes the Price Feed contract. This will be a valid Chainlink contract. A list of contracts is available at https://docs.chain.link/docs/ethereum-addresses/.
-     * @param priceFeedOracleAddress address The Price Feed contract.
+     * Changes the Price Feed contract. This will be a valid Chainlink
+     * contract. A list of contracts is available at
+     * https://docs.chain.link/docs/ethereum-addresses/.
+     * @param priceFeed_ address The Price Feed contract.
      */
-    function changePriceFeedOracle(address priceFeedOracleAddress)
-        public
-        onlyOwner
-    {
-        priceFeedOracle = priceFeedOracleAddress;
+    function changePriceFeed(address priceFeed_) external onlyOwner {
+        _changePriceFeed(priceFeed_);
     }
 
-    function changeUniswapRouterAddress(address uniswapRouterAddress)
-        public
-        onlyOwner
-    {
-        _changeUniswapRouterAddress(uniswapRouterAddress);
-    }
-
-    function _changePair(address pairAddress) private {
-        pair = pairAddress;
-    }
-
-    function _changeReserve(address reserveAddress) private {
-        reserve = reserveAddress;
-    }
-
-    function _changeUniswapRouterAddress(address uniswapRouterAddress) private {
-        uniswapRouter = uniswapRouterAddress;
+    function _changePriceFeed(address priceFeed_) internal {
+        priceFeed = priceFeed_;
     }
 
     /**
-     * Calculates the price of a single Miner token in Ether. The amount will be returned in Wei, x ether * 10^18 (18 dp).
+     * Change the uniswap router contract.
+     */
+    function changeUniswapRouter(address uniswapRouter_) external onlyOwner {
+        _changeUniswapRouter(uniswapRouter_);
+    }
+
+    function _changeUniswapRouter(address uniswapRouter_) internal {
+        uniswapRouter = uniswapRouter_;
+    }
+
+    /**
+     * Calculates the price of a single Miner token in Ether. The amount will
+     * be returned in Wei, x ether * 10^18 (18 dp).
      * @return uint256 The price off a single Miner token in Ether.
      */
     function calculateETHPerMiner() external view returns (uint256) {
@@ -93,21 +97,19 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     }
 
     function _calculateETHPerMiner() internal view returns (uint256) {
-        require(priceFeedOracle != address(0), "Issuance/no-oracle-set");
+        require(priceFeed != address(0), "Issuance/no-oracle-set");
 
         uint256 usdPerMiner = IUSDMinerPair(pair).getPrice();
 
-        (, int256 usdPerETH, , , ) = AggregatorV3Interface(priceFeedOracle)
+        (, int256 usdPerETH, , , ) = AggregatorV3Interface(priceFeed)
             .latestRoundData();
 
         // latest per miner price * by dp of swap contract, divide by latest
         // price per eth. the result will be the price of 1 miner in wei.
         return
             (usdPerMiner *
-                10 **
-                    uint256(
-                        AggregatorV3Interface(priceFeedOracle).decimals()
-                    )) / uint256(usdPerETH);
+                10**uint256(AggregatorV3Interface(priceFeed).decimals())) /
+            uint256(usdPerETH);
     }
 
     /**
