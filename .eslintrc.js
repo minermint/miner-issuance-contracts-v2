@@ -1,4 +1,7 @@
 module.exports = {
+  globals: {
+    hre: "readonly",
+  },
   settings: {
     node: {
       tryExtensions: [".ts"],
@@ -28,13 +31,19 @@ module.exports = {
     "node/no-missing-import": [
       "error",
       {
-        allowModules: ["hardhat", "dotenv"],
+        allowModules: [
+          "hardhat",
+          "dotenv",
+          "chai",
+          "@defi-wonderland/smock",
+          "lodash.flatmap",
+        ],
       },
     ],
-    "node/no-extraneous-import": [
+    "node/no-unpublished-import": [
       "error",
       {
-        allowModules: ["ethereum-waffle"],
+        allowModules: ["hardhat", "hardhat-deploy"],
       },
     ],
   },

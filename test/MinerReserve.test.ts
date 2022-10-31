@@ -1,12 +1,15 @@
-import { expect } from "chai";
+import chai, { expect } from "chai";
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { Contract } from "ethers";
 import { testConfig } from "../config";
+import dirtyChai from "dirty-chai";
 
 // @ts-ignore
 import type { MinerReserve } from "../typechain-types";
 
 import ArtifactIERC20 from "@openzeppelin/contracts/build/contracts/IERC20.json";
+
+chai.use(dirtyChai);
 
 describe("MinerReserve", () => {
   const ZERO_BALANCE = 0;
@@ -49,15 +52,17 @@ describe("MinerReserve", () => {
         .connect(await ethers.getSigner(alice))
         .grantRole(await reserve.DEFAULT_ADMIN_ROLE(), bob);
 
-      expect(await reserve.hasRole(await reserve.DEFAULT_ADMIN_ROLE(), bob)).to
-        .be.true;
+      expect(
+        await reserve.hasRole(await reserve.DEFAULT_ADMIN_ROLE(), bob)
+      ).to.be.true();
     });
 
     it("should add an issuer", async () => {
       await reserve.grantRole(await reserve.ISSUER_ROLE(), issuer);
 
-      expect(await reserve.hasRole(await reserve.ISSUER_ROLE(), issuer)).to.be
-        .true;
+      expect(
+        await reserve.hasRole(await reserve.ISSUER_ROLE(), issuer)
+      ).to.be.true();
     });
 
     it("should emit a RoleGranted event", async () => {
@@ -73,14 +78,16 @@ describe("MinerReserve", () => {
         .connect(await ethers.getSigner(alice))
         .grantRole(reserve.ISSUER_ROLE(), bob);
 
-      expect(await reserve.hasRole(reserve.ISSUER_ROLE(), bob)).to.be.true;
+      expect(await reserve.hasRole(reserve.ISSUER_ROLE(), bob)).to.be.true();
     });
 
     it("should remove an issuer", async () => {
       await reserve.grantRole(await reserve.ISSUER_ROLE(), issuer);
       await reserve.revokeRole(await reserve.ISSUER_ROLE(), issuer);
 
-      expect(await reserve.hasRole(reserve.ISSUER_ROLE(), issuer)).to.be.false;
+      expect(
+        await reserve.hasRole(reserve.ISSUER_ROLE(), issuer)
+      ).to.be.false();
     });
 
     it("should emit a RoleRevoked event", async () => {
@@ -145,7 +152,7 @@ describe("MinerReserve", () => {
         reserve
           .connect(await ethers.getSigner(issuer))
           .issue(alice, ZERO_BALANCE)
-      ).to.revertedWith("MinerReserve/amount-invalid");
+      ).to.revertedWith("Reserve/amount-invalid");
     });
 
     it("should NOT exceed issuing more tokens than are available", async () => {
@@ -153,7 +160,7 @@ describe("MinerReserve", () => {
         reserve
           .connect(await ethers.getSigner(issuer))
           .issue(alice, supply.add(1))
-      ).to.revertedWith("MinerReserve/balance-exceeded");
+      ).to.revertedWith("Reserve/balance-exceeded");
     });
   });
 });

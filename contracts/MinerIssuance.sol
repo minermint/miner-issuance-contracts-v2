@@ -23,7 +23,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     address public uniswapRouter;
 
     /**
-     * Initializes the MinerIssuance contract.
+     * Initializes the Issuance contract.
      * @param pairAddress address The USD Miner pair.
      * @param reserveAddress address The MinerReserve contract.
      * @param uniswapRouterAddress address The Uniswap Router contract.
@@ -65,6 +65,13 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
         priceFeedOracle = priceFeedOracleAddress;
     }
 
+    function changeUniswapRouterAddress(address uniswapRouterAddress)
+        public
+        onlyOwner
+    {
+        _changeUniswapRouterAddress(uniswapRouterAddress);
+    }
+
     function _changePair(address pairAddress) private {
         pair = pairAddress;
     }
@@ -86,7 +93,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
     }
 
     function _calculateETHPerMiner() internal view returns (uint256) {
-        require(priceFeedOracle != address(0), "MinerIssuance/no-oracle-set");
+        require(priceFeedOracle != address(0), "Issuance/no-oracle-set");
 
         uint256 usdPerMiner = IUSDMinerPair(pair).getPrice();
 
@@ -95,8 +102,12 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         // latest per miner price * by dp of swap contract, divide by latest
         // price per eth. the result will be the price of 1 miner in wei.
-        return (usdPerMiner * 10**uint256(AggregatorV3Interface(priceFeedOracle)
-            .decimals())) / uint256(usdPerETH);
+        return
+            (usdPerMiner *
+                10 **
+                    uint256(
+                        AggregatorV3Interface(priceFeedOracle).decimals()
+                    )) / uint256(usdPerETH);
     }
 
     /**
@@ -157,18 +168,16 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
         payable
         returns (uint256)
     {
-        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
+        // solhint-disable-next-line not-rely-on-time
+        require(deadline >= block.timestamp, "Issuance/deadline-expired");
 
         uint256 ethIn = msg.value;
 
-        require(ethIn > 0, "MinerIssuance/deposit-invalid");
+        require(ethIn > 0, "Issuance/deposit-invalid");
 
         uint256 minerOut = _calculateETHToMiner(ethIn);
 
-        require(
-            minerOut >= minMinerOut,
-            "MinerIssuance/insufficient-amount-out"
-        );
+        require(minerOut >= minMinerOut, "Issuance/insufficient-amount-out");
 
         _asyncTransfer(owner(), ethIn);
 
@@ -195,25 +204,27 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
         nonReentrant
         returns (uint256)
     {
-        require(deadline >= block.timestamp, "MinerIssuance/deadline-expired");
+        // solhint-disable-next-line not-rely-on-time
+        require(deadline >= block.timestamp, "Issuance/deadline-expired");
 
         uint256 ethIn = msg.value;
 
-        require(ethIn > 0, "MinerIssuance/deposit-invalid");
+        require(ethIn > 0, "Issuance/deposit-invalid");
 
         uint256 requiredETHIn = _calculateMinerToETH(exactMinerOut);
 
-        require(requiredETHIn <= ethIn, "MinerIssuance/excessive-amount-in");
+        require(requiredETHIn <= ethIn, "Issuance/excessive-amount-in");
 
         _asyncTransfer(owner(), requiredETHIn);
 
         // refund excess ETH.
-        if (ethIn >= requiredETHIn) {
+        if (ethIn > requiredETHIn) {
+            // solhint-disable-next-line avoid-low-level-calls
             (bool success, ) = address(msg.sender).call{
                 value: ethIn - requiredETHIn
             }(new bytes(0));
 
-            require(success, "MinerIssuance/cannot-refund-ether");
+            require(success, "Issuance/cannot-refund-ether");
         }
 
         MinerReserve(reserve).issue(_msgSender(), exactMinerOut);
@@ -252,7 +263,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         require(
             expectedMinerOut >= minMinerOut,
-            "MinerIssuance/insufficient-amount-out"
+            "Issuance/insufficient-amount-out"
         );
 
         TransferHelper.safeTransferFrom(
@@ -278,7 +289,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         require(
             balanceAfter == balanceBefore + amounts[amounts.length - 1],
-            "MinerIssuance/invalid-eth-amount-transferred"
+            "Issuance/invalid-eth-amount"
         );
 
         // the amount of eth received from the swap may be more than the min.
@@ -320,7 +331,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         require(
             requiredTokensIn <= maxAmountIn,
-            "MinerIssuance/excessive-amount-in"
+            "Issuance/excessive-amount-in"
         );
 
         TransferHelper.safeTransferFrom(
@@ -346,7 +357,7 @@ contract MinerIssuance is PullPayment, Ownable, ReentrancyGuard {
 
         require(
             balanceAfter == balanceBefore + amounts[amounts.length - 1],
-            "MinerIssuance/invalid-eth-amount-transferred"
+            "Issuance/invalid-eth-amount"
         );
 
         MinerReserve(reserve).issue(_msgSender(), exactMinerOut);

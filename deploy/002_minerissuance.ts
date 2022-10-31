@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       networkConfig[network.name].priceUSDMiner,
       reserve.address,
-      networkConfig[network.name].uniswap_v2_router_02,
+      networkConfig[network.name].uniswapV2Router02,
     ],
   });
 

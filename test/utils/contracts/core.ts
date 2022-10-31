@@ -8,10 +8,9 @@ import type { IUSDMinerPair } from "../../../typechain-types";
 export const getPair = async (): Promise<IUSDMinerPair> => {
   const artifact = await hre.deployments.getArtifact("IUSDMinerPair");
 
-  return <IUSDMinerPair>(await hre.ethers.getContractAt(
-    artifact.abi,
-    testConfig.priceUSDMiner
-  ));
+  return <IUSDMinerPair>(
+    await hre.ethers.getContractAt(artifact.abi, testConfig.priceUSDMiner)
+  );
 };
 
 export const getMiner = (): Contract => {

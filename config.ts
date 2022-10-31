@@ -13,7 +13,7 @@ export const developmentChains: string[] = ["hardhat", "localhost"];
 export interface networkConfigItem {
   url: string;
   miner: string;
-  uniswap_v2_router_02: string;
+  uniswapV2Router02: string;
   aggregatorV3ETHUSD: string;
   priceUSDMiner: string;
 }
@@ -26,14 +26,14 @@ export const networkConfig: networkConfigInfo = {
   goerli: {
     url: process.env.TESTNET_URL || "",
     miner: "0x20c23F279CCD0c804a9a89f78b57b3Ba2f4B1698",
-    uniswap_v2_router_02: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    uniswapV2Router02: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
     aggregatorV3ETHUSD: "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e",
     priceUSDMiner: "0xEEE8B4522617FE2f992351CB7C34568A77042d1d",
   },
   hardhat: {
     // url: process.env.MAINNET_URL || "",
     // miner: "0xC9CC2cF97A3a21Fcd337658F6898A7860521A819",
-    uniswap_v2_router_02: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    uniswapV2Router02: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
     // aggregatorV3ETHUSD: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
     url: process.env.TESTNET_URL || "",
     miner: "0x20c23F279CCD0c804a9a89f78b57b3Ba2f4B1698",
@@ -53,7 +53,7 @@ export interface testConfigInfo {
 
 export const testConfig: testConfigInfo = {
   miner: networkConfig.hardhat.miner,
-  uniswapV2Router02: networkConfig.hardhat.uniswap_v2_router_02,
+  uniswapV2Router02: networkConfig.hardhat.uniswapV2Router02,
   currencies: {
     // dai: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
     // usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",

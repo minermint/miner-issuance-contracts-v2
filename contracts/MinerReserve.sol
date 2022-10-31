@@ -29,10 +29,10 @@ contract MinerReserve is AccessControl {
         external
         onlyRole(ISSUER_ROLE)
     {
-        require(amount > 0, "MinerReserve/amount-invalid");
+        require(amount > 0, "Reserve/amount-invalid");
         require(
             IERC20(_token).balanceOf(address(this)) >= amount,
-            "MinerReserve/balance-exceeded"
+            "Reserve/balance-exceeded"
         );
 
         IERC20(_token).safeTransfer(recipient, amount);

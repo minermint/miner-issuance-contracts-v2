@@ -95,7 +95,7 @@ const getTradingPairs = async (
 
   const pairs = [];
 
-  for (var i = 0; i < filteredPairs.length; i++) {
+  for (let i = 0; i < filteredPairs.length; i++) {
     // strip out pairs without a reserve, I.e. unfunded pools.
     const pairAddress = Uniswap.Pair.getAddress(
       filteredPairs[i][0],
